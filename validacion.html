@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Validación · SGR</title>
+<meta name="description" content="Prototipo del Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body data-pagina="validacion" data-titulo="Validación">
+
+<div class="encabezado-pagina">
+    <h1>Bandeja de validación</h1>
+    <p>Revisión de las evidencias pendientes. Solo la aprobación incorpora la actividad al avance del indicador, y lo hace una sola vez.</p>
+    <div class="trazabilidad">CU-10, CU-20 · RF-013, RF-014 · RN-009</div>
+</div>
+
+
+<div class="aviso alerta">
+    <i class="bi bi-shield-exclamation"></i>
+    <div>Un verificador no puede aprobar evidencias cargadas por él mismo. El intento queda registrado en la auditoría.</div>
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Evidencias por revisar</h2>
+        <span class="espacio"></span>
+        <span class="ruta" id="conteo"></span>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Código</th><th>Actividad</th><th>Funcionario</th><th>Fecha</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody id="tabla"></tbody>
+        </table>
+    </div>
+    <div id="sinPendientes" style="display:none">
+        <div class="vacio">
+            <i class="bi bi-check2-circle"></i>
+            <h3>No hay evidencias pendientes</h3>
+            <p>Todas las evidencias del período fueron revisadas.</p>
+        </div>
+    </div>
+</div>
+
+<div class="telon" id="modalDecision" role="dialog" aria-modal="true" aria-labelledby="tituloDecision">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloDecision">Validar evidencia</h2>
+            <span class="espacio"></span>
+            <button class="cerrar" onclick="SGR.cerrarModal('modalDecision')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form id="formDecision" novalidate>
+            <div class="modal-cuerpo">
+                <p>Evidencia <strong class="codigo" id="codigoRevision"></strong> — <span id="descRevision"></span></p>
+                <div class="campo">
+                    <label for="resultado">Resultado <span class="obligatorio">*</span></label>
+                    <select id="resultado" required>
+                        <option value="">Seleccione</option>
+                        <option value="APROBADA">Aprobar</option>
+                        <option value="RECHAZADA">Rechazar</option>
+                        <option value="CORRECCION">Solicitar corrección</option>
+                    </select>
+                </div>
+                <div class="campo">
+                    <label for="observacion">Observación <span class="obligatorio" id="marcaObs" style="display:none">*</span></label>
+                    <textarea id="observacion" placeholder="Motivo de la decisión"></textarea>
+                    <span class="ayuda" id="ayudaObs">Obligatoria al rechazar o solicitar corrección.</span>
+                </div>
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" onclick="SGR.cerrarModal('modalDecision')">Cancelar</button>
+                <button type="submit" class="boton principal">Guardar decisión</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script src="assets/js/shell.js"></script>
+<script>
+
+document.addEventListener('shell:listo', () => {
+    const pendientes = SGR.datos.actividades.filter(a =>
+        a.evidencia === 'PENDIENTE' || a.evidencia === 'RECHAZADA');
+
+    document.getElementById('conteo').textContent = `${pendientes.length} evidencias`;
+    document.getElementById('sinPendientes').style.display = pendientes.length ? 'none' : 'block';
+
+    document.getElementById('tabla').innerHTML = pendientes.map(a => `
+        <tr>
+            <td><span class="codigo">${a.codigo}</span></td>
+            <td>${a.descripcion}</td>
+            <td>${a.funcionario}</td>
+            <td>${SGR.fecha(a.fecha)}</td>
+            <td>${SGR.etiquetaEstado(a.evidencia)}</td>
+            <td class="acciones">
+                <button class="boton pequeno revisar" data-codigo="${a.codigo}" data-desc="${a.descripcion}">
+                    <i class="bi bi-patch-check"></i>Revisar
+                </button>
+            </td>
+        </tr>`).join('');
+
+    document.querySelectorAll('.revisar').forEach(b => {
+        b.addEventListener('click', () => {
+            document.getElementById('codigoRevision').textContent = b.dataset.codigo;
+            document.getElementById('descRevision').textContent = b.dataset.desc;
+            SGR.abrirModal('modalDecision');
+        });
+    });
+
+    const resultado = document.getElementById('resultado');
+    const observacion = document.getElementById('observacion');
+
+    resultado.addEventListener('change', () => {
+        const exige = resultado.value === 'RECHAZADA' || resultado.value === 'CORRECCION';
+        observacion.toggleAttribute('required', exige);
+        document.getElementById('marcaObs').style.display = exige ? 'inline' : 'none';
+    });
+
+    const form = document.getElementById('formDecision');
+    Validador.activar(form);
+
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        if (!Validador.validarFormulario(form)) {
+            SGR.notificar('Revise los campos marcados', 'bi-exclamation-triangle');
+            return;
+        }
+        const texto = resultado.value === 'APROBADA'
+            ? 'Evidencia aprobada. El avance del indicador fue recalculado'
+            : 'Decisión registrada. La actividad no aporta al avance';
+        SGR.cerrarModal('modalDecision');
+        SGR.notificar(texto);
+        form.reset();
+    });
+});
+
+</script>
+</body>
+</html>

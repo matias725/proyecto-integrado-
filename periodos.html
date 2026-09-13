@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Períodos · SGR</title>
+<meta name="description" content="Prototipo del Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body data-pagina="periodos" data-titulo="Períodos">
+
+<div class="encabezado-pagina">
+    <h1>Períodos de medición</h1>
+    <p>Ventanas temporales sobre las que se calculan metas, avances y semáforos. Los umbrales son parámetros del período, no valores fijos del sistema.</p>
+    <div class="trazabilidad">CU-05 · RF-005, RF-038 · RN-006, RN-008, RN-013</div>
+</div>
+
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Períodos</h2>
+        <span class="espacio"></span>
+        <button class="boton principal" id="btnPeriodo"><i class="bi bi-plus-lg"></i>Crear período</button>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Período</th><th>Inicio</th><th>Término</th><th class="num">Días</th>
+                    <th class="num">Verde</th><th class="num">Ámbar</th><th class="num">Tope</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody id="tabla"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="telon" id="modalPeriodo" role="dialog" aria-modal="true" aria-labelledby="tituloPeriodo">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloPeriodo">Crear período</h2>
+            <span class="espacio"></span>
+            <button class="cerrar" onclick="SGR.cerrarModal('modalPeriodo')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form id="formPeriodo" novalidate>
+            <div class="modal-cuerpo">
+                <div class="campo">
+                    <label for="nombreP">Nombre <span class="obligatorio">*</span></label>
+                    <input type="text" id="nombreP" required data-largo-min="5" placeholder="Trimestre 2026-Q4">
+                </div>
+                <div class="rejilla rejilla-2">
+                    <div class="campo">
+                        <label for="inicioP">Fecha de inicio <span class="obligatorio">*</span></label>
+                        <input type="date" id="inicioP" required>
+                    </div>
+                    <div class="campo">
+                        <label for="terminoP">Fecha de término <span class="obligatorio">*</span></label>
+                        <input type="date" id="terminoP" required>
+                        <span class="mensaje-error"></span>
+                    </div>
+                </div>
+                <div class="aviso info" id="calculoDias" style="display:none">
+                    <i class="bi bi-calendar-check"></i>
+                    <div id="textoDias"></div>
+                </div>
+                <h3 style="margin:18px 0 10px">Umbrales del período</h3>
+                <div class="rejilla rejilla-3">
+                    <div class="campo">
+                        <label for="verdeP">Verde desde (%)</label>
+                        <input type="number" id="verdeP" value="100" data-min="1" data-max="200">
+                    </div>
+                    <div class="campo">
+                        <label for="ambarP">Ámbar desde (%)</label>
+                        <input type="number" id="ambarP" value="60" data-min="1" data-max="200">
+                    </div>
+                    <div class="campo">
+                        <label for="topeP">Tope de cumplimiento (%)</label>
+                        <input type="number" id="topeP" value="150" data-min="100" data-max="300">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" onclick="SGR.cerrarModal('modalPeriodo')">Cancelar</button>
+                <button type="submit" class="boton principal">Crear período</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script src="assets/js/shell.js"></script>
+<script>
+
+document.addEventListener('shell:listo', () => {
+    function pintar() {
+        document.getElementById('tabla').innerHTML = SGR.datos.periodos.map(p => `
+            <tr>
+                <td><strong>${p.nombre}</strong></td>
+                <td>${SGR.fecha(p.inicio)}</td>
+                <td>${SGR.fecha(p.termino)}</td>
+                <td class="num">${p.dias}</td>
+                <td class="num">${p.umbralVerde} %</td>
+                <td class="num">${p.umbralAmbar} %</td>
+                <td class="num">${p.tope} %</td>
+                <td>${SGR.etiquetaEstado(p.estado)}</td>
+                <td class="acciones">
+                    ${p.estado === 'ABIERTO'
+                        ? '<button class="boton pequeno cerrarP">Cerrar período</button>'
+                        : '<button class="boton pequeno reabrir">Solicitar reapertura</button>'}
+                </td>
+            </tr>`).join('');
+
+        document.querySelectorAll('.cerrarP').forEach(b => b.addEventListener('click', () =>
+            SGR.notificar('Al cerrar, los resultados quedan congelados y no admiten cambios', 'bi-lock')));
+        document.querySelectorAll('.reabrir').forEach(b => b.addEventListener('click', () =>
+            SGR.notificar('La reapertura requiere autorización del administrador y queda auditada', 'bi-shield-lock')));
+    }
+
+    const inicio = document.getElementById('inicioP');
+    const termino = document.getElementById('terminoP');
+
+    function calcularDias() {
+        const campo = termino.closest('.campo');
+        if (!inicio.value || !termino.value) return;
+
+        if (termino.value < inicio.value) {
+            Validador.marcarError(termino, 'La fecha de término no puede ser anterior al inicio');
+            document.getElementById('calculoDias').style.display = 'none';
+            return;
+        }
+        Validador.limpiarError(termino);
+        const dias = Math.floor((new Date(termino.value) - new Date(inicio.value)) / 86400000) + 1;
+        document.getElementById('calculoDias').style.display = 'flex';
+        document.getElementById('textoDias').innerHTML =
+            `El período contempla <strong>${dias} días</strong>. El avance diario esperado será de ${(100 / dias).toFixed(2)} % .`;
+    }
+
+    const form = document.getElementById('formPeriodo');
+    Validador.activar(form);
+
+    /* Estas escuchas se registran despues de Validador.activar para que la
+       comprobacion cruzada de fechas prevalezca sobre la validacion por campo. */
+    inicio.addEventListener('change', calcularDias);
+    termino.addEventListener('change', calcularDias);
+    document.getElementById('btnPeriodo').addEventListener('click', () => SGR.abrirModal('modalPeriodo'));
+
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        let ok = Validador.validarFormulario(form);
+
+        if (termino.value && inicio.value && termino.value < inicio.value) {
+            Validador.marcarError(termino, 'La fecha de término no puede ser anterior al inicio');
+            ok = false;
+        }
+        const verde = Number(document.getElementById('verdeP').value);
+        const ambar = Number(document.getElementById('ambarP').value);
+        if (ambar >= verde) {
+            Validador.marcarError(document.getElementById('ambarP'), 'El umbral ámbar debe ser menor que el verde');
+            ok = false;
+        }
+        if (!ok) { SGR.notificar('Revise los campos marcados', 'bi-exclamation-triangle'); return; }
+
+        const dias = Math.floor((new Date(termino.value) - new Date(inicio.value)) / 86400000) + 1;
+        SGR.datos.periodos.unshift({
+            id: SGR.datos.periodos.length + 1,
+            nombre: document.getElementById('nombreP').value,
+            inicio: inicio.value, termino: termino.value, dias, estado: 'ABIERTO',
+            umbralVerde: verde, umbralAmbar: ambar, umbralColectivo: 80,
+            tope: Number(document.getElementById('topeP').value)
+        });
+        SGR.cerrarModal('modalPeriodo');
+        form.reset();
+        pintar();
+        SGR.notificar('Período creado');
+    });
+
+    pintar();
+});
+
+</script>
+</body>
+</html>

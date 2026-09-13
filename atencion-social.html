@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atención social · SGR</title>
+<meta name="description" content="Prototipo del Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body data-pagina="atencion-social" data-titulo="Atención social">
+
+<div class="encabezado-pagina">
+    <h1>Casos de atención social</h1>
+    <p>Cada persona usuaria mantiene un único caso. Se admiten hasta tres gestiones por caso, conservando su secuencia completa.</p>
+    <div class="trazabilidad">CU-08 · RF-015 · RN-012</div>
+</div>
+
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Casos registrados</h2>
+        <span class="espacio"></span>
+        <button class="boton principal" id="btnCaso"><i class="bi bi-person-plus"></i>Registrar atención</button>
+    </div>
+    <div class="panel-cuerpo" id="casos"></div>
+</div>
+
+<div class="telon" id="modalGestion" role="dialog" aria-modal="true" aria-labelledby="tituloGestion">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloGestion">Registrar atención</h2>
+            <span class="espacio"></span>
+            <button class="cerrar" onclick="SGR.cerrarModal('modalGestion')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form id="formGestion" novalidate>
+            <div class="modal-cuerpo">
+                <div class="campo">
+                    <label for="rutUsuario">RUT de la persona usuaria <span class="obligatorio">*</span></label>
+                    <input type="text" id="rutUsuario" required data-valida="rut" placeholder="12.345.678-5">
+                    <span class="ayuda">Si el RUT ya tiene un caso abierto, la atención se agrega a ese caso.</span>
+                </div>
+                <div id="avisoCaso"></div>
+                <div class="campo">
+                    <label for="nombreUsuario">Nombre <span class="obligatorio">*</span></label>
+                    <input type="text" id="nombreUsuario" required data-largo-min="5">
+                </div>
+                <div class="rejilla rejilla-2">
+                    <div class="campo">
+                        <label for="tipoGestion">Tipo de atención <span class="obligatorio">*</span></label>
+                        <select id="tipoGestion" required><option value="">Seleccione</option></select>
+                    </div>
+                    <div class="campo">
+                        <label for="fechaGestion">Fecha <span class="obligatorio">*</span></label>
+                        <input type="date" id="fechaGestion" required data-valida="fechaPasada" value="2026-09-12">
+                    </div>
+                </div>
+                <div class="campo">
+                    <label for="resultadoGestion">Resultado <span class="obligatorio">*</span></label>
+                    <textarea id="resultadoGestion" required data-largo-min="10"></textarea>
+                </div>
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" onclick="SGR.cerrarModal('modalGestion')">Cancelar</button>
+                <button type="submit" class="boton principal">Registrar atención</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script src="assets/js/shell.js"></script>
+<script>
+
+document.addEventListener('shell:listo', () => {
+    function pintar() {
+        document.getElementById('casos').innerHTML = SGR.datos.casosSociales.map(c => {
+            const completo = c.gestiones.length >= 3;
+            const gestiones = c.gestiones.map(g => `
+                <tr>
+                    <td class="num">${g.numero}</td>
+                    <td>${SGR.fecha(g.fecha)}</td>
+                    <td>${g.tipo}</td>
+                    <td>${g.resultado}</td>
+                </tr>`).join('');
+
+            return `
+            <div class="panel" style="margin-bottom:16px">
+                <div class="panel-cabecera">
+                    <div>
+                        <h3>${c.nombre}</h3>
+                        <span class="ruta"><span class="codigo">${c.rut}</span> · ${c.telefono} · abierto el ${SGR.fecha(c.apertura)}</span>
+                    </div>
+                    <span class="espacio"></span>
+                    <span class="estado ${completo ? 'pendiente' : 'neutro'}">${c.gestiones.length} de 3 gestiones</span>
+                </div>
+                <div class="desplazable">
+                    <table class="tabla">
+                        <thead><tr><th style="width:60px">N°</th><th style="width:120px">Fecha</th><th style="width:220px">Tipo</th><th>Resultado</th></tr></thead>
+                        <tbody>${gestiones}</tbody>
+                    </table>
+                </div>
+                ${completo ? `
+                <div class="panel-pie">
+                    <i class="bi bi-info-circle"></i>
+                    <span class="ruta">Este caso alcanzó el máximo de tres gestiones. Para continuar la atención debe abrirse un caso nuevo.</span>
+                </div>` : ''}
+            </div>`;
+        }).join('');
+    }
+
+    SGR.datos.tiposActividad.filter(t => t.area === 'Social')
+        .forEach(t => document.getElementById('tipoGestion').add(new Option(t.nombre, t.nombre)));
+
+    const form = document.getElementById('formGestion');
+    Validador.activar(form);
+    document.getElementById('btnCaso').addEventListener('click', () => SGR.abrirModal('modalGestion'));
+
+    const rut = document.getElementById('rutUsuario');
+    rut.addEventListener('blur', () => {
+        const caso = SGR.datos.casosSociales.find(c => c.rut === rut.value.trim());
+        const aviso = document.getElementById('avisoCaso');
+        if (!caso) { aviso.innerHTML = ''; return; }
+
+        document.getElementById('nombreUsuario').value = caso.nombre;
+        aviso.innerHTML = caso.gestiones.length >= 3
+            ? `<div class="aviso error"><i class="bi bi-x-octagon"></i>
+                 <div>Este caso ya tiene tres gestiones registradas. No es posible agregar una cuarta.</div></div>`
+            : `<div class="aviso info"><i class="bi bi-person-check"></i>
+                 <div>Caso existente. Esta será la gestión ${caso.gestiones.length + 1} de 3.</div></div>`;
+    });
+
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        if (!Validador.validarFormulario(form)) {
+            SGR.notificar('Revise los campos marcados', 'bi-exclamation-triangle');
+            return;
+        }
+        const valor = rut.value.trim();
+        let caso = SGR.datos.casosSociales.find(c => c.rut === valor);
+
+        if (caso && caso.gestiones.length >= 3) {
+            SGR.notificar('El caso alcanzó el máximo de tres gestiones', 'bi-x-circle');
+            return;
+        }
+        if (!caso) {
+            caso = { id: SGR.datos.casosSociales.length + 1, rut: valor,
+                     nombre: document.getElementById('nombreUsuario').value,
+                     telefono: '—', delegacion: SGR.sesion().delegacion,
+                     apertura: document.getElementById('fechaGestion').value,
+                     estado: 'ABIERTO', gestiones: [] };
+            SGR.datos.casosSociales.push(caso);
+        }
+        caso.gestiones.push({
+            numero: caso.gestiones.length + 1,
+            fecha: document.getElementById('fechaGestion').value,
+            tipo: document.getElementById('tipoGestion').value,
+            resultado: document.getElementById('resultadoGestion').value
+        });
+
+        SGR.cerrarModal('modalGestion');
+        form.reset();
+        document.getElementById('avisoCaso').innerHTML = '';
+        pintar();
+        SGR.notificar('Atención registrada en el caso');
+    });
+
+    pintar();
+});
+
+</script>
+</body>
+</html>

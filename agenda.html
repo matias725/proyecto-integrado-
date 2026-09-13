@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agenda colectiva · SGR</title>
+<meta name="description" content="Prototipo del Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body data-pagina="agenda" data-titulo="Agenda colectiva">
+
+<div class="encabezado-pagina">
+    <h1>Agenda colectiva</h1>
+    <p>Compromisos adquiridos con vecinos y organizaciones. Cada cambio de estado conserva su autor, su fecha y su observación.</p>
+    <div class="trazabilidad">CU-11, CU-12 · RF-016 a RF-019 · HU-02, HU-13, HU-14</div>
+</div>
+
+
+<div class="rejilla rejilla-4" id="resumen"></div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Compromisos</h2>
+        <span class="espacio"></span>
+        <button class="boton principal" id="btnNuevo"><i class="bi bi-plus-lg"></i>Registrar compromiso</button>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Solicitante</th><th>Compromiso</th><th>Territorio</th><th>Responsable</th><th>Fecha</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody id="tabla"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="telon" id="modalNuevo" role="dialog" aria-modal="true" aria-labelledby="tituloNuevo">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloNuevo">Registrar compromiso</h2>
+            <span class="espacio"></span>
+            <button class="cerrar" onclick="SGR.cerrarModal('modalNuevo')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form id="formNuevo" novalidate>
+            <div class="modal-cuerpo">
+                <div class="campo">
+                    <label for="solicitante">Solicitante <span class="obligatorio">*</span></label>
+                    <input type="text" id="solicitante" required data-largo-min="4" placeholder="Vecino u organización">
+                </div>
+                <div class="campo">
+                    <label for="descripcionC">Compromiso adquirido <span class="obligatorio">*</span></label>
+                    <textarea id="descripcionC" required data-largo-min="10"></textarea>
+                </div>
+                <div class="rejilla rejilla-2">
+                    <div class="campo">
+                        <label for="territorio">Territorio <span class="obligatorio">*</span></label>
+                        <input type="text" id="territorio" required>
+                    </div>
+                    <div class="campo">
+                        <label for="responsable">Responsable <span class="obligatorio">*</span></label>
+                        <select id="responsable" required><option value="">Seleccione</option></select>
+                    </div>
+                </div>
+                <div class="campo">
+                    <label for="fechaC">Fecha comprometida <span class="obligatorio">*</span></label>
+                    <input type="date" id="fechaC" required>
+                    <span class="ayuda">Si la fecha ya pasó, el compromiso aparecerá como vencido.</span>
+                </div>
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" onclick="SGR.cerrarModal('modalNuevo')">Cancelar</button>
+                <button type="submit" class="boton principal">Registrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="telon" id="modalEstado" role="dialog" aria-modal="true" aria-labelledby="tituloEstado">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloEstado">Actualizar estado</h2>
+            <span class="espacio"></span>
+            <button class="cerrar" onclick="SGR.cerrarModal('modalEstado')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form id="formEstado" novalidate>
+            <div class="modal-cuerpo">
+                <p id="resumenCompromiso"></p>
+                <div class="campo">
+                    <label for="estadoNuevo">Estado nuevo <span class="obligatorio">*</span></label>
+                    <select id="estadoNuevo" required></select>
+                    <span class="ayuda" id="ayudaTransicion"></span>
+                </div>
+                <div class="campo">
+                    <label for="observacionE">Observación <span class="obligatorio">*</span></label>
+                    <textarea id="observacionE" required data-largo-min="5"></textarea>
+                </div>
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" onclick="SGR.cerrarModal('modalEstado')">Cancelar</button>
+                <button type="submit" class="boton principal">Guardar cambio</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script src="assets/js/shell.js"></script>
+<script>
+
+document.addEventListener('shell:listo', () => {
+    const HOY = '2026-09-12';
+    const etiquetas = { INGRESADO: 'Ingresado', PENDIENTE: 'Pendiente', EN_PROCESO: 'En proceso', REALIZADO: 'Realizado' };
+
+    const cuenta = (e) => SGR.datos.compromisos.filter(c => c.estado === e).length;
+    const vencidos = SGR.datos.compromisos.filter(c => c.estado !== 'REALIZADO' && c.fecha < HOY).length;
+
+    document.getElementById('resumen').innerHTML = `
+        <div class="panel dato"><span class="etiqueta">Pendientes</span><span class="valor">${cuenta('PENDIENTE')}</span></div>
+        <div class="panel dato"><span class="etiqueta">En proceso</span><span class="valor">${cuenta('EN_PROCESO')}</span></div>
+        <div class="panel dato verde"><span class="etiqueta">Realizados</span><span class="valor">${cuenta('REALIZADO')}</span></div>
+        <div class="panel dato ${vencidos ? 'rojo' : ''}"><span class="etiqueta">Vencidos</span><span class="valor">${vencidos}</span>
+            <span class="apoyo">Fecha cumplida sin cierre</span></div>`;
+
+    function pintar() {
+        document.getElementById('tabla').innerHTML = SGR.datos.compromisos.map(c => {
+            const vencido = c.estado !== 'REALIZADO' && c.fecha < HOY;
+            return `<tr>
+                <td>${c.solicitante}</td>
+                <td>${c.descripcion}</td>
+                <td>${c.territorio}<div class="ruta">${c.delegacion}</div></td>
+                <td>${c.responsable}</td>
+                <td>${SGR.fecha(c.fecha)} ${vencido ? '<span class="estado error">Vencido</span>' : ''}</td>
+                <td>${SGR.etiquetaEstado(c.estado)}</td>
+                <td class="acciones">
+                    ${c.estado === 'REALIZADO' ? '' :
+                    `<button class="boton pequeno cambiar" data-id="${c.id}"><i class="bi bi-arrow-repeat"></i>Estado</button>`}
+                </td>
+            </tr>`;
+        }).join('');
+
+        document.querySelectorAll('.cambiar').forEach(b => {
+            b.addEventListener('click', () => {
+                const c = SGR.datos.compromisos.find(x => x.id === Number(b.dataset.id));
+                document.getElementById('resumenCompromiso').innerHTML =
+                    `<strong>${c.descripcion}</strong><br><span class="ruta">Estado actual: ${etiquetas[c.estado]}</span>`;
+
+                const select = document.getElementById('estadoNuevo');
+                select.innerHTML = '<option value="">Seleccione</option>';
+                TransicionesCompromiso[c.estado].forEach(e => select.add(new Option(etiquetas[e], e)));
+                document.getElementById('ayudaTransicion').textContent =
+                    `Desde "${etiquetas[c.estado]}" solo se permite avanzar a: ${TransicionesCompromiso[c.estado].map(e => etiquetas[e]).join(', ')}.`;
+                document.getElementById('formEstado').dataset.id = c.id;
+                SGR.abrirModal('modalEstado');
+            });
+        });
+    }
+
+    SGR.datos.usuarios.forEach(u => document.getElementById('responsable').add(new Option(u.nombre, u.nombre)));
+
+    const formNuevo = document.getElementById('formNuevo');
+    Validador.activar(formNuevo);
+    document.getElementById('btnNuevo').addEventListener('click', () => SGR.abrirModal('modalNuevo'));
+
+    formNuevo.addEventListener('submit', e => {
+        e.preventDefault();
+        if (!Validador.validarFormulario(formNuevo)) {
+            SGR.notificar('Revise los campos marcados', 'bi-exclamation-triangle');
+            return;
+        }
+        SGR.datos.compromisos.push({
+            id: SGR.datos.compromisos.length + 1,
+            solicitante: document.getElementById('solicitante').value,
+            territorio: document.getElementById('territorio').value,
+            delegacion: SGR.sesion().delegacion,
+            descripcion: document.getElementById('descripcionC').value,
+            responsable: document.getElementById('responsable').value,
+            fecha: document.getElementById('fechaC').value,
+            estado: 'INGRESADO'
+        });
+        SGR.cerrarModal('modalNuevo');
+        formNuevo.reset();
+        pintar();
+        SGR.notificar('Compromiso registrado en la agenda');
+    });
+
+    const formEstado = document.getElementById('formEstado');
+    Validador.activar(formEstado);
+
+    formEstado.addEventListener('submit', e => {
+        e.preventDefault();
+        if (!Validador.validarFormulario(formEstado)) {
+            SGR.notificar('Revise los campos marcados', 'bi-exclamation-triangle');
+            return;
+        }
+        const c = SGR.datos.compromisos.find(x => x.id === Number(formEstado.dataset.id));
+        const nuevo = document.getElementById('estadoNuevo').value;
+
+        if (!TransicionesCompromiso.permitida(c.estado, nuevo)) {
+            SGR.notificar('Transición no permitida desde el estado actual', 'bi-x-circle');
+            return;
+        }
+        c.estado = nuevo;
+        SGR.cerrarModal('modalEstado');
+        formEstado.reset();
+        pintar();
+        SGR.notificar('Estado actualizado y registrado en el historial');
+    });
+
+    pintar();
+});
+
+</script>
+</body>
+</html>

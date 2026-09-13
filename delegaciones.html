@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delegaciones · SGR</title>
+<meta name="description" content="Prototipo del Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body data-pagina="delegaciones" data-titulo="Delegaciones">
+
+<div class="encabezado-pagina">
+    <h1>Delegaciones municipales</h1>
+    <p>Unidades territoriales sobre las que opera el sistema. Una delegación con funcionarios activos no puede desactivarse.</p>
+    <div class="trazabilidad">CU-02 · RF-001 · HU-26</div>
+</div>
+
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Listado</h2>
+        <span class="espacio"></span>
+        <button class="boton principal" id="btnNueva"><i class="bi bi-plus-lg"></i>Crear delegación</button>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr><th>Delegación</th><th>Ámbito territorial</th><th>Encargado</th><th class="num">Funcionarios</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="tabla"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="telon" id="modalDelegacion" role="dialog" aria-modal="true" aria-labelledby="tituloDelegacion">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloDelegacion">Crear delegación</h2>
+            <span class="espacio"></span>
+            <button class="cerrar" onclick="SGR.cerrarModal('modalDelegacion')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form id="formDelegacion" novalidate>
+            <div class="modal-cuerpo">
+                <div class="campo">
+                    <label for="nombreD">Nombre <span class="obligatorio">*</span></label>
+                    <input type="text" id="nombreD" required data-largo-min="3">
+                    <span class="ayuda">El nombre no puede repetirse.</span>
+                </div>
+                <div class="campo">
+                    <label for="ambitoD">Ámbito territorial <span class="obligatorio">*</span></label>
+                    <input type="text" id="ambitoD" required data-largo-min="8">
+                </div>
+                <div class="rejilla rejilla-2">
+                    <div class="campo">
+                        <label for="correoD">Correo <span class="obligatorio">*</span></label>
+                        <input type="email" id="correoD" required data-valida="correo" placeholder="delegacion@laserena.cl">
+                    </div>
+                    <div class="campo">
+                        <label for="telefonoD">Teléfono</label>
+                        <input type="tel" id="telefonoD" data-valida="telefono" placeholder="+56 9 1234 5678">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" onclick="SGR.cerrarModal('modalDelegacion')">Cancelar</button>
+                <button type="submit" class="boton principal">Crear</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script src="assets/js/shell.js"></script>
+<script>
+
+document.addEventListener('shell:listo', () => {
+    function pintar() {
+        document.getElementById('tabla').innerHTML = SGR.datos.delegaciones.map(d => `
+            <tr>
+                <td><strong>${d.nombre}</strong></td>
+                <td>${d.ambito}</td>
+                <td>${d.encargado}</td>
+                <td class="num">${d.funcionarios}</td>
+                <td>${SGR.etiquetaEstado(d.estado)}</td>
+                <td class="acciones">
+                    <button class="boton pequeno"><i class="bi bi-pencil"></i>Editar</button>
+                    <button class="boton pequeno peligro desactivar" data-nombre="${d.nombre}" data-func="${d.funcionarios}">
+                        Desactivar
+                    </button>
+                </td>
+            </tr>`).join('');
+
+        document.querySelectorAll('.desactivar').forEach(b => {
+            b.addEventListener('click', () => {
+                if (Number(b.dataset.func) > 0) {
+                    SGR.notificar(`${b.dataset.nombre} tiene ${b.dataset.func} funcionarios activos. Reasígnelos primero`, 'bi-x-circle');
+                } else {
+                    SGR.notificar('Delegación desactivada');
+                }
+            });
+        });
+    }
+
+    const form = document.getElementById('formDelegacion');
+    Validador.activar(form);
+    document.getElementById('btnNueva').addEventListener('click', () => SGR.abrirModal('modalDelegacion'));
+
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        if (!Validador.validarFormulario(form)) {
+            SGR.notificar('Revise los campos marcados', 'bi-exclamation-triangle');
+            return;
+        }
+        const nombre = document.getElementById('nombreD').value.trim();
+        if (SGR.datos.delegaciones.some(d => d.nombre.toLowerCase() === nombre.toLowerCase())) {
+            Validador.marcarError(document.getElementById('nombreD'), 'Ya existe una delegación con ese nombre');
+            return;
+        }
+        SGR.datos.delegaciones.push({
+            id: SGR.datos.delegaciones.length + 1, nombre,
+            ambito: document.getElementById('ambitoD').value,
+            encargado: 'Por asignar', funcionarios: 0, estado: 'ACTIVA'
+        });
+        SGR.cerrarModal('modalDelegacion');
+        form.reset();
+        pintar();
+        SGR.notificar('Delegación creada');
+    });
+
+    pintar();
+});
+
+</script>
+</body>
+</html>

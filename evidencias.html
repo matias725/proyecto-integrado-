@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evidencias · SGR</title>
+<meta name="description" content="Prototipo del Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body data-pagina="evidencias" data-titulo="Evidencias">
+
+<div class="encabezado-pagina">
+    <h1>Evidencias de respaldo</h1>
+    <p>Cada evidencia se vincula a una actividad mediante su código. Se aceptan archivos JPG, PNG o PDF de hasta 2 MB.</p>
+    <div class="trazabilidad">CU-09 · RF-012 · RN-010 · RNF-017</div>
+</div>
+
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Actividades y su evidencia</h2>
+        <span class="espacio"></span>
+        <button class="boton principal" id="btnAdjuntar"><i class="bi bi-upload"></i>Adjuntar evidencia</button>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Código</th><th>Actividad</th><th>Fecha</th><th>Funcionario</th><th>Estado de revisión</th><th></th></tr>
+            </thead>
+            <tbody id="tabla"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="telon" id="modalAdjuntar" role="dialog" aria-modal="true" aria-labelledby="tituloAdjuntar">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloAdjuntar">Adjuntar evidencia</h2>
+            <span class="espacio"></span>
+            <button class="cerrar" onclick="SGR.cerrarModal('modalAdjuntar')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form id="formEvidencia" novalidate>
+            <div class="modal-cuerpo">
+                <div class="campo">
+                    <label for="codigoActividad">Actividad <span class="obligatorio">*</span></label>
+                    <select id="codigoActividad" required><option value="">Seleccione la actividad</option></select>
+                    <span class="ayuda">Solo se listan las actividades sin evidencia aprobada.</span>
+                </div>
+                <div class="campo" id="campoArchivo">
+                    <label for="archivo">Archivo de respaldo <span class="obligatorio">*</span></label>
+                    <input type="file" id="archivo" accept=".jpg,.jpeg,.png,.pdf" required>
+                    <span class="ayuda">JPG, PNG o PDF. Máximo 2 MB.</span>
+                    <span class="mensaje-error"></span>
+                </div>
+                <div class="campo">
+                    <label for="observacionEv">Observación</label>
+                    <textarea id="observacionEv" placeholder="Contexto de la evidencia, si corresponde"></textarea>
+                </div>
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" onclick="SGR.cerrarModal('modalAdjuntar')">Cancelar</button>
+                <button type="submit" class="boton principal">Adjuntar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script src="assets/js/shell.js"></script>
+<script>
+
+document.addEventListener('shell:listo', () => {
+    const tabla = document.getElementById('tabla');
+    tabla.innerHTML = SGR.datos.actividades.map(a => `
+        <tr>
+            <td><span class="codigo">${a.codigo}</span></td>
+            <td>${a.descripcion}</td>
+            <td>${SGR.fecha(a.fecha)}</td>
+            <td>${a.funcionario}</td>
+            <td>${SGR.etiquetaEstado(a.evidencia)}</td>
+            <td class="acciones">
+                ${a.evidencia === 'SIN_EVIDENCIA' || a.evidencia === 'RECHAZADA'
+                    ? '<button class="boton pequeno abrir"><i class="bi bi-upload"></i>Adjuntar</button>'
+                    : '<button class="boton pequeno"><i class="bi bi-eye"></i>Ver</button>'}
+            </td>
+        </tr>`).join('');
+
+    const select = document.getElementById('codigoActividad');
+    SGR.datos.actividades
+        .filter(a => a.evidencia !== 'APROBADA')
+        .forEach(a => select.add(new Option(`${a.codigo} — ${a.descripcion}`, a.codigo)));
+
+    const abrir = () => SGR.abrirModal('modalAdjuntar');
+    document.getElementById('btnAdjuntar').addEventListener('click', abrir);
+    document.querySelectorAll('.abrir').forEach(b => b.addEventListener('click', abrir));
+
+    const form = document.getElementById('formEvidencia');
+    Validador.activar(form);
+
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        let ok = Validador.validarFormulario(form);
+
+        const entrada = document.getElementById('archivo');
+        const campo = document.getElementById('campoArchivo');
+        const resultado = Validador.archivoValido(entrada.files[0]);
+        if (!resultado.ok) {
+            campo.classList.add('invalido');
+            campo.querySelector('.mensaje-error').innerHTML =
+                `<i class="bi bi-exclamation-circle"></i>${resultado.motivo}`;
+            ok = false;
+        } else {
+            campo.classList.remove('invalido');
+        }
+
+        if (!ok) { SGR.notificar('Revise los campos marcados', 'bi-exclamation-triangle'); return; }
+
+        SGR.cerrarModal('modalAdjuntar');
+        SGR.notificar('Evidencia adjuntada y enviada a revisión');
+        form.reset();
+    });
+});
+
+</script>
+</body>
+</html>

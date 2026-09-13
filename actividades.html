@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Actividades · SGR</title>
+<meta name="description" content="Prototipo del Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body data-pagina="actividades" data-titulo="Actividades">
+
+<div class="encabezado-pagina">
+    <h1>Actividades registradas</h1>
+    <p>Registro diario de actividades, solicitudes y problemas atendidos. Solo las actividades con evidencia aprobada suman al avance.</p>
+    <div class="trazabilidad">CU-07, CU-17 · RF-009, RF-032 · RN-003, RN-009</div>
+</div>
+
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Buscar actividades</h2>
+        <span class="espacio"></span>
+        <a href="actividad-nueva.html" class="boton principal"><i class="bi bi-plus-lg"></i>Registrar actividad</a>
+    </div>
+    <div class="panel-cuerpo">
+        <form class="filtros" id="filtros">
+            <div class="campo">
+                <label for="fDelegacion">Delegación</label>
+                <select id="fDelegacion"><option value="">Todas</option></select>
+            </div>
+            <div class="campo">
+                <label for="fItem">Ítem de medición</label>
+                <select id="fItem"><option value="">Todos</option></select>
+            </div>
+            <div class="campo">
+                <label for="fEstado">Estado</label>
+                <select id="fEstado">
+                    <option value="">Todos</option>
+                    <option value="REGISTRADA">Registrada</option>
+                    <option value="VALIDADA">Validada</option>
+                    <option value="RECHAZADA">Rechazada</option>
+                </select>
+            </div>
+            <div class="campo">
+                <label for="fTexto">Código o descripción</label>
+                <input type="text" id="fTexto" placeholder="EV-2026-000001">
+            </div>
+            <div class="campo">
+                <button type="button" class="boton" id="limpiar"><i class="bi bi-arrow-counterclockwise"></i>Limpiar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Resultados</h2>
+        <span class="espacio"></span>
+        <span class="ruta" id="conteo"></span>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Código</th><th>Fecha</th><th>Descripción</th><th>Funcionario</th>
+                    <th>Ítem</th><th>Estado</th><th>Evidencia</th><th></th>
+                </tr>
+            </thead>
+            <tbody id="tabla"></tbody>
+        </table>
+    </div>
+    <div id="sinResultados" style="display:none">
+        <div class="vacio">
+            <i class="bi bi-search"></i>
+            <h3>No se encontraron actividades</h3>
+            <p>Ningún registro coincide con los criterios seleccionados.</p>
+            <button class="boton" id="limpiar2">Quitar los filtros</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script src="assets/js/shell.js"></script>
+<script>
+
+document.addEventListener('shell:listo', () => {
+    const sel = (id) => document.getElementById(id);
+    SGR.datos.delegaciones.forEach(d => sel('fDelegacion').add(new Option(d.nombre, d.nombre)));
+    SGR.datos.items.forEach(i => sel('fItem').add(new Option(i.nombre, i.nombre)));
+
+    function pintar() {
+        const d = sel('fDelegacion').value, i = sel('fItem').value,
+              e = sel('fEstado').value, t = sel('fTexto').value.toLowerCase().trim();
+
+        const filas = SGR.datos.actividades.filter(a =>
+            (!d || a.delegacion === d) && (!i || a.item === i) && (!e || a.estado === e) &&
+            (!t || a.codigo.toLowerCase().includes(t) || a.descripcion.toLowerCase().includes(t)));
+
+        sel('conteo').textContent = `${filas.length} de ${SGR.datos.actividades.length} registros`;
+        sel('sinResultados').style.display = filas.length ? 'none' : 'block';
+        sel('tabla').closest('.desplazable').style.display = filas.length ? 'block' : 'none';
+
+        sel('tabla').innerHTML = filas.map(a => `
+            <tr>
+                <td><span class="codigo">${a.codigo}</span></td>
+                <td>${SGR.fecha(a.fecha)}</td>
+                <td>${a.descripcion}<div class="ruta">${a.tipo}</div></td>
+                <td>${a.funcionario}<div class="ruta">${a.delegacion}</div></td>
+                <td>${a.item}</td>
+                <td>${SGR.etiquetaEstado(a.estado)}</td>
+                <td>${SGR.etiquetaEstado(a.evidencia)}</td>
+                <td class="acciones">
+                    <a href="evidencias.html" class="boton pequeno"><i class="bi bi-paperclip"></i>Evidencia</a>
+                </td>
+            </tr>`).join('');
+    }
+
+    ['fDelegacion','fItem','fEstado'].forEach(id => sel(id).addEventListener('change', pintar));
+    sel('fTexto').addEventListener('input', pintar);
+    const limpiar = () => { sel('filtros').reset(); pintar(); };
+    sel('limpiar').addEventListener('click', limpiar);
+    sel('limpiar2').addEventListener('click', limpiar);
+    pintar();
+});
+
+</script>
+</body>
+</html>

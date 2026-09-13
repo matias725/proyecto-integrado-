@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metas · SGR</title>
+<meta name="description" content="Prototipo del Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body data-pagina="metas" data-titulo="Metas">
+
+<div class="encabezado-pagina">
+    <h1>Metas y ponderaciones</h1>
+    <p>Ítems medidos para cada cargo en el período. La suma de ponderadores debe cerrar en 100 % para poder guardar la configuración.</p>
+    <div class="trazabilidad">CU-06 · RF-003, RF-006, RF-007 · RN-001, RN-002</div>
+</div>
+
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Configuración del cargo</h2>
+        <span class="espacio"></span>
+        <div class="campo" style="margin:0;min-width:230px">
+            <select id="cargoSel" aria-label="Cargo"></select>
+        </div>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Ítem de medición</th><th class="num" style="width:150px">Meta del período</th>
+                    <th class="num" style="width:150px">Ponderador (%)</th><th style="width:60px"></th></tr>
+            </thead>
+            <tbody id="tabla"></tbody>
+        </table>
+    </div>
+    <div class="panel-pie">
+        <button class="boton" id="btnAgregar"><i class="bi bi-plus-lg"></i>Agregar ítem</button>
+        <span class="espacio"></span>
+        <div id="totalizador"></div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-cuerpo" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <button class="boton principal" id="btnGuardar"><i class="bi bi-check-lg"></i>Guardar configuración</button>
+        <span class="ruta">Al guardar se crea una versión nueva; los períodos cerrados no se modifican.</span>
+    </div>
+</div>
+
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script src="assets/js/shell.js"></script>
+<script>
+
+document.addEventListener('shell:listo', () => {
+    let filas = SGR.datos.metas.map(m => ({ ...m }));
+
+    SGR.datos.cargos.forEach(c => {
+        const o = new Option(c.nombre, c.nombre, false, c.nombre === 'Gestor Social');
+        document.getElementById('cargoSel').add(o);
+    });
+
+    function opcionesItems(seleccionado) {
+        return SGR.datos.items.map(i =>
+            `<option value="${i.nombre}" ${i.nombre === seleccionado ? 'selected' : ''}>${i.nombre}</option>`).join('');
+    }
+
+    function pintar() {
+        document.getElementById('tabla').innerHTML = filas.map((f, idx) => `
+            <tr>
+                <td><select class="item" data-idx="${idx}" style="width:100%;padding:6px;border:1px solid var(--linea);border-radius:4px">
+                    ${opcionesItems(f.item)}</select></td>
+                <td class="num"><input type="number" class="objetivo" data-idx="${idx}" value="${f.objetivo}" min="1"
+                    style="width:100%;text-align:right;padding:6px;border:1px solid var(--linea);border-radius:4px"></td>
+                <td class="num"><input type="number" class="ponderador" data-idx="${idx}" value="${f.ponderador}" min="0" max="100"
+                    style="width:100%;text-align:right;padding:6px;border:1px solid var(--linea);border-radius:4px"></td>
+                <td class="acciones">
+                    <button class="boton pequeno peligro quitar" data-idx="${idx}" aria-label="Quitar ítem">
+                        <i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`).join('');
+
+        document.querySelectorAll('.ponderador, .objetivo').forEach(i => {
+            i.addEventListener('input', () => {
+                const idx = Number(i.dataset.idx);
+                const campo = i.classList.contains('ponderador') ? 'ponderador' : 'objetivo';
+                filas[idx][campo] = Number(i.value);
+                totalizar();
+            });
+        });
+        document.querySelectorAll('.item').forEach(s => {
+            s.addEventListener('change', () => { filas[Number(s.dataset.idx)].item = s.value; totalizar(); });
+        });
+        document.querySelectorAll('.quitar').forEach(b => {
+            b.addEventListener('click', () => { filas.splice(Number(b.dataset.idx), 1); pintar(); });
+        });
+        totalizar();
+    }
+
+    function totalizar() {
+        const suma = filas.reduce((t, f) => t + (Number(f.ponderador) || 0), 0);
+        const cuadra = Math.abs(suma - 100) < 0.001;
+        const diferencia = (100 - suma).toFixed(1);
+
+        document.getElementById('totalizador').innerHTML = cuadra
+            ? `<span class="estado ok"><i class="bi bi-check-circle"></i> Suma de ponderadores: 100 %</span>`
+            : `<span class="estado error"><i class="bi bi-exclamation-circle"></i>
+                 Suma de ponderadores: ${SGR.cifra(suma)} % · ${suma < 100 ? 'faltan' : 'sobran'} ${Math.abs(diferencia)} puntos</span>`;
+
+        document.getElementById('btnGuardar').disabled = !cuadra;
+    }
+
+    document.getElementById('btnAgregar').addEventListener('click', () => {
+        filas.push({ item: SGR.datos.items[0].nombre, objetivo: 10, ponderador: 0 });
+        pintar();
+    });
+
+    document.getElementById('btnGuardar').addEventListener('click', () => {
+        const invalida = filas.find(f => !f.objetivo || f.objetivo <= 0);
+        if (invalida) {
+            SGR.notificar('La meta de cada ítem debe ser mayor que cero', 'bi-x-circle');
+            return;
+        }
+        const repetido = filas.map(f => f.item).some((v, i, a) => a.indexOf(v) !== i);
+        if (repetido) {
+            SGR.notificar('Hay un ítem repetido en la configuración', 'bi-x-circle');
+            return;
+        }
+        SGR.notificar('Configuración guardada como versión nueva');
+    });
+
+    document.getElementById('cargoSel').addEventListener('change', e => {
+        filas = e.target.value === 'Gestor Social'
+            ? SGR.datos.metas.map(m => ({ ...m }))
+            : [];
+        pintar();
+        if (!filas.length) SGR.notificar('Este cargo aún no tiene ítems configurados para el período');
+    });
+
+    pintar();
+});
+
+</script>
+</body>
+</html>

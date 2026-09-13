@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acceso · SGR</title>
+<meta name="description" content="Acceso al Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body>
+
+<div class="acceso">
+
+    <section class="acceso-presentacion">
+        <h1>Sistema de Gestión de Resultados</h1>
+        <p>Registro, verificación y medición de la gestión de las seis delegaciones municipales de La Serena.</p>
+
+        <div class="acceso-flujo">
+            <div><b>Registrar</b> La actividad, el compromiso o la atención entregada</div>
+            <div><b>Respaldar</b> Un código único vincula la evidencia a lo registrado</div>
+            <div><b>Verificar</b> Solo lo aprobado por un verificador suma al avance</div>
+            <div><b>Medir</b> Avance, cumplimiento ponderado y semáforo del día</div>
+        </div>
+
+        <p class="pie">Prototipo académico · INACAP · Proyecto Integrado 2026<br>
+           Los datos mostrados son ficticios.</p>
+    </section>
+
+    <section class="acceso-formulario">
+        <div class="acceso-caja">
+            <h2>Ingresar al sistema</h2>
+            <p>Use su cuenta institucional.</p>
+
+            <form id="formAcceso" novalidate>
+                <div class="campo">
+                    <label for="usuario">Usuario <span class="obligatorio">*</span></label>
+                    <input type="text" id="usuario" required autocomplete="username" placeholder="nombre.apellido">
+                </div>
+                <div class="campo">
+                    <label for="clave">Contraseña <span class="obligatorio">*</span></label>
+                    <input type="password" id="clave" required autocomplete="current-password" data-largo-min="4">
+                </div>
+                <div id="avisoAcceso"></div>
+                <button type="submit" class="boton principal" style="width:100%;justify-content:center">
+                    <i class="bi bi-box-arrow-in-right"></i>Ingresar
+                </button>
+            </form>
+
+            <div class="cuentas-demo">
+                <strong>Cuentas de demostración</strong>
+                <p style="margin:4px 0 0">Cada rol ve un conjunto distinto de opciones. Contraseña: <span class="codigo">demo1234</span></p>
+                <table>
+                    <tr><td>Funcionario</td><td><button type="button" data-usuario="bcastillo">bcastillo</button></td></tr>
+                    <tr><td>Verificador y delegado</td><td><button type="button" data-usuario="arojas">arojas</button></td></tr>
+                    <tr><td>Coordinador</td><td><button type="button" data-usuario="emunoz">emunoz</button></td></tr>
+                    <tr><td>Administrador</td><td><button type="button" data-usuario="faguirre">faguirre</button></td></tr>
+                </table>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script>
+const CUENTAS = {
+    bcastillo: { nombre: 'Bruno Castillo Peña',  rol: 'Funcionario',  delegacion: 'Rural' },
+    arojas:    { nombre: 'Ana Rojas Miranda',    rol: 'Verificador',  delegacion: 'Rural' },
+    emunoz:    { nombre: 'Elena Muñoz Tapia',    rol: 'Coordinador',  delegacion: 'Centro' },
+    faguirre:  { nombre: 'Felipe Aguirre Núñez', rol: 'Administrador',delegacion: 'Las Compañías' }
+};
+
+const form = document.getElementById('formAcceso');
+Validador.activar(form);
+
+document.querySelectorAll('.cuentas-demo button').forEach(b => {
+    b.addEventListener('click', () => {
+        document.getElementById('usuario').value = b.dataset.usuario;
+        document.getElementById('clave').value = 'demo1234';
+        document.getElementById('clave').focus();
+    });
+});
+
+form.addEventListener('submit', e => {
+    e.preventDefault();
+    const aviso = document.getElementById('avisoAcceso');
+    aviso.innerHTML = '';
+
+    if (!Validador.validarFormulario(form)) return;
+
+    const usuario = document.getElementById('usuario').value.trim().toLowerCase();
+    const clave = document.getElementById('clave').value;
+
+    if (!CUENTAS[usuario] || clave !== 'demo1234') {
+        aviso.innerHTML = `<div class="aviso error">
+            <i class="bi bi-exclamation-octagon"></i>
+            <div>Usuario o contraseña incorrectos. Verifique sus datos e intente nuevamente.</div>
+        </div>`;
+        return;
+    }
+
+    SGR.iniciarSesion(CUENTAS[usuario]);
+    window.location.href = 'tablero.html';
+});
+</script>
+</body>
+</html>

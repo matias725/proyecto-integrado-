@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditoría · SGR</title>
+<meta name="description" content="Prototipo del Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body data-pagina="auditoria" data-titulo="Auditoría">
+
+<div class="encabezado-pagina">
+    <h1>Historial de cambios</h1>
+    <p>Registro de las operaciones críticas del sistema. El historial es de solo lectura: ningún usuario puede modificarlo ni eliminarlo.</p>
+    <div class="trazabilidad">CU-16 · RF-036 · RNF-008 · HU-30</div>
+</div>
+
+
+<div class="aviso info">
+    <i class="bi bi-lock"></i>
+    <div>Este módulo no admite edición ni borrado. Cualquier intento de alteración se deniega y queda registrado.</div>
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Eventos registrados</h2>
+        <span class="espacio"></span>
+        <div class="campo" style="margin:0;min-width:190px">
+            <select id="filtroEvento" aria-label="Filtrar por evento">
+                <option value="">Todos los eventos</option>
+                <option value="ALTA">Alta</option>
+                <option value="CAMBIO_ESTADO">Cambio de estado</option>
+                <option value="CAMBIO_PARAMETRO">Cambio de parámetro</option>
+                <option value="VALIDACION">Validación</option>
+            </select>
+        </div>
+        <button class="boton" id="btnExportarA"><i class="bi bi-download"></i>Exportar</button>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Fecha</th><th>Usuario</th><th>Evento</th><th>Entidad</th>
+                    <th>Valor anterior</th><th>Valor nuevo</th></tr>
+            </thead>
+            <tbody id="tabla"></tbody>
+        </table>
+    </div>
+    <div id="sinEventos" style="display:none">
+        <div class="vacio">
+            <i class="bi bi-clock-history"></i>
+            <h3>Sin eventos para este criterio</h3>
+            <p>No se registraron operaciones de ese tipo en el período.</p>
+        </div>
+    </div>
+</div>
+
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script src="assets/js/shell.js"></script>
+<script>
+
+document.addEventListener('shell:listo', () => {
+    const nombres = {
+        ALTA: 'Alta', CAMBIO_ESTADO: 'Cambio de estado',
+        CAMBIO_PARAMETRO: 'Cambio de parámetro', VALIDACION: 'Validación'
+    };
+
+    function pintar() {
+        const f = document.getElementById('filtroEvento').value;
+        const filas = SGR.datos.auditoria.filter(a => !f || a.evento === f);
+
+        document.getElementById('sinEventos').style.display = filas.length ? 'none' : 'block';
+        document.getElementById('tabla').innerHTML = filas.map(a => `
+            <tr>
+                <td><span class="codigo">${a.fecha}</span></td>
+                <td>${a.usuario}</td>
+                <td><span class="estado neutro">${nombres[a.evento] || a.evento}</span></td>
+                <td>${a.entidad} <span class="ruta">#${a.registro}</span></td>
+                <td><span class="codigo">${a.anterior}</span></td>
+                <td><span class="codigo">${a.nuevo}</span></td>
+            </tr>`).join('');
+    }
+
+    document.getElementById('filtroEvento').addEventListener('change', pintar);
+    document.getElementById('btnExportarA').addEventListener('click', () =>
+        SGR.notificar('Historial exportado conservando los filtros aplicados', 'bi-download'));
+    pintar();
+});
+
+</script>
+</body>
+</html>

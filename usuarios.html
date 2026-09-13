@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usuarios · SGR</title>
+<meta name="description" content="Prototipo del Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body data-pagina="usuarios" data-titulo="Usuarios">
+
+<div class="encabezado-pagina">
+    <h1>Usuarios y roles</h1>
+    <p>Funcionarios habilitados en el sistema. Un usuario puede tener más de un rol, y sus permisos son la unión de todos ellos.</p>
+    <div class="trazabilidad">CU-03 · RF-002 · RNF-004, RNF-005 · HU-26</div>
+</div>
+
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Listado</h2>
+        <span class="espacio"></span>
+        <button class="boton principal" id="btnUsuario"><i class="bi bi-person-plus"></i>Crear usuario</button>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr><th>RUT</th><th>Nombre</th><th>Cargo</th><th>Delegación</th><th>Roles</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="tabla"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="telon" id="modalUsuario" role="dialog" aria-modal="true" aria-labelledby="tituloUsuario">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloUsuario">Crear usuario</h2>
+            <span class="espacio"></span>
+            <button class="cerrar" onclick="SGR.cerrarModal('modalUsuario')" aria-label="Cerrar">&times;</button>
+        </div>
+        <form id="formUsuario" novalidate>
+            <div class="modal-cuerpo">
+                <div class="rejilla rejilla-2">
+                    <div class="campo">
+                        <label for="rutU">RUT <span class="obligatorio">*</span></label>
+                        <input type="text" id="rutU" required data-valida="rut" placeholder="12.345.678-5">
+                    </div>
+                    <div class="campo">
+                        <label for="nombreU">Nombre completo <span class="obligatorio">*</span></label>
+                        <input type="text" id="nombreU" required data-largo-min="6">
+                    </div>
+                </div>
+                <div class="rejilla rejilla-2">
+                    <div class="campo">
+                        <label for="correoU">Correo institucional <span class="obligatorio">*</span></label>
+                        <input type="email" id="correoU" required data-valida="correo">
+                    </div>
+                    <div class="campo">
+                        <label for="telefonoU">Teléfono</label>
+                        <input type="tel" id="telefonoU" data-valida="telefono" placeholder="+56 9 1234 5678">
+                    </div>
+                </div>
+                <div class="rejilla rejilla-2">
+                    <div class="campo">
+                        <label for="cargoU">Cargo <span class="obligatorio">*</span></label>
+                        <select id="cargoU" required><option value="">Seleccione</option></select>
+                    </div>
+                    <div class="campo">
+                        <label for="delegacionU">Delegación <span class="obligatorio">*</span></label>
+                        <select id="delegacionU" required><option value="">Seleccione</option></select>
+                    </div>
+                </div>
+                <div class="campo">
+                    <label>Roles <span class="obligatorio">*</span></label>
+                    <div id="roles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px"></div>
+                    <span class="mensaje-error"></span>
+                    <span class="ayuda">Sin al menos un rol, el usuario no tendría permisos operativos.</span>
+                </div>
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" onclick="SGR.cerrarModal('modalUsuario')">Cancelar</button>
+                <button type="submit" class="boton principal">Crear usuario</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script src="assets/js/shell.js"></script>
+<script>
+
+document.addEventListener('shell:listo', () => {
+    function pintar() {
+        document.getElementById('tabla').innerHTML = SGR.datos.usuarios.map(u => `
+            <tr>
+                <td><span class="codigo">${u.rut}</span></td>
+                <td><strong>${u.nombre}</strong><div class="ruta">${u.correo}</div></td>
+                <td>${u.cargo}</td>
+                <td>${u.delegacion}</td>
+                <td>${u.roles.map(r => `<span class="estado neutro">${r}</span>`).join(' ')}</td>
+                <td>${SGR.etiquetaEstado(u.estado)}</td>
+                <td class="acciones"><button class="boton pequeno"><i class="bi bi-pencil"></i>Editar</button></td>
+            </tr>`).join('');
+    }
+
+    SGR.datos.cargos.forEach(c => document.getElementById('cargoU').add(new Option(c.nombre, c.nombre)));
+    SGR.datos.delegaciones.forEach(d => document.getElementById('delegacionU').add(new Option(d.nombre, d.nombre)));
+    document.getElementById('roles').innerHTML = SGR.datos.roles.map(r => `
+        <label style="font-weight:400;font-size:.85rem">
+            <input type="checkbox" name="rol" value="${r}" style="width:auto"> ${r}
+        </label>`).join('');
+
+    const form = document.getElementById('formUsuario');
+    Validador.activar(form);
+    document.getElementById('btnUsuario').addEventListener('click', () => SGR.abrirModal('modalUsuario'));
+
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        let ok = Validador.validarFormulario(form);
+
+        const marcados = [...document.querySelectorAll('input[name=rol]:checked')].map(c => c.value);
+        const campoRoles = document.getElementById('roles').closest('.campo');
+        if (!marcados.length) {
+            campoRoles.classList.add('invalido');
+            campoRoles.querySelector('.mensaje-error').innerHTML =
+                '<i class="bi bi-exclamation-circle"></i>Seleccione al menos un rol';
+            ok = false;
+        } else {
+            campoRoles.classList.remove('invalido');
+        }
+
+        const rut = document.getElementById('rutU');
+        if (SGR.datos.usuarios.some(u => u.rut === rut.value.trim())) {
+            Validador.marcarError(rut, 'Ya existe un usuario con ese RUT');
+            ok = false;
+        }
+        const correo = document.getElementById('correoU');
+        if (SGR.datos.usuarios.some(u => u.correo === correo.value.trim())) {
+            Validador.marcarError(correo, 'Ya existe un usuario con ese correo');
+            ok = false;
+        }
+
+        if (!ok) { SGR.notificar('Revise los campos marcados', 'bi-exclamation-triangle'); return; }
+
+        SGR.datos.usuarios.push({
+            id: SGR.datos.usuarios.length + 1,
+            rut: rut.value.trim(), nombre: document.getElementById('nombreU').value,
+            correo: correo.value.trim(), cargo: document.getElementById('cargoU').value,
+            delegacion: document.getElementById('delegacionU').value,
+            roles: marcados, estado: 'ACTIVO'
+        });
+        SGR.cerrarModal('modalUsuario');
+        form.reset();
+        pintar();
+        SGR.notificar('Usuario creado con sus roles asignados');
+    });
+
+    pintar();
+});
+
+</script>
+</body>
+</html>

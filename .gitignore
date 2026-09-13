@@ -1,0 +1,24 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*~
+
+# Dependencias y compilación (no usadas en esta entrega)
+node_modules/
+dist/
+build/
+
+# Credenciales y configuración local
+.env
+.env.*
+*.local
+
+# Archivos de evidencia cargados durante pruebas
+evidencias/
+*.log

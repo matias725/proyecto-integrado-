@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablero · SGR</title>
+<meta name="description" content="Prototipo del Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/sgr.css">
+</head>
+<body data-pagina="tablero" data-titulo="Tablero">
+
+<div class="encabezado-pagina">
+    <h1>Tablero de indicadores</h1>
+    <p>Avance, cumplimiento ponderado y semáforo del período seleccionado. La línea vertical de cada barra marca la meta esperada al día de hoy.</p>
+    <div class="trazabilidad">CU-13 · RF-008, RF-026 a RF-029 · RN-004, RN-007, RN-008</div>
+</div>
+
+
+<div class="rejilla rejilla-4" id="resumen"></div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Avance por ítem</h2>
+        <span class="espacio"></span>
+        <span id="etiquetaPeriodo" class="ruta"></span>
+    </div>
+    <div class="panel-cuerpo">
+        <div id="medidores"></div>
+        <div class="leyenda-semaforo">
+            <span><i class="punto verde"></i> Avance igual o superior a lo esperado</span>
+            <span><i class="punto ambar"></i> Entre el 60 % y lo esperado</span>
+            <span><i class="punto rojo"></i> Bajo el 60 % de lo esperado</span>
+        </div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Resumen por delegación</h2>
+        <span class="espacio"></span>
+        <a href="informes.html" class="boton pequeno"><i class="bi bi-file-earmark-bar-graph"></i>Ver informe completo</a>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Delegación</th><th>Encargado</th><th class="num">Funcionarios</th>
+                    <th class="num">Cumplimiento</th><th>Semáforo</th>
+                </tr>
+            </thead>
+            <tbody id="tablaDelegaciones"></tbody>
+        </table>
+    </div>
+</div>
+
+
+<script src="assets/js/datos.js"></script>
+<script src="assets/js/validacion.js"></script>
+<script src="assets/js/shell.js"></script>
+<script>
+
+document.addEventListener('shell:listo', () => {
+    const p = SGR.periodoAbierto();
+    const esperado = SGR.metaEsperadaAlDia(p);
+    document.getElementById('etiquetaPeriodo').textContent =
+        `${SGR.fecha(p.inicio)} al ${SGR.fecha(p.termino)} · ${p.dias} días`;
+
+    let ponderadoTotal = 0;
+    const medidores = SGR.datos.metas.map(m => {
+        const cumpl = SGR.cumplimiento(m.avance, m.objetivo);
+        const pond  = SGR.ponderado(cumpl, m.ponderador, p.tope);
+        ponderadoTotal += pond;
+        const color = SGR.semaforo(cumpl, esperado, p);
+        const ancho = Math.min(cumpl, 100);
+        return `
+            <div class="medidor">
+                <div class="medidor-titulo">
+                    <span>${m.item} <span class="ruta">· meta ${m.objetivo} · pondera ${m.ponderador} %</span></span>
+                    <span class="cifra">${m.avance} de ${m.objetivo} · ${SGR.cifra(cumpl)} %</span>
+                </div>
+                <div class="pista">
+                    <div class="relleno ${color}" style="width:${ancho}%"></div>
+                    <div class="marca-esperada" style="left:${esperado}%" data-etiqueta="esperado ${SGR.cifra(esperado)} %"></div>
+                </div>
+            </div>`;
+    }).join('');
+    document.getElementById('medidores').innerHTML = medidores;
+
+    const global = SGR.semaforo(ponderadoTotal, esperado, p);
+    const pendientes = SGR.datos.actividades.filter(a => a.evidencia === 'PENDIENTE').length;
+    const vencidos = SGR.datos.compromisos.filter(c =>
+        c.estado !== 'REALIZADO' && c.fecha < '2026-09-12').length;
+
+    document.getElementById('resumen').innerHTML = `
+        <div class="panel dato ${global}">
+            <span class="etiqueta">Cumplimiento ponderado</span>
+            <span class="valor">${SGR.cifra(ponderadoTotal)} %</span>
+            <span class="apoyo">Esperado al día: ${SGR.cifra(esperado)} %</span>
+        </div>
+        <div class="panel dato">
+            <span class="etiqueta">Actividades del período</span>
+            <span class="valor">${SGR.datos.actividades.length}</span>
+            <span class="apoyo">${SGR.datos.actividades.filter(a => a.estado === 'VALIDADA').length} validadas</span>
+        </div>
+        <div class="panel dato ${pendientes ? 'ambar' : ''}">
+            <span class="etiqueta">Evidencias por revisar</span>
+            <span class="valor">${pendientes}</span>
+            <span class="apoyo">No aportan avance hasta su aprobación</span>
+        </div>
+        <div class="panel dato ${vencidos ? 'rojo' : ''}">
+            <span class="etiqueta">Compromisos vencidos</span>
+            <span class="valor">${vencidos}</span>
+            <span class="apoyo">Con fecha cumplida y sin cierre</span>
+        </div>`;
+
+    document.getElementById('tablaDelegaciones').innerHTML = SGR.datos.delegaciones.map((d, i) => {
+        const valores = [92.4, 78.1, 64.5, 88.0, 55.2, 71.3];
+        const v = valores[i];
+        const color = SGR.semaforo(v, esperado, p);
+        const texto = { verde: 'En nivel esperado', ambar: 'Bajo lo esperado', rojo: 'Requiere apoyo' }[color];
+        return `<tr>
+            <td><strong>${d.nombre}</strong><div class="ruta">${d.ambito}</div></td>
+            <td>${d.encargado}</td>
+            <td class="num">${d.funcionarios}</td>
+            <td class="num">${SGR.cifra(v)} %</td>
+            <td><span class="estado ${color === 'verde' ? 'ok' : color === 'ambar' ? 'pendiente' : 'error'}">${texto}</span></td>
+        </tr>`;
+    }).join('');
+});
+
+</script>
+</body>
+</html>
