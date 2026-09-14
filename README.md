@@ -160,6 +160,8 @@ Declaradas de forma explícita, conforme a la lista de comprobación de la guía
 
 | Integrante | Responsabilidad |
 |---|---|
-| _Completar_ | _Completar_ |
+| Matías Zepeda | Desarrollo y documentación |
+| Alexis Muñoz | Diseño e interacción |
+| Carlos Araya | Validación y pruebas |
 
 Asignatura: Proyecto Integrado · Docente: Jorge Cortés · INACAP, 2026
