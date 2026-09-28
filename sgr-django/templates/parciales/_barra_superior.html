@@ -1,0 +1,37 @@
+{% load sgr_tags %}
+<header class="barra-superior">
+    <span class="ruta">
+        Delegaciones municipales /
+        {% with actual=request.resolver_match.url_name %}{% for grupo in menu %}{% for enlace in grupo.enlaces %}{% if actual in enlace.activos %}{{ enlace.texto }}{% endif %}{% endfor %}{% endfor %}{% endwith %}
+    </span>
+    <span class="espacio"></span>
+
+    <form method="post" action="{% url 'cambiar_periodo' %}" class="selector-periodo">
+        {% csrf_token %}
+        <input type="hidden" name="siguiente" value="{{ request.get_full_path }}">
+        <label for="selectorPeriodo">Período</label>
+        <select id="selectorPeriodo" name="periodo" data-enviar-al-cambiar>
+            {% for p in periodos %}
+                <option value="{{ p.id }}"{% if p.id == periodo_actual.id %} selected{% endif %}>
+                    {{ p.nombre }}{% if p.estado == 'CERRADO' %} (cerrado){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+        <noscript><button type="submit" class="boton pequeno">Cambiar</button></noscript>
+    </form>
+
+    <div class="usuario-chip">
+        <span class="avatar" aria-hidden="true">{{ usuario_actual.nombre|iniciales }}</span>
+        <span class="datos">
+            <b>{{ usuario_actual.nombre }}</b>
+            <span>{{ usuario_actual.roles|unir }} · {{ usuario_actual.delegacion }}</span>
+        </span>
+        <form method="post" action="{% url 'salir' %}">
+            {% csrf_token %}
+            <button type="submit" class="boton sutil pequeno" title="Cerrar sesión">
+                <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                <span class="solo-lectores">Cerrar sesión</span>
+            </button>
+        </form>
+    </div>
+</header>

@@ -1,0 +1,77 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Delegaciones{% endblock %}
+{% block titulo_pagina %}Delegaciones municipales{% endblock %}
+{% block bajada %}Unidades territoriales sobre las que opera el sistema. Una delegación con funcionarios activos no puede desactivarse.{% endblock %}
+{% block traza %}CU-02 · RF-001 · HU-26{% endblock %}
+
+{% block accion %}
+<button type="button" class="boton principal" data-abrir="modalDelegacion"><i class="bi bi-plus-lg" aria-hidden="true"></i>Nueva delegación</button>
+{% endblock %}
+
+{% block contenido %}
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Listado</h2>
+        <span class="espacio"></span>
+        <span class="ruta">{{ filas|length }} delegaciones</span>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th class="num">#</th><th>Delegación</th><th>Ámbito territorial</th><th>Encargado</th><th class="num">Funcionarios</th><th>Estado</th><th class="acciones">Acciones</th></tr>
+            </thead>
+            <tbody>
+                {% for d in filas %}
+                <tr>
+                    <td class="num">{{ d.id }}</td>
+                    <td><strong>{{ d.nombre }}</strong><div class="ruta">{{ d.correo }}</div></td>
+                    <td>{{ d.ambito }}</td>
+                    <td>{{ d.encargado }}</td>
+                    <td class="num">{{ d.funcionarios }}</td>
+                    <td>{% estado d.estado %}</td>
+                    <td class="acciones">
+                        <form method="post" action="{% url 'delegacion_estado' d.id %}"
+                              data-confirmar="{% if d.estado == 'ACTIVA' %}¿Desactivar la delegación {{ d.nombre }}?{% else %}¿Reactivar la delegación {{ d.nombre }}?{% endif %}">
+                            {% csrf_token %}
+                            {% if d.estado == 'ACTIVA' %}
+                            <button type="submit" class="boton pequeno peligro">Desactivar</button>
+                            {% else %}
+                            <button type="submit" class="boton pequeno">Reactivar</button>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="telon{% if form.errors %} abierto{% endif %}" id="modalDelegacion" role="dialog" aria-modal="true" aria-labelledby="tituloDelegacion">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloDelegacion">Nueva delegación</h2>
+            <span class="espacio"></span>
+            <button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="modal-cuerpo">
+                {% include "parciales/_errores_formulario.html" %}
+                {% include "parciales/_campo.html" with campo=form.nombre %}
+                {% include "parciales/_campo.html" with campo=form.ambito %}
+                <div class="rejilla rejilla-2">
+                    {% include "parciales/_campo.html" with campo=form.correo %}
+                    {% include "parciales/_campo.html" with campo=form.telefono %}
+                </div>
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" data-cerrar>Cancelar</button>
+                <button type="submit" class="boton principal">Crear delegación</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

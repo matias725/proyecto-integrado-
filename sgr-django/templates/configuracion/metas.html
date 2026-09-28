@@ -1,0 +1,88 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Metas{% endblock %}
+{% block titulo_pagina %}Metas y ponderaciones{% endblock %}
+{% block bajada %}Ítems medidos para cada cargo en el período seleccionado. La suma de ponderadores debe cerrar en 100 % para poder guardar.{% endblock %}
+{% block traza %}CU-06 · RF-003, RF-006, RF-007, RF-038 · RN-001, RN-002{% endblock %}
+
+{% block contenido %}
+{% if bloqueado %}
+<div class="aviso info">
+    <i class="bi bi-lock" aria-hidden="true"></i>
+    <div>{{ periodo.nombre }} está cerrado. Sus metas se muestran solo para consulta y no pueden modificarse.</div>
+</div>
+{% endif %}
+
+<form method="post" novalidate id="formMetas">
+    {% csrf_token %}
+    <input type="hidden" name="cargo" value="{{ cargo }}">
+    {{ formset.management_form }}
+
+    <div class="panel">
+        <div class="panel-cabecera">
+            <div>
+                <h2>{{ cargo }}</h2>
+                <span class="ruta">{{ periodo.nombre }}</span>
+            </div>
+            <span class="espacio"></span>
+            <label for="selectorCargo" class="solo-lectores">Cargo</label>
+            <select id="selectorCargo" class="selector" data-ir-a="{% url 'metas' %}?cargo=">
+                {% for c in cargos %}<option{% if c == cargo %} selected{% endif %}>{{ c }}</option>{% endfor %}
+            </select>
+        </div>
+
+        {% if formset.non_form_errors %}
+        <div class="panel-cuerpo sin-pie">
+            <div class="aviso error" role="alert">
+                <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+                <div>{% for e in formset.non_form_errors %}{{ e }}{% endfor %}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="desplazable">
+            <table class="tabla tabla-formulario">
+                <thead>
+                    <tr><th>Ítem de medición</th><th class="num">Meta del período</th><th class="num">Ponderador (%)</th><th class="acciones">Quitar</th></tr>
+                </thead>
+                <tbody id="filasMetas">
+                    {% for form in formset %}
+                        {% include "configuracion/_fila_meta.html" %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if not formset.forms %}
+        <div class="vacio">
+            <i class="bi bi-bullseye" aria-hidden="true"></i>
+            <h3>Este cargo no tiene ítems en el período</h3>
+            <p>Agregue los ítems que se medirán y reparta el 100 % de ponderación entre ellos.</p>
+        </div>
+        {% endif %}
+
+        <div class="panel-pie">
+            {% if not bloqueado %}
+            <button type="button" class="boton" id="agregarMeta"><i class="bi bi-plus-lg" aria-hidden="true"></i>Agregar ítem</button>
+            {% endif %}
+            <span class="espacio"></span>
+            <span id="totalizador" data-suma-inicial="{{ suma_inicial|stringformat:'s' }}"></span>
+        </div>
+    </div>
+
+    {% if not bloqueado %}
+    <div class="panel">
+        <div class="panel-cuerpo fila-acciones">
+            <button type="submit" class="boton principal" id="guardarMetas"><i class="bi bi-check-lg" aria-hidden="true"></i>Guardar configuración</button>
+            <span class="ruta">Al guardar se crea una versión nueva y queda registrada en la auditoría. Los períodos cerrados no se modifican.</span>
+        </div>
+    </div>
+    {% endif %}
+</form>
+
+{# Fila vacía que el botón "Agregar ítem" copia (formset.empty_form) #}
+<template id="plantillaMeta">
+    {% with form=formset.empty_form %}{% include "configuracion/_fila_meta.html" %}{% endwith %}
+</template>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Actividades{% endblock %}
+{% block titulo_pagina %}Actividades registradas{% endblock %}
+{% block bajada %}Registro diario de actividades, solicitudes y problemas atendidos. Solo las actividades con evidencia aprobada suman al avance.{% endblock %}
+{% block traza %}CU-07, CU-17 · RF-009, RF-032 · RN-003, RN-009{% endblock %}
+
+{% block accion %}
+{% if puede_registrar %}
+<a href="{% url 'actividad_nueva' %}" class="boton principal"><i class="bi bi-plus-lg" aria-hidden="true"></i>Registrar actividad</a>
+{% endif %}
+{% endblock %}
+
+{% block contenido %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>Buscar actividades</h2></div>
+    <div class="panel-cuerpo">
+        <form method="get" class="filtros">
+            {% include "parciales/_campo.html" with campo=filtro.delegacion %}
+            {% include "parciales/_campo.html" with campo=filtro.item %}
+            {% include "parciales/_campo.html" with campo=filtro.estado %}
+            {% include "parciales/_campo.html" with campo=filtro.texto %}
+            <div class="campo botones-filtro">
+                <button type="submit" class="boton principal"><i class="bi bi-search" aria-hidden="true"></i>Buscar</button>
+                <a href="{% url 'actividades' %}" class="boton">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Resultados</h2>
+        <span class="espacio"></span>
+        <span class="ruta">{{ filas|length }} de {{ total }} registros</span>
+    </div>
+    {% if filas %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Código</th><th>Fecha</th><th>Descripción</th><th>Funcionario</th><th>Ítem</th><th>Estado</th><th>Evidencia</th></tr>
+            </thead>
+            <tbody>
+                {% for a in filas %}
+                <tr>
+                    <td><span class="codigo">{{ a.codigo }}</span></td>
+                    <td>{{ a.fecha|date:"d-m-Y" }}</td>
+                    <td>{{ a.descripcion }}<div class="ruta">{{ a.tipo }}</div></td>
+                    <td>{{ a.funcionario }}<div class="ruta">{{ a.delegacion }}</div></td>
+                    <td>{{ a.item }}</td>
+                    <td>{% estado a.estado %}</td>
+                    <td>{% estado a.evidencia %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <h3>No se encontraron actividades</h3>
+        <p>Ningún registro coincide con los criterios seleccionados.</p>
+        <a href="{% url 'actividades' %}" class="boton">Quitar los filtros</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

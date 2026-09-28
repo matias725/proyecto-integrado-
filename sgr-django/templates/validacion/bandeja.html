@@ -1,0 +1,79 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Validación{% endblock %}
+{% block titulo_pagina %}Bandeja de validación{% endblock %}
+{% block bajada %}Evidencias pendientes de revisión. Solo la aprobación incorpora la actividad al avance del indicador, y lo hace una sola vez.{% endblock %}
+{% block traza %}CU-10, CU-20 · RF-013, RF-014 · RN-009 · RNF-005{% endblock %}
+
+{% block contenido %}
+<div class="aviso alerta">
+    <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+    <div>Nadie puede validar su propia evidencia. El intento se rechaza y queda registrado en la auditoría.</div>
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Evidencias por revisar</h2>
+        <span class="espacio"></span>
+        <span class="ruta">{{ pendientes|length }} evidencia{{ pendientes|length|pluralize }}</span>
+    </div>
+    {% if pendientes %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Código</th><th>Actividad</th><th>Funcionario</th><th>Fecha</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for a in pendientes %}
+                <tr>
+                    <td><span class="codigo">{{ a.codigo }}</span></td>
+                    <td>{{ a.descripcion }}<div class="ruta">{{ a.item }}</div></td>
+                    <td>{{ a.funcionario }}<div class="ruta">{{ a.delegacion }}</div></td>
+                    <td>{{ a.fecha|date:"d-m-Y" }}</td>
+                    <td>{% estado a.evidencia %}</td>
+                    <td class="acciones">
+                        <button type="button" class="boton pequeno" data-abrir="modalDecision"
+                                {% rellenar id_codigo=a.codigo codigoRevision=a.codigo descRevision=a.descripcion %}>
+                            <i class="bi bi-patch-check" aria-hidden="true"></i>Revisar
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio">
+        <i class="bi bi-check2-circle" aria-hidden="true"></i>
+        <h3>No hay evidencias pendientes</h3>
+        <p>Todas las evidencias de su ámbito fueron revisadas.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="telon{% if form.errors %} abierto{% endif %}" id="modalDecision" role="dialog" aria-modal="true" aria-labelledby="tituloDecision">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloDecision">Validar evidencia</h2>
+            <span class="espacio"></span>
+            <button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {{ form.codigo }}
+            <div class="modal-cuerpo">
+                <p>Evidencia <strong class="codigo" id="codigoRevision">{{ en_revision.codigo }}</strong> —
+                   <span id="descRevision">{{ en_revision.descripcion }}</span></p>
+                {% include "parciales/_errores_formulario.html" %}
+                {% include "parciales/_campo.html" with campo=form.resultado %}
+                {% include "parciales/_campo.html" with campo=form.observacion %}
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" data-cerrar>Cancelar</button>
+                <button type="submit" class="boton principal">Guardar decisión</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

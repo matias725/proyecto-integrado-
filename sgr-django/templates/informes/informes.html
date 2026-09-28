@@ -1,0 +1,60 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Informes{% endblock %}
+{% block titulo_pagina %}Informes de gestión{% endblock %}
+{% block bajada %}Consolida los registros del período dentro de su ámbito autorizado. La exportación conserva los filtros aplicados y la fecha de generación.{% endblock %}
+{% block traza %}CU-14, CU-17 · RF-032, RF-033 · HU-20 · RNF-009{% endblock %}
+
+{% block contenido %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>Criterios del informe</h2></div>
+    <div class="panel-cuerpo">
+        <form method="get" class="filtros" novalidate>
+            {% include "parciales/_campo.html" with campo=form.tipo %}
+            {% include "parciales/_campo.html" with campo=form.delegacion %}
+            {% include "parciales/_campo.html" with campo=form.desde %}
+            {% include "parciales/_campo.html" with campo=form.hasta %}
+            <div class="campo botones-filtro">
+                <button type="submit" class="boton principal"><i class="bi bi-play-fill" aria-hidden="true"></i>Generar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if form.is_valid %}
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>{{ titulo }}</h2>
+        <span class="espacio"></span>
+        <span class="ruta">Generado con datos al {{ fecha_referencia|date:"d-m-Y" }}</span>
+        {% if filas %}
+        <a href="{% querystring exportar='csv' %}" class="boton"><i class="bi bi-download" aria-hidden="true"></i>Exportar CSV</a>
+        {% endif %}
+    </div>
+    {% if filas %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr>{% for c in cabecera %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+            <tbody>
+                {% for fila in filas %}
+                <tr>
+                    {% for celda in fila.celdas %}
+                        <td{% if forloop.first %} class="destacado"{% endif %}>{{ celda }}</td>
+                    {% endfor %}
+                    {% if fila.insignia %}<td>{% insignia fila.insignia.0 fila.insignia.1 %}</td>{% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio">
+        <i class="bi bi-inbox" aria-hidden="true"></i>
+        <h3>No hay datos para estos criterios</h3>
+        <p>Ajuste el rango de fechas o la delegación seleccionada.</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

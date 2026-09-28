@@ -1,0 +1,53 @@
+{% extends "layouts/app.html" %}
+
+{% block titulo %}Auditoría{% endblock %}
+{% block titulo_pagina %}Historial de cambios{% endblock %}
+{% block bajada %}Registro de las operaciones críticas del sistema. Es de solo lectura: ninguna pantalla permite modificarlo ni eliminarlo.{% endblock %}
+{% block traza %}CU-16 · RF-036 · RNF-008 · HU-30{% endblock %}
+
+{% block contenido %}
+<div class="aviso info">
+    <i class="bi bi-lock" aria-hidden="true"></i>
+    <div>Los intentos de acceso a secciones no autorizadas también quedan registrados aquí.</div>
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Eventos registrados</h2>
+        <span class="espacio"></span>
+        <form method="get" class="selector-periodo">
+            <label for="{{ filtro.evento.id_for_label }}">Evento</label>
+            {{ filtro.evento }}
+            <button type="submit" class="boton pequeno">Filtrar</button>
+        </form>
+        <a href="{% querystring exportar='csv' %}" class="boton pequeno"><i class="bi bi-download" aria-hidden="true"></i>Exportar CSV</a>
+    </div>
+    {% if eventos %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Fecha</th><th>Usuario</th><th>Evento</th><th>Entidad</th><th>Valor anterior</th><th>Valor nuevo</th></tr>
+            </thead>
+            <tbody>
+                {% for e in eventos %}
+                <tr>
+                    <td><span class="codigo">{{ e.fecha|date:"d-m-Y H:i" }}</span></td>
+                    <td>{{ e.usuario }}</td>
+                    <td><span class="estado {% if e.evento == 'ACCESO_DENEGADO' %}error{% else %}neutro{% endif %}">{{ e.nombre_evento }}</span></td>
+                    <td>{{ e.entidad }}{% if e.registro %} <span class="ruta">#{{ e.registro }}</span>{% endif %}</td>
+                    <td><span class="codigo">{{ e.anterior }}</span></td>
+                    <td><span class="codigo">{{ e.nuevo }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio">
+        <i class="bi bi-clock-history" aria-hidden="true"></i>
+        <h3>Sin eventos para este criterio</h3>
+        <p>No se registraron operaciones de ese tipo.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

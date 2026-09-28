@@ -1,0 +1,64 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Estado del compromiso{% endblock %}
+{% block titulo_pagina %}{{ compromiso.descripcion }}{% endblock %}
+{% block bajada %}{{ compromiso.solicitante }} · {{ compromiso.territorio }} · responsable {{ compromiso.responsable }}{% endblock %}
+{% block traza %}CU-12 · RF-018, RF-036 · HU-13{% endblock %}
+
+{% block accion %}
+<a href="{% url 'agenda' %}" class="boton"><i class="bi bi-arrow-left" aria-hidden="true"></i>Volver a la agenda</a>
+{% endblock %}
+
+{% block contenido %}
+<div class="rejilla rejilla-2 alineado-arriba">
+
+    <div class="panel">
+        <div class="panel-cabecera">
+            <h2>Estado actual</h2>
+            <span class="espacio"></span>
+            {% estado compromiso.estado %}
+            {% if vencido %}<span class="estado error">Vencido</span>{% endif %}
+        </div>
+        {% if form %}
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="panel-cuerpo">
+                <p class="ruta">Fecha comprometida: {{ compromiso.fecha|date:"d-m-Y" }}</p>
+                {% include "parciales/_errores_formulario.html" %}
+                {% include "parciales/_campo.html" with campo=form.estado %}
+                {% include "parciales/_campo.html" with campo=form.observacion %}
+            </div>
+            <div class="panel-pie">
+                <button type="submit" class="boton principal"><i class="bi bi-check-lg" aria-hidden="true"></i>Guardar cambio</button>
+                <a href="{% url 'agenda' %}" class="boton">Cancelar</a>
+            </div>
+        </form>
+        {% else %}
+        <div class="panel-cuerpo">
+            <div class="aviso exito">
+                <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                <div>Compromiso cerrado el {{ compromiso.fecha_cierre|date:"d-m-Y" }}. Un compromiso realizado no admite nuevos cambios de estado.</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Historial de cambios</h2></div>
+        <ol class="historial">
+            {% for h in historial %}
+            <li>
+                <div class="historial-cambio">
+                    {% if h.anterior %}{% estado h.anterior %} <i class="bi bi-arrow-right" aria-hidden="true"></i>{% endif %}
+                    {% estado h.nuevo %}
+                </div>
+                <p>{{ h.observacion }}</p>
+                <span class="ruta">{{ h.usuario }} · {{ h.fecha|date:"d-m-Y H:i" }}</span>
+            </li>
+            {% endfor %}
+        </ol>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% comment %}
+  Plantilla de las pantallas internas. Cada pantalla hereda de aquí y solo
+  completa sus bloques: titulo_pagina, bajada, traza, accion y contenido.
+  El menú lateral y la barra superior se definen una sola vez.
+{% endcomment %}
+
+{% block cuerpo %}
+<div class="app">
+    {% include "parciales/_menu.html" %}
+
+    <div class="area-principal">
+        {% include "parciales/_barra_superior.html" %}
+
+        <main class="contenido" id="contenido">
+            <div class="encabezado-pagina">
+                <div class="encabezado-fila">
+                    <div>
+                        <h1>{% block titulo_pagina %}{% endblock %}</h1>
+                        <p>{% block bajada %}{% endblock %}</p>
+                    </div>
+                    <div class="encabezado-accion">{% block accion %}{% endblock %}</div>
+                </div>
+                <div class="trazabilidad">{% block traza %}{% endblock %}</div>
+            </div>
+
+            {% block contenido %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}

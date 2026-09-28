@@ -1,0 +1,12 @@
+{# Avisos del sistema (framework de mensajes de Django) #}
+{% if messages %}
+<div class="pila-notificaciones" role="status" aria-live="polite">
+    {% for mensaje in messages %}
+        <div class="notificacion {{ mensaje.level_tag }}">
+            <i class="bi {% if mensaje.level_tag == 'error' %}bi-x-circle{% elif mensaje.level_tag == 'warning' %}bi-exclamation-triangle{% elif mensaje.level_tag == 'info' %}bi-info-circle{% else %}bi-check-circle{% endif %}" aria-hidden="true"></i>
+            <span>{{ mensaje }}</span>
+            <button type="button" class="cerrar-notificacion" aria-label="Cerrar aviso">&times;</button>
+        </div>
+    {% endfor %}
+</div>
+{% endif %}

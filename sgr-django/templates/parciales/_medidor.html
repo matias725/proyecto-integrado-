@@ -1,0 +1,14 @@
+{% load sgr_tags %}
+{# Barra de avance. La línea vertical marca la meta esperada al día (RN-007). #}
+<div class="medidor">
+    <div class="medidor-titulo">
+        <span>{{ fila.item }} <span class="ruta">· meta {{ fila.objetivo }} · pondera {{ fila.ponderador }} %</span></span>
+        <span class="cifra">{{ fila.avance }} de {{ fila.objetivo }} · {{ fila.cumplimiento|cifra }} %</span>
+    </div>
+    <div class="pista" role="img"
+         aria-label="{{ fila.item }}: avance {{ fila.cumplimiento|cifra }} % frente a {{ esperado|cifra }} % esperado">
+        <div class="relleno {{ fila.color }}" style="width: {{ fila.ancho|stringformat:'.2f' }}%"></div>
+        <div class="marca-esperada" style="left: {{ esperado|stringformat:'.2f' }}%"
+             data-etiqueta="esperado {{ esperado|cifra }} %"></div>
+    </div>
+</div>

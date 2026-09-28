@@ -1,0 +1,30 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Actividad registrada{% endblock %}
+{% block titulo_pagina %}Actividad registrada{% endblock %}
+{% block bajada %}El sistema generó el código de evidencia. Úselo para nombrar el archivo que respalda la actividad.{% endblock %}
+{% block traza %}CU-07, CU-19 · RF-011 · RN-010{% endblock %}
+
+{% block contenido %}
+<div class="panel">
+    <div class="panel-cuerpo">
+        <div class="aviso exito">
+            <i class="bi bi-upc-scan" aria-hidden="true"></i>
+            <div>Código asignado: <strong class="codigo">{{ actividad.codigo }}</strong></div>
+        </div>
+        <table class="tabla ficha">
+            <tr><th>Fecha</th><td>{{ actividad.fecha|date:"d-m-Y" }}</td></tr>
+            <tr><th>Actividad</th><td>{{ actividad.descripcion }}</td></tr>
+            <tr><th>Acción</th><td>{{ actividad.accion }}</td></tr>
+            <tr><th>Ítem</th><td>{{ actividad.item }}</td></tr>
+            <tr><th>Estado</th><td>{% estado actividad.estado %} {% estado actividad.evidencia %}</td></tr>
+        </table>
+        <p class="ruta">El código es único e inmutable: no puede modificarse ni reutilizarse en otra actividad.</p>
+    </div>
+    <div class="panel-pie">
+        <a href="{% url 'evidencias' %}" class="boton principal"><i class="bi bi-paperclip" aria-hidden="true"></i>Adjuntar evidencia</a>
+        <a href="{% url 'actividades' %}" class="boton">Volver al listado</a>
+    </div>
+</div>
+{% endblock %}
