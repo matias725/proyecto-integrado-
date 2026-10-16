@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block titulo %}Acceso{% endblock %}
+
+{% block cuerpo %}
+<div class="acceso" id="contenido">
+
+    <section class="acceso-presentacion">
+        <h1>Sistema de Gestión de Resultados</h1>
+        <p>Registro, verificación y medición de la gestión de las seis delegaciones municipales de La Serena.</p>
+
+        <div class="acceso-flujo">
+            <div><b>Registrar</b> La actividad, el compromiso o la atención entregada</div>
+            <div><b>Respaldar</b> Un código único vincula la evidencia a lo registrado</div>
+            <div><b>Verificar</b> Solo lo aprobado por un verificador suma al avance</div>
+            <div><b>Medir</b> Avance, cumplimiento ponderado y semáforo del día</div>
+        </div>
+
+        <p class="pie">Proyecto Integrado INACAP 2026 · Los datos mostrados son ficticios.</p>
+    </section>
+
+    <section class="acceso-formulario">
+        <div class="acceso-caja">
+            <h2>Ingresar al sistema</h2>
+            <p>Use su cuenta institucional.</p>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% include "parciales/_errores_formulario.html" %}
+                {% include "parciales/_campo.html" with campo=form.usuario %}
+                {% include "parciales/_campo.html" with campo=form.clave %}
+                <button type="submit" class="boton principal ancho">
+                    <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>Ingresar
+                </button>
+            </form>
+
+            <div class="cuentas-demo">
+                <strong>Cuentas de demostración</strong>
+                <p>Cada rol ve un menú distinto. Contraseña: <code>demo1234</code></p>
+                <table>
+                    {% for cuenta, rol in cuentas %}
+                    <tr>
+                        <td>{{ rol }}</td>
+                        <td><button type="button" data-cuenta="{{ cuenta }}">{{ cuenta }}</button></td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

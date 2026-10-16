@@ -1,0 +1,17 @@
+{% extends "layouts/app.html" %}
+
+{% block titulo %}Acceso denegado{% endblock %}
+{% block titulo_pagina %}Acceso denegado{% endblock %}
+{% block bajada %}Su rol no permite usar esta sección. El intento quedó registrado en la auditoría.{% endblock %}
+{% block traza %}RNF-005 · CA-07{% endblock %}
+
+{% block contenido %}
+<div class="panel">
+    <div class="vacio">
+        <i class="bi bi-shield-lock" aria-hidden="true"></i>
+        <h3>Esta sección requiere otro rol</h3>
+        <p>Si necesita acceso, solicítelo al administrador del sistema.</p>
+        <a href="{% url 'tablero' %}" class="boton principal">Volver al tablero</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}Inicio{% endblock %} · SGR La Serena</title>
+<meta name="description" content="Sistema de Gestión de Resultados de las Delegaciones Municipales de La Serena.">
+<link rel="stylesheet" href="{% static 'css/fuentes.css' %}">
+<link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+<link rel="stylesheet" href="{% static 'css/sgr.css' %}">
+{% block estilos %}{% endblock %}
+</head>
+<body>
+<a class="saltar" href="#contenido">Ir al contenido</a>
+
+{% block cuerpo %}{% endblock %}
+
+{% include "parciales/_mensajes.html" %}
+<script src="{% static 'js/sgr.js' %}" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

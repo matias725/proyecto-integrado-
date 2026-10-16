@@ -1,0 +1,88 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Períodos{% endblock %}
+{% block titulo_pagina %}Períodos de medición{% endblock %}
+{% block bajada %}Ventanas de tiempo sobre las que se calculan metas, avances y semáforos. Los umbrales son parámetros del período, no valores fijos del sistema.{% endblock %}
+{% block traza %}CU-05 · RF-005, RF-038 · RN-006, RN-008, RN-013{% endblock %}
+
+{% block accion %}
+<button type="button" class="boton principal" data-abrir="modalPeriodo"><i class="bi bi-plus-lg" aria-hidden="true"></i>Nuevo período</button>
+{% endblock %}
+
+{% block contenido %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>Períodos</h2></div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Período</th><th>Inicio</th><th>Término</th><th class="num">Días</th>
+                    <th class="num">Verde</th><th class="num">Ámbar</th><th class="num">Tope</th><th>Estado</th><th class="acciones">Acciones</th></tr>
+            </thead>
+            <tbody>
+                {% for p in filas %}
+                <tr>
+                    <td><strong>{{ p.nombre }}</strong></td>
+                    <td>{{ p.inicio|date:"d-m-Y" }}</td>
+                    <td>{{ p.termino|date:"d-m-Y" }}</td>
+                    <td class="num">{{ p.dias }}</td>
+                    <td class="num">{{ p.umbral_verde }} %</td>
+                    <td class="num">{{ p.umbral_ambar }} %</td>
+                    <td class="num">{{ p.tope }} %</td>
+                    <td>{% estado p.estado %}</td>
+                    <td class="acciones">
+                        {% if p.estado == 'ABIERTO' %}
+                        <form method="post" action="{% url 'periodo_estado' p.id 'cerrar' %}"
+                              data-confirmar="Al cerrar {{ p.nombre }} sus resultados quedan congelados. ¿Continuar?">
+                            {% csrf_token %}
+                            <button type="submit" class="boton pequeno"><i class="bi bi-lock" aria-hidden="true"></i>Cerrar</button>
+                        </form>
+                        {% else %}
+                        <form method="post" action="{% url 'periodo_estado' p.id 'reabrir' %}"
+                              data-confirmar="La reapertura queda registrada en la auditoría. ¿Reabrir {{ p.nombre }}?">
+                            {% csrf_token %}
+                            <button type="submit" class="boton pequeno"{% if not es_administrador %} title="Requiere rol Administrador"{% endif %}>
+                                <i class="bi bi-unlock" aria-hidden="true"></i>Reabrir
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="telon{% if form.errors %} abierto{% endif %}" id="modalPeriodo" role="dialog" aria-modal="true" aria-labelledby="tituloPeriodo">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloPeriodo">Nuevo período</h2>
+            <span class="espacio"></span>
+            <button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="modal-cuerpo">
+                {% include "parciales/_errores_formulario.html" %}
+                {% include "parciales/_campo.html" with campo=form.nombre %}
+                <div class="rejilla rejilla-2">
+                    {% include "parciales/_campo.html" with campo=form.inicio %}
+                    {% include "parciales/_campo.html" with campo=form.termino %}
+                </div>
+                {% include "parciales/_campo.html" with campo=form.dias %}
+                <h3 class="subtitulo">Umbrales del período</h3>
+                <div class="rejilla rejilla-3">
+                    {% include "parciales/_campo.html" with campo=form.umbral_verde %}
+                    {% include "parciales/_campo.html" with campo=form.umbral_ambar %}
+                    {% include "parciales/_campo.html" with campo=form.tope %}
+                </div>
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" data-cerrar>Cancelar</button>
+                <button type="submit" class="boton principal">Crear período</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

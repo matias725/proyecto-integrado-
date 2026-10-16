@@ -1,0 +1,19 @@
+{# Menú lateral: solo muestra las secciones que el rol del usuario puede usar #}
+<aside class="lateral">
+    <div class="marca">
+        <strong>SGR</strong>
+        <span>Municipalidad de La Serena</span>
+    </div>
+    <nav class="menu" aria-label="Menú principal">
+        {% with actual=request.resolver_match.url_name %}
+        {% for grupo in menu %}
+            <div class="menu-grupo">{{ grupo.titulo }}</div>
+            {% for enlace in grupo.enlaces %}
+                <a href="{% url enlace.url %}"{% if actual in enlace.activos %} class="activo" aria-current="page"{% endif %}>
+                    <i class="bi {{ enlace.icono }}" aria-hidden="true"></i>{{ enlace.texto }}
+                </a>
+            {% endfor %}
+        {% endfor %}
+        {% endwith %}
+    </nav>
+</aside>

@@ -1,0 +1,82 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Atención social{% endblock %}
+{% block titulo_pagina %}Casos de atención social{% endblock %}
+{% block bajada %}Cada persona usuaria mantiene un único caso, con hasta tres gestiones que conservan su secuencia completa.{% endblock %}
+{% block traza %}CU-08 · RF-015 · RN-012 · RNF-009{% endblock %}
+
+{% block accion %}
+<button type="button" class="boton principal" data-abrir="modalGestion"><i class="bi bi-person-plus" aria-hidden="true"></i>Registrar atención</button>
+{% endblock %}
+
+{% block contenido %}
+{% for caso in casos %}
+<div class="panel">
+    <div class="panel-cabecera">
+        <div>
+            <h3>{{ caso.nombre }}</h3>
+            <span class="ruta"><span class="codigo">{{ caso.rut }}</span> · {{ caso.telefono }} · abierto el {{ caso.apertura|date:"d-m-Y" }}</span>
+        </div>
+        <span class="espacio"></span>
+        <span class="estado {% if caso.gestiones|length >= 3 %}pendiente{% else %}neutro{% endif %}">{{ caso.gestiones|length }} de 3 gestiones</span>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr><th class="num">N°</th><th>Fecha</th><th>Tipo</th><th>Resultado</th></tr></thead>
+            <tbody>
+                {% for g in caso.gestiones %}
+                <tr>
+                    <td class="num">{{ g.numero }}</td>
+                    <td>{{ g.fecha|date:"d-m-Y" }}</td>
+                    <td>{{ g.tipo }}</td>
+                    <td>{{ g.resultado }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if caso.gestiones|length >= 3 %}
+    <div class="panel-pie">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        <span class="ruta">Este caso alcanzó el máximo de tres gestiones. Para continuar la atención debe abrirse un caso nuevo.</span>
+    </div>
+    {% endif %}
+</div>
+{% empty %}
+<div class="panel">
+    <div class="vacio">
+        <i class="bi bi-people" aria-hidden="true"></i>
+        <h3>No hay casos en su delegación</h3>
+        <p>Registre la primera atención para abrir un caso.</p>
+    </div>
+</div>
+{% endfor %}
+
+<div class="telon{% if form.errors %} abierto{% endif %}" id="modalGestion" role="dialog" aria-modal="true" aria-labelledby="tituloGestion">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloGestion">Registrar atención</h2>
+            <span class="espacio"></span>
+            <button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="modal-cuerpo">
+                {% include "parciales/_errores_formulario.html" %}
+                {% include "parciales/_campo.html" with campo=form.rut %}
+                {% include "parciales/_campo.html" with campo=form.nombre %}
+                <div class="rejilla rejilla-2">
+                    {% include "parciales/_campo.html" with campo=form.tipo %}
+                    {% include "parciales/_campo.html" with campo=form.fecha %}
+                </div>
+                {% include "parciales/_campo.html" with campo=form.resultado %}
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" data-cerrar>Cancelar</button>
+                <button type="submit" class="boton principal">Registrar atención</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

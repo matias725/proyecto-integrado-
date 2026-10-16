@@ -1,0 +1,29 @@
+{# Una fila del formset de metas #}
+<tr class="fila-meta">
+    <td>
+        <div class="campo{% if form.item.errors %} invalido{% endif %}">
+            <label for="{{ form.item.id_for_label }}" class="solo-lectores">Ítem de medición</label>
+            {{ form.item }}
+            {% for e in form.item.errors %}<span class="mensaje-error">{{ e }}</span>{% endfor %}
+        </div>
+    </td>
+    <td class="num">
+        <div class="campo{% if form.objetivo.errors %} invalido{% endif %}">
+            <label for="{{ form.objetivo.id_for_label }}" class="solo-lectores">Meta del período</label>
+            {{ form.objetivo }}
+            {% for e in form.objetivo.errors %}<span class="mensaje-error">{{ e }}</span>{% endfor %}
+        </div>
+    </td>
+    <td class="num">
+        <div class="campo{% if form.ponderador.errors %} invalido{% endif %}">
+            <label for="{{ form.ponderador.id_for_label }}" class="solo-lectores">Ponderador</label>
+            {{ form.ponderador }}
+            {% for e in form.ponderador.errors %}<span class="mensaje-error">{{ e }}</span>{% endfor %}
+        </div>
+    </td>
+    <td class="acciones">
+        <label class="quitar" title="Quitar este ítem">
+            {{ form.DELETE }}<i class="bi bi-trash" aria-hidden="true"></i><span class="solo-lectores">Quitar ítem</span>
+        </label>
+    </td>
+</tr>

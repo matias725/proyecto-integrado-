@@ -1,0 +1,41 @@
+{% extends "layouts/app.html" %}
+
+{% block titulo %}Registrar actividad{% endblock %}
+{% block titulo_pagina %}Registrar actividad{% endblock %}
+{% block bajada %}Al guardar, el sistema genera un código único e inmutable para nombrar y vincular la evidencia de respaldo.{% endblock %}
+{% block traza %}CU-07, CU-18, CU-19 · RF-009, RF-010, RF-011 · RN-010{% endblock %}
+
+{% block contenido %}
+<div class="aviso info">
+    <i class="bi bi-info-circle" aria-hidden="true"></i>
+    <div>La actividad queda en estado <strong>Registrada</strong> y no suma al avance hasta que un verificador apruebe su evidencia.</div>
+</div>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Datos de la actividad</h2></div>
+        <div class="panel-cuerpo">
+            {% include "parciales/_errores_formulario.html" %}
+            <div class="rejilla rejilla-3">
+                {% include "parciales/_campo.html" with campo=form.fecha %}
+                {% include "parciales/_campo.html" with campo=form.item %}
+                {% include "parciales/_campo.html" with campo=form.tipo %}
+            </div>
+            {% include "parciales/_campo.html" with campo=form.descripcion %}
+            {% include "parciales/_campo.html" with campo=form.accion %}
+            <div class="rejilla rejilla-2">
+                {% include "parciales/_campo.html" with campo=form.contacto %}
+                {% include "parciales/_campo.html" with campo=form.telefono %}
+            </div>
+            {% include "parciales/_campo.html" with campo=form.agenda %}
+        </div>
+        <div class="panel-pie">
+            <button type="submit" class="boton principal"><i class="bi bi-check-lg" aria-hidden="true"></i>Guardar actividad</button>
+            <a href="{% url 'actividades' %}" class="boton">Cancelar</a>
+            <span class="espacio"></span>
+            <span class="ruta">Los campos con <span class="obligatorio">*</span> son obligatorios</span>
+        </div>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Agenda colectiva{% endblock %}
+{% block titulo_pagina %}Agenda colectiva{% endblock %}
+{% block bajada %}Compromisos adquiridos con vecinos y organizaciones. Cada cambio de estado conserva su autor, su fecha y su observación.{% endblock %}
+{% block traza %}CU-11, CU-12 · RF-016 a RF-019 · HU-02, HU-13, HU-14{% endblock %}
+
+{% block accion %}
+<button type="button" class="boton principal" data-abrir="modalCompromiso"><i class="bi bi-plus-lg" aria-hidden="true"></i>Registrar compromiso</button>
+{% endblock %}
+
+{% block contenido %}
+<div class="rejilla rejilla-4">
+    <div class="panel dato"><span class="etiqueta">Pendientes</span><span class="valor">{{ resumen.pendientes }}</span><span class="apoyo">Ingresados o pendientes</span></div>
+    <div class="panel dato"><span class="etiqueta">En proceso</span><span class="valor">{{ resumen.en_proceso }}</span></div>
+    <div class="panel dato verde"><span class="etiqueta">Realizados</span><span class="valor">{{ resumen.realizados }}</span></div>
+    <div class="panel dato{% if resumen.vencidos %} rojo{% endif %}"><span class="etiqueta">Vencidos</span><span class="valor">{{ resumen.vencidos }}</span><span class="apoyo">Fecha cumplida sin cierre</span></div>
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera"><h2>Compromisos</h2></div>
+    {% if filas %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Solicitante</th><th>Compromiso</th><th>Territorio</th><th>Responsable</th><th>Fecha</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for c in filas %}
+                <tr>
+                    <td>{{ c.solicitante }}</td>
+                    <td>{{ c.descripcion }}</td>
+                    <td>{{ c.territorio }}<div class="ruta">{{ c.delegacion }}</div></td>
+                    <td>{{ c.responsable }}</td>
+                    <td>{{ c.fecha|date:"d-m-Y" }}{% if c.vencido %} <span class="estado error">Vencido</span>{% endif %}</td>
+                    <td>{% estado c.estado %}</td>
+                    <td class="acciones">
+                        <a href="{% url 'compromiso_estado' c.id %}" class="boton pequeno">
+                            {% if c.estado == 'REALIZADO' %}<i class="bi bi-clock-history" aria-hidden="true"></i>Historial
+                            {% else %}<i class="bi bi-arrow-repeat" aria-hidden="true"></i>Estado{% endif %}
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio">
+        <i class="bi bi-calendar-week" aria-hidden="true"></i>
+        <h3>No hay compromisos registrados</h3>
+        <p>Registre el primero cuando una solicitud no pueda resolverse en el momento.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="telon{% if form.errors %} abierto{% endif %}" id="modalCompromiso" role="dialog" aria-modal="true" aria-labelledby="tituloCompromiso">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloCompromiso">Registrar compromiso</h2>
+            <span class="espacio"></span>
+            <button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="modal-cuerpo">
+                {% include "parciales/_errores_formulario.html" %}
+                {% include "parciales/_campo.html" with campo=form.solicitante %}
+                {% include "parciales/_campo.html" with campo=form.descripcion %}
+                <div class="rejilla rejilla-2">
+                    {% include "parciales/_campo.html" with campo=form.territorio %}
+                    {% include "parciales/_campo.html" with campo=form.responsable %}
+                </div>
+                {% include "parciales/_campo.html" with campo=form.fecha %}
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" data-cerrar>Cancelar</button>
+                <button type="submit" class="boton principal">Registrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

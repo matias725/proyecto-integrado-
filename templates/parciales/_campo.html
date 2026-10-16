@@ -1,0 +1,25 @@
+{% comment %}
+  Dibuja un campo de formulario con su etiqueta, marca de obligatorio,
+  ayuda y errores de validación del servidor.
+  Uso: {% include "parciales/_campo.html" with campo=form.nombre %}
+{% endcomment %}
+{% if campo.widget_type == 'checkboxselectmultiple' %}
+<fieldset class="campo{% if campo.errors %} invalido{% endif %}">
+    <legend>{{ campo.label }}{% if campo.field.required %} <span class="obligatorio" aria-hidden="true">*</span>{% endif %}</legend>
+    <div class="opciones">{{ campo }}</div>
+    {% if campo.help_text %}<span class="ayuda" id="{{ campo.auto_id }}_helptext">{{ campo.help_text }}</span>{% endif %}
+    {% for error in campo.errors %}<span class="mensaje-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ error }}</span>{% endfor %}
+</fieldset>
+{% elif campo.widget_type == 'checkbox' %}
+<div class="campo{% if campo.errors %} invalido{% endif %}">
+    <label class="casilla">{{ campo }} {{ campo.label }}</label>
+    {% for error in campo.errors %}<span class="mensaje-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ error }}</span>{% endfor %}
+</div>
+{% else %}
+<div class="campo{% if campo.errors %} invalido{% endif %}">
+    <label for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required %} <span class="obligatorio" aria-hidden="true">*</span>{% endif %}</label>
+    {{ campo }}
+    {% if campo.help_text %}<span class="ayuda" id="{{ campo.auto_id }}_helptext">{{ campo.help_text }}</span>{% endif %}
+    {% for error in campo.errors %}<span class="mensaje-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ error }}</span>{% endfor %}
+</div>
+{% endif %}

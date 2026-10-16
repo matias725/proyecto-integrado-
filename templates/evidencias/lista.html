@@ -1,0 +1,67 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Evidencias{% endblock %}
+{% block titulo_pagina %}Evidencias de respaldo{% endblock %}
+{% block bajada %}Cada evidencia se vincula a una actividad mediante su código. Se aceptan archivos JPG, PNG o PDF de hasta 2 MB.{% endblock %}
+{% block traza %}CU-09 · RF-012 · RN-010 · RNF-017{% endblock %}
+
+{% block accion %}
+{% if puede_adjuntar %}
+<button type="button" class="boton principal" data-abrir="modalAdjuntar"><i class="bi bi-upload" aria-hidden="true"></i>Adjuntar evidencia</button>
+{% endif %}
+{% endblock %}
+
+{% block contenido %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>Actividades y su evidencia</h2></div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Código</th><th>Actividad</th><th>Fecha</th><th>Funcionario</th><th>Estado de revisión</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for a in filas %}
+                <tr>
+                    <td><span class="codigo">{{ a.codigo }}</span></td>
+                    <td>{{ a.descripcion }}</td>
+                    <td>{{ a.fecha|date:"d-m-Y" }}</td>
+                    <td>{{ a.funcionario }}</td>
+                    <td>{% estado a.evidencia %}</td>
+                    <td class="acciones">
+                        {% if puede_adjuntar and a.evidencia != 'APROBADA' and a.funcionario == usuario_actual.nombre %}
+                        <button type="button" class="boton pequeno" data-abrir="modalAdjuntar" {% rellenar id_actividad=a.codigo %}>
+                            <i class="bi bi-upload" aria-hidden="true"></i>Adjuntar
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="telon{% if form.errors %} abierto{% endif %}" id="modalAdjuntar" role="dialog" aria-modal="true" aria-labelledby="tituloAdjuntar">
+    <div class="modal">
+        <div class="modal-cabecera">
+            <h2 id="tituloAdjuntar">Adjuntar evidencia</h2>
+            <span class="espacio"></span>
+            <button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            <div class="modal-cuerpo">
+                {% include "parciales/_errores_formulario.html" %}
+                {% include "parciales/_campo.html" with campo=form.actividad %}
+                {% include "parciales/_campo.html" with campo=form.archivo %}
+                {% include "parciales/_campo.html" with campo=form.observacion %}
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" data-cerrar>Cancelar</button>
+                <button type="submit" class="boton principal">Adjuntar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Tablero{% endblock %}
+{% block titulo_pagina %}Tablero de indicadores{% endblock %}
+{% block bajada %}Avance, cumplimiento ponderado y semáforo del período. La línea vertical de cada barra marca la meta esperada al día.{% endblock %}
+{% block traza %}CU-13 · RF-008, RF-026 a RF-029 · RN-004, RN-007, RN-008{% endblock %}
+
+{% block contenido %}
+{% if periodo.estado == 'CERRADO' %}
+<div class="aviso info">
+    <i class="bi bi-lock" aria-hidden="true"></i>
+    <div>{{ periodo.nombre }} está cerrado. Sus resultados quedaron congelados y se muestran solo para consulta.</div>
+</div>
+{% endif %}
+
+<div class="rejilla rejilla-4">
+    <div class="panel dato {{ indicadores.color_total }}">
+        <span class="etiqueta">Cumplimiento ponderado</span>
+        <span class="valor">{% if indicadores %}{{ indicadores.total|cifra }} %{% else %}—{% endif %}</span>
+        <span class="apoyo">Esperado al día: {{ esperado|cifra }} %</span>
+    </div>
+    <div class="panel dato">
+        <span class="etiqueta">Actividades del período</span>
+        <span class="valor">{{ total_actividades }}</span>
+        <span class="apoyo">{{ validadas }} validadas</span>
+    </div>
+    <div class="panel dato{% if pendientes %} ambar{% endif %}">
+        <span class="etiqueta">Evidencias por revisar</span>
+        <span class="valor">{{ pendientes }}</span>
+        <span class="apoyo">No suman avance hasta su aprobación</span>
+    </div>
+    <div class="panel dato{% if vencidos %} rojo{% endif %}">
+        <span class="etiqueta">Compromisos vencidos</span>
+        <span class="valor">{{ vencidos }}</span>
+        <span class="apoyo">Con fecha cumplida y sin cierre</span>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <div>
+            <h2>Avance por ítem</h2>
+            {% if ficha %}<span class="ruta">{{ ficha.nombre }} · {{ ficha.cargo }}</span>{% endif %}
+        </div>
+        <span class="espacio"></span>
+        {% if candidatos|length > 1 %}
+        <form method="get" class="selector-periodo">
+            <label for="funcionario">Ver ficha de</label>
+            <select name="funcionario" id="funcionario" data-enviar-al-cambiar>
+                {% for u in candidatos %}
+                    <option{% if u.nombre == ficha.nombre %} selected{% endif %}>{{ u.nombre }}</option>
+                {% endfor %}
+            </select>
+            <noscript><button type="submit" class="boton pequeno">Ver</button></noscript>
+        </form>
+        {% endif %}
+        <span class="ruta">{{ periodo.inicio|date:"d-m-Y" }} al {{ periodo.termino|date:"d-m-Y" }} · día {{ dias_transcurridos }} de {{ periodo.dias }}</span>
+    </div>
+    <div class="panel-cuerpo">
+        {% if indicadores.filas %}
+            {% for fila in indicadores.filas %}
+                {% medidor fila esperado %}
+            {% endfor %}
+            <div class="leyenda-semaforo">
+                <span><i class="punto verde"></i> Avance igual o superior a lo esperado</span>
+                <span><i class="punto ambar"></i> Entre el {{ periodo.umbral_ambar }} % y lo esperado</span>
+                <span><i class="punto rojo"></i> Bajo el {{ periodo.umbral_ambar }} % de lo esperado</span>
+            </div>
+        {% else %}
+            <div class="vacio">
+                <i class="bi bi-bullseye" aria-hidden="true"></i>
+                <h3>Sin metas para este período</h3>
+                <p>Su cargo no tiene ítems configurados en {{ periodo.nombre }}.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Resumen por delegación</h2>
+        <span class="espacio"></span>
+        {% if usuario_actual|puede:'informes' %}
+        <a href="{% url 'informes' %}" class="boton pequeno"><i class="bi bi-file-earmark-bar-graph" aria-hidden="true"></i>Ver informe</a>
+        {% endif %}
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th>Delegación</th><th>Encargado</th><th class="num">Funcionarios</th><th class="num">Cumplimiento</th><th>Semáforo</th></tr>
+            </thead>
+            <tbody>
+                {% for d in delegaciones %}
+                <tr>
+                    <td><strong>{{ d.nombre }}</strong><div class="ruta">{{ d.ambito }}</div></td>
+                    <td>{{ d.encargado }}</td>
+                    <td class="num">{{ d.funcionarios }}</td>
+                    <td class="num">{{ d.cumplimiento|cifra }} %</td>
+                    <td>{% insignia d.color|clase_semaforo d.texto %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

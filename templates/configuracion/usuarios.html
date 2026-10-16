@@ -1,0 +1,74 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Usuarios{% endblock %}
+{% block titulo_pagina %}Usuarios y roles{% endblock %}
+{% block bajada %}Funcionarios habilitados en el sistema. Un usuario puede tener más de un rol, y sus permisos son la suma de todos ellos.{% endblock %}
+{% block traza %}CU-03 · RF-002 · RNF-004, RNF-005 · HU-26{% endblock %}
+
+{% block accion %}
+<button type="button" class="boton principal" data-abrir="modalUsuario"><i class="bi bi-person-plus" aria-hidden="true"></i>Nuevo usuario</button>
+{% endblock %}
+
+{% block contenido %}
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Listado</h2>
+        <span class="espacio"></span>
+        <span class="ruta">{{ filas|length }} usuarios</span>
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr><th class="num">#</th><th>RUT</th><th>Nombre</th><th>Cargo</th><th>Delegación</th><th>Roles</th><th>Estado</th></tr>
+            </thead>
+            <tbody>
+                {% for u in filas %}
+                <tr>
+                    <td class="num">{{ u.id }}</td>
+                    <td><span class="codigo">{{ u.rut }}</span></td>
+                    <td><strong>{{ u.nombre }}</strong><div class="ruta">{{ u.correo }}</div></td>
+                    <td>{{ u.cargo }}</td>
+                    <td>{{ u.delegacion }}</td>
+                    <td>{% for rol in u.roles %}<span class="estado neutro">{{ rol }}</span> {% endfor %}</td>
+                    <td>{% estado u.estado %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="telon{% if form.errors %} abierto{% endif %}" id="modalUsuario" role="dialog" aria-modal="true" aria-labelledby="tituloUsuario">
+    <div class="modal amplio">
+        <div class="modal-cabecera">
+            <h2 id="tituloUsuario">Nuevo usuario</h2>
+            <span class="espacio"></span>
+            <button type="button" class="cerrar" data-cerrar aria-label="Cerrar">&times;</button>
+        </div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="modal-cuerpo">
+                {% include "parciales/_errores_formulario.html" %}
+                <div class="rejilla rejilla-2">
+                    {% include "parciales/_campo.html" with campo=form.rut %}
+                    {% include "parciales/_campo.html" with campo=form.nombre %}
+                </div>
+                <div class="rejilla rejilla-2">
+                    {% include "parciales/_campo.html" with campo=form.correo %}
+                    {% include "parciales/_campo.html" with campo=form.telefono %}
+                </div>
+                <div class="rejilla rejilla-2">
+                    {% include "parciales/_campo.html" with campo=form.cargo %}
+                    {% include "parciales/_campo.html" with campo=form.delegacion %}
+                </div>
+                {% include "parciales/_campo.html" with campo=form.roles %}
+            </div>
+            <div class="modal-pie">
+                <button type="button" class="boton" data-cerrar>Cancelar</button>
+                <button type="submit" class="boton principal">Crear usuario</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
