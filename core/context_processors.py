@@ -1,6 +1,9 @@
 """Variables disponibles en todos los templates."""
 
+from functools import lru_cache
+
 from django.conf import settings
+from django.contrib.staticfiles import finders
 
 from cuentas.modulos import MODULOS, OPERATIVO, ORDEN_GRUPOS
 
@@ -42,8 +45,18 @@ def menu_para(usuario, actual=''):
     return [{'titulo': g, 'enlaces': grupos[g]} for g in ORDEN_GRUPOS if g in grupos]
 
 
+LOGO = 'img/logo-municipalidad.png'
+
+
+@lru_cache(maxsize=1)
+def logo_institucional():
+    """Ruta del logo oficial si el equipo lo agregó en static/img/ (ver README)."""
+    return LOGO if finders.find(LOGO) else ''
+
+
 def sgr(request):
-    contexto = {'sgr_version': settings.SGR_VERSION, 'mostrar_cuentas_demo': settings.SGR_CUENTAS_DEMO}
+    contexto = {'sgr_version': settings.SGR_VERSION, 'mostrar_cuentas_demo': settings.SGR_CUENTAS_DEMO,
+                'logo_institucional': logo_institucional()}
     if not request.user.is_authenticated:
         return contexto
     contexto.update({

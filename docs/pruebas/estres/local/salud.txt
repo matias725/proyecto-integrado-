@@ -1,0 +1,1 @@
+Al terminar la prueba: /salud/ 200 ({"estado": "ok"})

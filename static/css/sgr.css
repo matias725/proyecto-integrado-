@@ -516,3 +516,7 @@ body.menu-abierto::after { content: ""; position: fixed; inset: 0; background: r
 @media (min-width: 901px) {
     .app { background: linear-gradient(to right, var(--superficie) calc(var(--lateral) - 1px), var(--linea) calc(var(--lateral) - 1px), var(--linea) var(--lateral), transparent var(--lateral)); }
 }
+/* Logo oficial (se muestra solo si existe static/img/logo-municipalidad.png) */
+.marca .logo, .acceso-cabecera .logo { height: 40px; width: auto; display: block; background: #fff; border-radius: 3px; padding: 3px; }
+.marca { display: flex; align-items: center; gap: 12px; }
+.acceso-cabecera { display: flex; align-items: center; gap: 10px; }

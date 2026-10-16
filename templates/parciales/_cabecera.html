@@ -6,6 +6,7 @@
             <i class="bi bi-list" aria-hidden="true"></i><span class="solo-lectores">Abrir menú</span>
         </button>
         <a href="{% url 'inicio' %}" class="marca">
+            {% if logo_institucional %}<img src="{% static logo_institucional %}" alt="Ilustre Municipalidad de La Serena" class="logo">{% endif %}
             <span class="marca-texto">
                 <b>Municipalidad de La Serena</b>
                 <span>Sistema de Gestión de Resultados</span>

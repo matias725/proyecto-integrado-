@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {# Pantallas de acceso y recuperación: sin menú, con la misma identidad #}
 
 {% block cuerpo %}
 <header class="acceso-cabecera">
+    {% if logo_institucional %}<img src="{% static logo_institucional %}" alt="Ilustre Municipalidad de La Serena" class="logo">{% endif %}
     <b>Municipalidad de La Serena</b><span>/ Acceso y recuperación</span>
 </header>
 <main class="acceso-fondo" id="contenido">

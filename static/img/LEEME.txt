@@ -1,0 +1,9 @@
+Logo institucional
+==================
+Coloque aquí el logo oficial de la Ilustre Municipalidad de La Serena con el nombre
+exacto:  logo-municipalidad.png  (fondo transparente o blanco, alto recomendado 80 px).
+
+El sistema lo muestra automáticamente en la cabecera y en las pantallas de acceso.
+Use solo el archivo oficial publicado por el municipio en
+https://laserena.cl/conocenos/normas-graficas  (Reglamento de Normas Gráficas 2019).
+No lo redibuje ni lo modifique.

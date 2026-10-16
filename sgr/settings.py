@@ -45,6 +45,9 @@ if SGR_HTTPS:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = env_bool('SGR_REDIRIGIR_HTTPS', True)
+    SECURE_REDIRECT_EXEMPT = [r'^salud/$']          # el balanceador consulta por HTTP
+    SECURE_HSTS_SECONDS = int(env('SGR_HSTS_SEGUNDOS', '3600'))
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 60 * 60 * 8          # una jornada laboral
