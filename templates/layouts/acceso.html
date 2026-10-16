@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{# Pantallas de acceso y recuperación: sin menú, con la misma identidad #}
+
+{% block cuerpo %}
+<header class="acceso-cabecera">
+    <b>Municipalidad de La Serena</b><span>/ Acceso y recuperación</span>
+</header>
+<main class="acceso-fondo" id="contenido">
+    <div class="columna-acceso">
+        <div class="tarjeta-acceso">
+            <div class="sistema">Sistema de Gestión de Resultados</div>
+            {% block tarjeta %}{% endblock %}
+        </div>
+        {% block despues %}{% endblock %}
+        <p class="pie-acceso">Prototipo académico INACAP · Datos ficticios · Versión {{ sgr_version }}</p>
+    </div>
+</main>
+{% endblock %}

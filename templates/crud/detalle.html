@@ -1,0 +1,81 @@
+{% extends "layouts/app.html" %}
+{% comment %}Vista de consulta común: datos, registros relacionados e historial.{% endcomment %}
+
+{% block titulo %}{{ obj }} · {{ m.titulo }}{% endblock %}
+{% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / <a href="{% url m.modulo|add:'_lista' %}">{{ m.titulo }}</a> / Consulta{% endblock %}
+{% block titulo_pagina %}{{ obj }}{% endblock %}
+{% block bajada %}{{ m.singular|capfirst }} · {% if activo %}activ{{ m.participio }}{% else %}inactiv{{ m.participio }}{% endif %}{% endblock %}
+{% block traza %}{{ m.traza }}{% endblock %}
+
+{% block accion %}
+<a href="{% url m.modulo|add:'_lista' %}" class="boton"><i class="bi bi-arrow-left" aria-hidden="true"></i>Volver</a>
+{% if puede_editar and modificable %}
+<form method="post" action="{% url m.modulo|add:'_estado' obj.pk %}"
+      data-confirmar="¿{% if activo %}Desactivar{% else %}Activar{% endif %} {{ m.singular }} «{{ obj }}»?"
+      data-confirmar-detalle="{% if activo %}Dejará de ofrecerse en los formularios, pero se conserva en el historial.{% else %}Volverá a estar disponible en los formularios.{% endif %}"
+      data-confirmar-boton="{% if activo %}Sí, desactivar{% else %}Sí, activar{% endif %}">
+    {% csrf_token %}
+    <input type="hidden" name="volver" value="{% url m.modulo|add:'_ver' obj.pk %}">
+    <button type="submit" class="boton">{% if activo %}<i class="bi bi-pause-circle" aria-hidden="true"></i>Desactivar{% else %}<i class="bi bi-play-circle" aria-hidden="true"></i>Activar{% endif %}</button>
+</form>
+<a href="{% url m.modulo|add:'_editar' obj.pk %}" class="boton principal"><i class="bi bi-pencil" aria-hidden="true"></i>Editar</a>
+{% endif %}
+{% if puede_eliminar and modificable %}
+<form method="post" action="{% url m.modulo|add:'_eliminar' obj.pk %}"
+      data-confirmar="¿Eliminar {{ m.singular }} «{{ obj }}»?"
+      data-confirmar-detalle="Esta acción no se puede deshacer. Si tiene registros asociados, el sistema lo impedirá.">
+    {% csrf_token %}
+    <button type="submit" class="boton peligro"><i class="bi bi-trash" aria-hidden="true"></i>Eliminar</button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block contenido %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>Datos registrados</h2></div>
+    <table class="tabla ficha">
+        {% for etiqueta, valor in campos %}
+        <tr>
+            <th scope="row">{{ etiqueta }}</th>
+            <td>{% if valor.year %}{{ valor|date:"d-m-Y H:i" }}{% elif valor == 'Activo' %}<span class="estado ok">Activo</span>{% elif valor == 'Inactivo' %}<span class="estado neutro">Inactivo</span>{% else %}{{ valor|default:'—' }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% block extra_detalle %}{% endblock %}
+
+{% for bloque in relacionados %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>{{ bloque.etiqueta }}</h2><span class="espacio"></span><span class="ruta">{{ bloque.total }} en total{% if bloque.total > 10 %} · se muestran 10{% endif %}</span></div>
+    {% if bloque.filas %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr>{% for e in bloque.encabezados %}<th>{{ e }}</th>{% endfor %}</tr></thead>
+            <tbody>{% for fila in bloque.filas %}<tr>{% for c in fila %}<td>{{ c }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio"><p>Sin registros asociados.</p></div>
+    {% endif %}
+</div>
+{% endfor %}
+
+<div class="panel">
+    <div class="panel-cabecera"><h2>Historial de cambios</h2></div>
+    {% if historial %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr><th>Fecha</th><th>Usuario</th><th>Evento</th><th>Detalle</th></tr></thead>
+            <tbody>
+                {% for e in historial %}
+                <tr><td>{{ e.fecha|date:"d-m-Y H:i" }}</td><td>{{ e.usuario_texto }}</td><td>{{ e.get_evento_display }}</td><td>{{ e.detalle }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio"><p>Sin cambios registrados desde la carga inicial.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

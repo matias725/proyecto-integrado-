@@ -1,0 +1,19 @@
+{% extends "crud/formulario.html" %}
+
+{% block campos %}
+<div class="rejilla rejilla-2">
+    {% include "parciales/_campo.html" with campo=form.nombre %}
+    {% include "parciales/_campo.html" with campo=form.correo %}
+</div>
+<div class="rejilla rejilla-2">
+    {% include "parciales/_campo.html" with campo=form.nombre_usuario %}
+    {% include "parciales/_campo.html" with campo=form.rol %}
+</div>
+{% include "parciales/_campo.html" with campo=form.delegaciones %}
+<div class="rejilla rejilla-2">
+    {% include "parciales/_campo_clave.html" with campo=form.clave %}
+    {% include "parciales/_campo_clave.html" with campo=form.confirmacion %}
+</div>
+<p class="ruta">La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial.</p>
+{% include "parciales/_campo.html" with campo=form.is_active %}
+{% endblock %}

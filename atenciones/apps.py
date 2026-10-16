@@ -1,0 +1,6 @@
+from django.apps import AppConfig
+
+
+class AtencionesConfig(AppConfig):
+    name = 'atenciones'
+    verbose_name = 'Atenciones ciudadanas'

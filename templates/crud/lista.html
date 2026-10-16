@@ -1,0 +1,105 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+{% comment %}
+  Listado común de los seis mantenedores: búsqueda parcial en varios campos,
+  filtro de estado, paginador que conserva filtros y exportación a Excel.
+{% endcomment %}
+
+{% block titulo %}{{ m.titulo }}{% endblock %}
+{% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / Gestión municipal / {{ m.titulo }}{% endblock %}
+{% block titulo_pagina %}{{ m.titulo }}{% endblock %}
+{% block bajada %}{{ m.descripcion }}{% endblock %}
+{% block traza %}{{ m.traza }}{% endblock %}
+
+{% block accion %}
+{% if puede_crear %}
+<a href="{% url m.modulo|add:'_crear' %}" class="boton principal"><i class="bi bi-plus-lg" aria-hidden="true"></i>Nuevo registro</a>
+{% endif %}
+{% endblock %}
+
+{% block contenido %}
+<form method="get" class="herramientas" role="search" data-busqueda>
+    <div class="buscador-campo">
+        <label for="busqueda">Búsqueda inteligente</label>
+        <div class="buscador">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" id="busqueda" name="q" value="{{ texto }}" maxlength="80"
+                   placeholder="Buscar por nombre, código u otro campo…" data-busqueda-viva
+                   {% if texto %}autofocus{% endif %}>
+        </div>
+    </div>
+    <div>
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado" data-enviar-al-cambiar>
+            <option value="">Todos</option>
+            <option value="activos"{% if estado == 'activos' %} selected{% endif %}>Activos</option>
+            <option value="inactivos"{% if estado == 'inactivos' %} selected{% endif %}>Inactivos</option>
+        </select>
+    </div>
+    <div>
+        <button type="submit" class="boton" data-texto-envio="Buscando…"><i class="bi bi-funnel" aria-hidden="true"></i>Filtrar</button>
+    </div>
+    <div>
+        <a href="{% url m.modulo|add:'_exportar' %}{% querystring pagina=None %}" class="boton secundario" data-exportar
+           {% if not pagina.paginator.count %}aria-disabled="true" tabindex="-1"{% endif %}>
+            <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>Exportar a Excel
+        </a>
+    </div>
+</form>
+
+<div class="panel">
+    {% if filas %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead>
+                <tr>
+                    {% for _ruta, etiqueta in m.columnas %}<th scope="col">{{ etiqueta }}</th>{% endfor %}
+                    <th scope="col">Estado</th>
+                    <th scope="col" class="acciones">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fila in filas %}
+                <tr>
+                    {% for celda in fila.celdas %}
+                        <td{% if forloop.first %} class="destacado"{% endif %}>{{ celda }}</td>
+                    {% endfor %}
+                    <td>{% if fila.activo %}<span class="estado ok">Activo</span>{% else %}<span class="estado neutro">Inactivo</span>{% endif %}</td>
+                    <td class="acciones">
+                        <span class="acciones-fila">
+                            <a class="enlace-accion" href="{% url m.modulo|add:'_ver' fila.obj.pk %}">Ver</a>
+                            {% if puede_editar and fila.modificable %}
+                            <a class="enlace-accion" href="{% url m.modulo|add:'_editar' fila.obj.pk %}">Editar</a>
+                            {% endif %}
+                            {% if puede_eliminar and fila.modificable %}
+                            <form method="post" action="{% url m.modulo|add:'_eliminar' fila.obj.pk %}"
+                                  data-confirmar="¿Eliminar {{ m.singular }} «{{ fila.obj }}»?"
+                                  data-confirmar-detalle="Esta acción no se puede deshacer. Si tiene registros asociados, el sistema lo impedirá y podrá desactivarlo.">
+                                {% csrf_token %}
+                                <button type="submit" class="enlace-accion peligro">Eliminar</button>
+                            </form>
+                            {% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% elif total_general %}
+    <div class="vacio">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <h3>No hay coincidencias</h3>
+        <p>Ningún registro coincide con «{{ texto|default:'los filtros' }}». Pruebe con otra palabra o quite el filtro de estado.</p>
+        <a href="{% url m.modulo|add:'_lista' %}" class="boton">Quitar filtros</a>
+    </div>
+    {% else %}
+    <div class="vacio">
+        <i class="bi bi-inbox" aria-hidden="true"></i>
+        <h3>Aún no hay registros</h3>
+        <p>{% if puede_crear %}Cree el primero con «Nuevo registro».{% else %}Su perfil no tiene registros visibles en este módulo.{% endif %}</p>
+    </div>
+    {% endif %}
+    {% include "parciales/_paginador.html" %}
+</div>
+{% endblock %}

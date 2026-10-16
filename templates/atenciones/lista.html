@@ -1,0 +1,69 @@
+{% extends "layouts/app.html" %}
+
+{% block titulo %}Atenciones{% endblock %}
+{% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / Gestión municipal / Atenciones{% endblock %}
+{% block titulo_pagina %}Atenciones ciudadanas{% endblock %}
+{% block bajada %}Atenciones registradas en {{ delegacion_activa.codigo }} · {{ delegacion_activa.nombre }}. Al cambiar de delegación activa, el listado y la exportación cambian con ella.{% endblock %}
+{% block traza %}Requisito A1 «Ingreso de atención» · RF-009, RF-032{% endblock %}
+
+{% block accion %}
+{% if puede_crear %}
+<a href="{% url 'atenciones_crear' %}" class="boton principal"><i class="bi bi-plus-lg" aria-hidden="true"></i>Ingresar atención</a>
+{% endif %}
+{% endblock %}
+
+{% block contenido %}
+<form method="get" class="herramientas" role="search">
+    <div class="buscador-campo">
+        <label for="busqueda">Búsqueda inteligente</label>
+        <div class="buscador">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" id="busqueda" name="q" value="{{ texto }}" maxlength="80"
+                   placeholder="Folio, RUT, solicitante, tipo o responsable…" data-busqueda-viva {% if texto %}autofocus{% endif %}>
+        </div>
+    </div>
+    <div>
+        <label for="tipo">Tipo de Atención</label>
+        <select id="tipo" name="tipo" data-enviar-al-cambiar>
+            <option value="">Todos</option>
+            {% for t in tipos %}<option value="{{ t.pk }}"{% if tipo == t.pk|stringformat:'s' %} selected{% endif %}>{{ t.nombre }}</option>{% endfor %}
+        </select>
+    </div>
+    <div><button type="submit" class="boton" data-texto-envio="Buscando…"><i class="bi bi-funnel" aria-hidden="true"></i>Filtrar</button></div>
+    <div>
+        <a href="{% url 'atenciones_exportar' %}{% querystring pagina=None %}" class="boton secundario" data-exportar
+           {% if not pagina.paginator.count %}aria-disabled="true" tabindex="-1"{% endif %}>
+            <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>Exportar a Excel
+        </a>
+    </div>
+</form>
+
+<div class="panel">
+    {% if pagina.object_list %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr><th>Folio</th><th>Fecha</th><th>Solicitante</th><th>Tipo · Sub atención</th><th>Responsable</th><th class="acciones">Acciones</th></tr></thead>
+            <tbody>
+                {% for a in pagina.object_list %}
+                <tr>
+                    <td class="destacado"><span class="codigo">{{ a.folio }}</span></td>
+                    <td>{{ a.creada|date:"d-m-Y H:i" }}</td>
+                    <td>{{ a.solicitante.nombre }}<div class="ruta">{{ a.solicitante.rut }}</div></td>
+                    <td>{{ a.tipo }}<div class="ruta">{{ a.subatencion }}</div></td>
+                    <td>{{ a.responsable.nombre }}</td>
+                    <td class="acciones"><a class="enlace-accion" href="{% url 'atenciones_ver' a.pk %}">Ver</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% elif total_general %}
+    <div class="vacio"><i class="bi bi-search" aria-hidden="true"></i><h3>No hay coincidencias</h3>
+        <p>Ninguna atención coincide con los filtros aplicados.</p><a href="{% url 'atenciones_lista' %}" class="boton">Quitar filtros</a></div>
+    {% else %}
+    <div class="vacio"><i class="bi bi-inbox" aria-hidden="true"></i><h3>Sin atenciones en esta delegación</h3>
+        <p>{% if puede_crear %}Registre la primera con «Ingresar atención».{% else %}Aún no hay atenciones registradas.{% endif %}</p></div>
+    {% endif %}
+    {% include "parciales/_paginador.html" %}
+</div>
+{% endblock %}

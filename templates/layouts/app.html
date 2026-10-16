@@ -1,23 +1,32 @@
 {% extends "base.html" %}
+{% load sgr_tags %}
 {% comment %}
-  Plantilla de las pantallas internas. Cada pantalla hereda de aquí y solo
-  completa sus bloques: titulo_pagina, bajada, traza, accion y contenido.
-  El menú lateral y la barra superior se definen una sola vez.
+  Plantilla común de todas las pantallas internas. Cada pantalla completa sus
+  bloques: titulo_pagina, bajada, traza, accion y contenido. Cabecera, menú y
+  pie se definen una sola vez aquí.
 {% endcomment %}
 
 {% block cuerpo %}
+{% include "parciales/_cabecera.html" %}
+{% modulo_actual as actual %}
 <div class="app">
     {% include "parciales/_menu.html" %}
 
     <div class="area-principal">
-        {% include "parciales/_barra_superior.html" %}
-
         <main class="contenido" id="contenido">
             <div class="encabezado-pagina">
+                <div class="migas">
+                    {% block migas %}<a href="{% url 'inicio' %}">Inicio</a>{% if actual %} / {{ actual.texto }}{% endif %}{% endblock %}
+                </div>
                 <div class="encabezado-fila">
                     <div>
                         <h1>{% block titulo_pagina %}{% endblock %}</h1>
                         <p>{% block bajada %}{% endblock %}</p>
+                        {% if actual %}
+                            {% if actual.simulado %}
+                            <span class="estado-modulo simulado"><i class="bi bi-cone-striped" aria-hidden="true"></i>Módulo simulado · datos de demostración sin persistencia</span>
+                            {% endif %}
+                        {% endif %}
                     </div>
                     <div class="encabezado-accion">{% block accion %}{% endblock %}</div>
                 </div>
@@ -26,6 +35,10 @@
 
             {% block contenido %}{% endblock %}
         </main>
+
+        <footer class="pie">
+            Prototipo académico INACAP · Datos ficticios · Acciones sujetas al perfil · Versión {{ sgr_version }}
+        </footer>
     </div>
 </div>
 {% endblock %}

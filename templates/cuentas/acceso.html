@@ -1,0 +1,37 @@
+{% extends "layouts/acceso.html" %}
+{% block titulo %}Iniciar sesión{% endblock %}
+
+{% block tarjeta %}
+<h1>Iniciar sesión</h1>
+<p class="bajada">Acceda con su cuenta institucional.</p>
+
+<form method="post" novalidate data-validar data-un-envio>
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    {% include "parciales/_errores_formulario.html" %}
+    {% include "parciales/_campo.html" with campo=form.identificador %}
+    {% include "parciales/_campo_clave.html" with campo=form.clave %}
+    <button type="submit" class="boton principal ancho" data-texto-envio="Ingresando…">
+        <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>Ingresar
+    </button>
+</form>
+
+<div class="enlaces-acceso">
+    <a href="{% url 'recuperar' %}">¿Olvidó su contraseña?</a>
+</div>
+{% endblock %}
+
+{% block despues %}
+{% if mostrar_cuentas_demo %}
+<div class="tarjeta-acceso cuentas-demo">
+    <strong>Cuentas de evaluación</strong> · contraseña <code>Serena#2026</code>
+    <table>
+        <tr><td>Superadministrador</td><td><button type="button" data-cuenta="admin">admin</button></td></tr>
+        <tr><td>Coordinador</td><td><button type="button" data-cuenta="emunoz">emunoz</button></td></tr>
+        <tr><td>Delegada municipal (2 delegaciones)</td><td><button type="button" data-cuenta="arojas">arojas</button></td></tr>
+        <tr><td>Funcionario</td><td><button type="button" data-cuenta="bcastillo">bcastillo</button></td></tr>
+        <tr><td>Cuenta inactiva</td><td><button type="button" data-cuenta="dfuentes">dfuentes</button></td></tr>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

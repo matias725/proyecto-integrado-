@@ -1,0 +1,12 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formulario vencido · SGR La Serena</title>
+<link rel="stylesheet" href="{% static 'css/sgr.css' %}"></head>
+<body>
+<header class="acceso-cabecera"><b>Municipalidad de La Serena</b><span>/ Sistema de Gestión de Resultados</span></header>
+<main class="pagina-error"><div class="panel"><div class="vacio">
+    <h3>El formulario venció</h3>
+    <p>Por seguridad, el formulario dejó de ser válido (por ejemplo, porque la página estuvo abierta mucho tiempo o la sesión terminó). No se guardó ningún cambio.</p>
+    <a href="{{ volver }}" class="boton principal">Volver a cargar la página</a>
+</div></div></main>
+</body></html>

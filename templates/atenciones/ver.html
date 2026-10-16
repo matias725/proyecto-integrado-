@@ -1,0 +1,34 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}{{ atencion.folio }}{% endblock %}
+{% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / <a href="{% url 'atenciones_lista' %}">Atenciones</a> / {{ atencion.folio }}{% endblock %}
+{% block titulo_pagina %}Atención {{ atencion.folio }}{% endblock %}
+{% block bajada %}Registrada el {{ atencion.creada|date:"d-m-Y \a \l\a\s H:i" }} por {{ atencion.responsable.nombre }}.{% endblock %}
+{% block traza %}RF-009 · RF-036{% endblock %}
+
+{% block accion %}
+<a href="{% url 'atenciones_lista' %}" class="boton"><i class="bi bi-arrow-left" aria-hidden="true"></i>Volver al listado</a>
+{% if user|tiene_permiso:'atenciones.crear' %}
+<a href="{% url 'atenciones_crear' %}" class="boton principal"><i class="bi bi-plus-lg" aria-hidden="true"></i>Nueva atención</a>
+{% endif %}
+{% endblock %}
+
+{% block contenido %}
+{% if otra_delegacion %}
+<div class="aviso alerta"><i class="bi bi-info-circle" aria-hidden="true"></i>
+    <div>Esta atención pertenece a {{ atencion.delegacion }}, que no es su delegación activa.</div></div>
+{% endif %}
+<div class="panel">
+    <table class="tabla ficha">
+        <tr><th scope="row">Folio</th><td><span class="codigo">{{ atencion.folio }}</span></td></tr>
+        <tr><th scope="row">Solicitante</th><td>{{ atencion.solicitante.nombre }} <span class="ruta">{{ atencion.solicitante.rut }}{% if atencion.solicitante.telefono %} · {{ atencion.solicitante.telefono }}{% endif %}</span></td></tr>
+        <tr><th scope="row">Tipo de Atención</th><td>{{ atencion.tipo }}</td></tr>
+        <tr><th scope="row">Sub Atención</th><td>{{ atencion.subatencion }}</td></tr>
+        <tr><th scope="row">Descripción</th><td>{{ atencion.descripcion|linebreaksbr }}</td></tr>
+        <tr><th scope="row">Delegación</th><td>{{ atencion.delegacion.codigo }} · {{ atencion.delegacion.nombre }}</td></tr>
+        <tr><th scope="row">Responsable</th><td>{{ atencion.responsable.nombre }}</td></tr>
+        <tr><th scope="row">Fecha de registro</th><td>{{ atencion.creada|date:"d-m-Y H:i" }}</td></tr>
+    </table>
+</div>
+{% endblock %}

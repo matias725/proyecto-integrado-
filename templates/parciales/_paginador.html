@@ -1,0 +1,34 @@
+{% load sgr_tags %}
+{# Paginador que conserva búsqueda y filtros al cambiar de página #}
+<div class="paginador">
+    <span class="resumen-resultados" aria-live="polite">
+        {% if pagina.paginator.count %}
+            Mostrando {{ pagina.start_index }} a {{ pagina.end_index }} de {{ pagina.paginator.count }} registro{{ pagina.paginator.count|pluralize }}
+        {% else %}
+            0 registros
+        {% endif %}
+    </span>
+    {% if pagina.paginator.num_pages > 1 %}
+    <nav class="paginas" aria-label="Paginación">
+        {% if pagina.has_previous %}
+            <a href="{% querystring pagina=pagina.previous_page_number %}">Anterior</a>
+        {% else %}
+            <span class="inactivo" aria-disabled="true">Anterior</span>
+        {% endif %}
+        {% for numero in pagina.paginator.get_elided_page_range %}
+            {% if numero == pagina.number %}
+                <span class="actual" aria-current="page">{{ numero }}</span>
+            {% elif numero == pagina.paginator.ELLIPSIS %}
+                <span class="inactivo">…</span>
+            {% else %}
+                <a href="{% querystring pagina=numero %}">{{ numero }}</a>
+            {% endif %}
+        {% endfor %}
+        {% if pagina.has_next %}
+            <a href="{% querystring pagina=pagina.next_page_number %}">Siguiente</a>
+        {% else %}
+            <span class="inactivo" aria-disabled="true">Siguiente</span>
+        {% endif %}
+    </nav>
+    {% endif %}
+</div>

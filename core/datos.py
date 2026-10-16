@@ -11,58 +11,6 @@ Ningún dato corresponde a personas reales (Guía SGR, condiciones del caso).
 import copy
 from datetime import date, datetime
 
-from django.contrib.auth.hashers import check_password, make_password
-
-# ---------------------------------------------------------------------------
-# Cuentas de demostración
-# La contraseña se guarda como hash (RNF-004), nunca en texto plano.
-# ---------------------------------------------------------------------------
-CLAVE_DEMO = 'demo1234'
-_HASH_DEMO = None
-
-
-def _hash_demo():
-    global _HASH_DEMO
-    if _HASH_DEMO is None:
-        _HASH_DEMO = make_password(CLAVE_DEMO)
-    return _HASH_DEMO
-
-
-CUENTAS = {
-    'bcastillo': {
-        'nombre': 'Bruno Castillo Peña',
-        'roles': ['Funcionario'],
-        'delegacion': 'Rural',
-        'cargo': 'Gestor Social',
-    },
-    'arojas': {
-        'nombre': 'Ana Rojas Miranda',
-        'roles': ['Delegado', 'Verificador'],
-        'delegacion': 'Rural',
-        'cargo': 'Delegado',
-    },
-    'emunoz': {
-        'nombre': 'Elena Muñoz Tapia',
-        'roles': ['Coordinador'],
-        'delegacion': 'Centro',
-        'cargo': 'Planificación y Control',
-    },
-    'faguirre': {
-        'nombre': 'Felipe Aguirre Núñez',
-        'roles': ['Administrador', 'Funcionario'],
-        'delegacion': 'Las Compañías',
-        'cargo': 'Apoyo Administrativo',
-    },
-}
-
-
-def verificar_cuenta(usuario, clave):
-    """Devuelve la cuenta si las credenciales son correctas; si no, None."""
-    cuenta = CUENTAS.get((usuario or '').strip().lower())
-    if cuenta and check_password(clave or '', _hash_demo()):
-        return cuenta
-    return None
-
 
 # ---------------------------------------------------------------------------
 # Estado inicial

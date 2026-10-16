@@ -1,0 +1,11 @@
+{# Campo de contraseña con botón accesible para mostrar u ocultar #}
+<div class="campo{% if campo.errors %} invalido{% endif %}">
+    <label for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required %} <span class="obligatorio" aria-hidden="true">*</span>{% endif %}</label>
+    <div class="clave-con-boton">
+        {{ campo }}
+        <button type="button" class="mostrar-clave" data-mostrar-clave="{{ campo.id_for_label }}"
+                aria-pressed="false" aria-label="Mostrar contraseña">Mostrar</button>
+    </div>
+    {% if campo.help_text %}<span class="ayuda" id="{{ campo.auto_id }}_helptext">{{ campo.help_text }}</span>{% endif %}
+    {% for error in campo.errors %}<span class="mensaje-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ error }}</span>{% endfor %}
+</div>

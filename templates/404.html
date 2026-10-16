@@ -1,15 +1,13 @@
 {% extends "base.html" %}
 {% block titulo %}Página no encontrada{% endblock %}
-
 {% block cuerpo %}
+<header class="acceso-cabecera"><b>Municipalidad de La Serena</b><span>/ Sistema de Gestión de Resultados</span></header>
 <main class="pagina-error" id="contenido">
-    <div class="panel">
-        <div class="vacio">
-            <i class="bi bi-signpost-split" aria-hidden="true"></i>
-            <h3>La página no existe</h3>
-            <p>La dirección puede estar mal escrita o el registro ya no está disponible.</p>
-            <a href="{% url 'acceso' %}" class="boton principal">Ir al inicio</a>
-        </div>
-    </div>
+    <div class="panel"><div class="vacio">
+        <i class="bi bi-signpost-split" aria-hidden="true"></i>
+        <h3>La página no existe</h3>
+        <p>La dirección puede estar mal escrita o el registro no está disponible para su perfil.</p>
+        <a href="{% url 'inicio' %}" class="boton principal">Ir al inicio</a>
+    </div></div>
 </main>
 {% endblock %}

@@ -1,0 +1,51 @@
+{% extends "crud/formulario.html" %}
+{% comment %}Formulario de rol: datos generales y matriz de permisos por módulo.{% endcomment %}
+
+{% block campos %}
+<div class="rejilla rejilla-2">
+    {% include "parciales/_campo.html" with campo=form.codigo %}
+    {% include "parciales/_campo.html" with campo=form.nombre %}
+</div>
+{% include "parciales/_campo.html" with campo=form.descripcion %}
+<div class="rejilla rejilla-2">
+    {% include "parciales/_campo.html" with campo=form.alcance %}
+    <div class="campo">
+        <span class="ayuda">«Todas las delegaciones» ve y administra la información de toda la comuna.
+            «Delegaciones asignadas» queda limitado a las delegaciones de cada usuario.</span>
+    </div>
+</div>
+
+<fieldset class="campo{% if form.permisos.errors %} invalido{% endif %}">
+    <legend>Permisos por módulo</legend>
+    {% if form.permisos.help_text %}<span class="ayuda">{{ form.permisos.help_text }}</span>{% endif %}
+    <div class="desplazable">
+        <table class="tabla matriz">
+            <thead>
+                <tr><th scope="col">Módulo</th><th scope="col">Ver</th><th scope="col">Crear</th><th scope="col">Editar</th><th scope="col">Eliminar</th></tr>
+            </thead>
+            <tbody>
+                {% regroup form.matriz by grupo as grupos %}
+                {% for g in grupos %}
+                <tr class="grupo"><td colspan="5">{{ g.grouper }}</td></tr>
+                {% for fila in g.list %}
+                <tr>
+                    <td>{{ fila.nombre }}{% if fila.estado != 'operativo' %} <span class="ruta">· simulado</span>{% endif %}</td>
+                    {% for celda in fila.celdas %}
+                    <td>
+                        {% if celda.permiso %}
+                        <input type="checkbox" name="permisos" value="{{ celda.permiso.pk }}"
+                               aria-label="{{ fila.nombre }}: {{ celda.etiqueta }}"
+                               {% if celda.marcado %}checked{% endif %}{% if form.permisos.field.disabled %} disabled{% endif %}>
+                        {% else %}<span class="ruta" aria-hidden="true">—</span>{% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% for error in form.permisos.errors %}<span class="mensaje-error">{{ error }}</span>{% endfor %}
+</fieldset>
+{% include "parciales/_campo.html" with campo=form.activo %}
+{% endblock %}

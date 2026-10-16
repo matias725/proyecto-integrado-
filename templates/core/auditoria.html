@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+
+{% block titulo %}Auditoría{% endblock %}
+{% block titulo_pagina %}Auditoría del sistema{% endblock %}
+{% block bajada %}Registro de solo lectura de accesos, cambios, exportaciones e intentos denegados. Ninguna pantalla permite modificarlo.{% endblock %}
+{% block traza %}RF-036 · RNF-008 · CU-16 · HU-30{% endblock %}
+
+{% block contenido %}
+<form method="get" class="herramientas" role="search">
+    <div class="buscador-campo">
+        <label for="busqueda">Búsqueda inteligente</label>
+        <div class="buscador"><i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" id="busqueda" name="q" value="{{ texto }}" maxlength="80" placeholder="Usuario, módulo, detalle o delegación…" data-busqueda-viva {% if texto %}autofocus{% endif %}></div>
+    </div>
+    <div>
+        <label for="evento">Evento</label>
+        <select id="evento" name="evento" data-enviar-al-cambiar>
+            <option value="">Todos</option>
+            {% for clave, nombre in eventos %}<option value="{{ clave }}"{% if evento == clave %} selected{% endif %}>{{ nombre }}</option>{% endfor %}
+        </select>
+    </div>
+    <div><button type="submit" class="boton" data-texto-envio="Buscando…"><i class="bi bi-funnel" aria-hidden="true"></i>Filtrar</button></div>
+    <div><a href="{% url 'auditoria_exportar' %}{% querystring pagina=None %}" class="boton secundario" data-exportar><i class="bi bi-file-earmark-excel" aria-hidden="true"></i>Exportar a Excel</a></div>
+</form>
+
+<div class="panel">
+    {% if pagina.object_list %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr><th>Fecha</th><th>Usuario</th><th>Evento</th><th>Módulo</th><th>Detalle</th><th>Delegación activa</th></tr></thead>
+            <tbody>
+            {% for e in pagina.object_list %}
+                <tr>
+                    <td><span class="codigo">{{ e.fecha|date:"d-m-Y H:i:s" }}</span></td>
+                    <td>{{ e.usuario_texto|default:'—' }}</td>
+                    <td><span class="estado {% if e.evento == 'ACCESO_DENEGADO' or e.evento == 'ACCESO_FALLIDO' %}error{% elif e.evento == 'ELIMINACION' %}pendiente{% else %}neutro{% endif %}">{{ e.get_evento_display }}</span></td>
+                    <td>{{ e.entidad }}{% if e.registro %} <span class="ruta">#{{ e.registro }}</span>{% endif %}</td>
+                    <td>{{ e.detalle }}</td>
+                    <td>{{ e.delegacion|default:'—' }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio"><i class="bi bi-clock-history" aria-hidden="true"></i><h3>Sin eventos para este criterio</h3><p>Pruebe con otro evento o quite la búsqueda.</p></div>
+    {% endif %}
+    {% include "parciales/_paginador.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "layouts/acceso.html" %}
+{% block titulo %}Crear nueva contraseña{% endblock %}
+
+{% block tarjeta %}
+<h1>Crear nueva contraseña</h1>
+<div class="paso">Paso 3 de 3 · Nueva clave</div>
+<div class="progreso" aria-hidden="true"><span class="hecho"></span><span class="hecho"></span><span class="hecho"></span></div>
+
+<p class="bajada">Su nueva contraseña debe cumplir:</p>
+<ul class="requisitos" data-requisitos-de="id_clave" aria-live="polite">
+    {% for patron, texto in requisitos %}
+    <li data-patron="{{ patron }}"><i class="bi bi-circle" aria-hidden="true"></i>{{ texto }}</li>
+    {% endfor %}
+    <li data-coincide="id_confirmacion"><i class="bi bi-circle" aria-hidden="true"></i>Ambas contraseñas coinciden</li>
+</ul>
+
+<form method="post" novalidate data-validar data-un-envio>
+    {% csrf_token %}
+    {% include "parciales/_errores_formulario.html" %}
+    {% include "parciales/_campo_clave.html" with campo=form.clave %}
+    {% include "parciales/_campo_clave.html" with campo=form.confirmacion %}
+    <button type="submit" class="boton principal ancho" data-texto-envio="Guardando…">
+        <i class="bi bi-check-lg" aria-hidden="true"></i>Guardar contraseña
+    </button>
+</form>
+<p class="ruta nota-acceso">Al guardar, podrá ingresar con su nueva contraseña. La anterior dejará de funcionar.</p>
+{% endblock %}

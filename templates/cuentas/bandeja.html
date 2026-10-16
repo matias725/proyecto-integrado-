@@ -1,0 +1,29 @@
+{% extends "layouts/app.html" %}
+
+{% block titulo %}Correos de prueba{% endblock %}
+{% block titulo_pagina %}Bandeja de correos de prueba{% endblock %}
+{% block bajada %}Correos que el sistema habría enviado. Permite demostrar la recuperación de contraseña sin un servidor de correo real.{% endblock %}
+{% block traza %}Entorno de evaluación · motor de correo: {{ backend }}{% endblock %}
+
+{% block contenido %}
+<div class="aviso alerta"><i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+    <div>Solo para el entorno de evaluación. En producción se configura SMTP y esta bandeja queda vacía.</div></div>
+<div class="panel">
+    {% if pagina.object_list %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr><th>Enviado</th><th>Destinatario</th><th>Asunto</th><th>Mensaje</th></tr></thead>
+            <tbody>
+            {% for c in pagina.object_list %}
+                <tr><td>{{ c.enviado|date:"d-m-Y H:i:s" }}</td><td>{{ c.destinatario }}</td><td>{{ c.asunto }}</td>
+                    <td><pre class="cuerpo-correo">{{ c.cuerpo }}</pre></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio"><i class="bi bi-envelope-open" aria-hidden="true"></i><h3>No hay correos</h3><p>Aparecerán aquí al solicitar un código de recuperación.</p></div>
+    {% endif %}
+    {% include "parciales/_paginador.html" %}
+</div>
+{% endblock %}

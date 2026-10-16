@@ -1,0 +1,61 @@
+{% extends "layouts/app.html" %}
+
+{% block titulo %}Ingreso de atención{% endblock %}
+{% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / <a href="{% url 'atenciones_lista' %}">Atenciones</a> / Ingreso{% endblock %}
+{% block titulo_pagina %}Ingreso de atención{% endblock %}
+{% block bajada %}Registre la atención entregada a un vecino o vecina. La delegación, el responsable y la fecha se asignan automáticamente.{% endblock %}
+{% block traza %}RF-009, RF-015 · CU-07, CU-08 · Requisito A2 «Ingreso de atención»{% endblock %}
+
+{% block contenido %}
+<form method="post" novalidate data-validar data-un-envio data-vigilar-cambios id="formAtencion"
+      data-url-subatenciones="{% url 'api_subatenciones' %}" data-url-solicitante="{% url 'api_solicitante' %}">
+    {% csrf_token %}
+    {{ form.token_envio }}
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Solicitante</h2></div>
+        <div class="panel-cuerpo">
+            {% include "parciales/_errores_formulario.html" %}
+            <div class="rejilla rejilla-3">
+                {% include "parciales/_campo.html" with campo=form.rut %}
+                {% include "parciales/_campo.html" with campo=form.nombre %}
+                {% include "parciales/_campo.html" with campo=form.telefono %}
+            </div>
+            <p class="ruta" id="estadoSolicitante" aria-live="polite"></p>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Atención</h2></div>
+        <div class="panel-cuerpo">
+            <div class="rejilla rejilla-2">
+                <div class="campo">
+                    <span class="etiqueta-campo" id="etqDelegacion">Delegación de atención</span>
+                    <div class="campo-fijo" aria-labelledby="etqDelegacion">
+                        <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                        {{ delegacion_activa.codigo }} · {{ delegacion_activa.nombre }}
+                        <small>Asignada por perfil</small>
+                    </div>
+                </div>
+                <div class="campo">
+                    <span class="etiqueta-campo" id="etqResponsable">Responsable</span>
+                    <div class="campo-fijo" aria-labelledby="etqResponsable">
+                        <i class="bi bi-person-badge" aria-hidden="true"></i>{{ user.nombre }}
+                        <small>Fecha y hora: automáticas</small>
+                    </div>
+                </div>
+            </div>
+            <div class="rejilla rejilla-2">
+                {% include "parciales/_campo.html" with campo=form.tipo %}
+                {% include "parciales/_campo.html" with campo=form.subatencion %}
+            </div>
+            {% include "parciales/_campo.html" with campo=form.descripcion %}
+        </div>
+        <div class="panel-pie">
+            <button type="submit" class="boton principal" data-texto-envio="Guardando…"><i class="bi bi-check-lg" aria-hidden="true"></i>Guardar atención</button>
+            <a href="{% url 'atenciones_lista' %}" class="boton" data-cancelar>Cancelar</a>
+            <span class="espacio"></span>
+            <span class="ruta">Los campos con <span class="obligatorio">*</span> son obligatorios</span>
+        </div>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "layouts/app.html" %}
+{% comment %}Formulario común de creación y edición de los mantenedores.{% endcomment %}
+
+{% block titulo %}{% if obj %}Editar{% else %}Nuevo{% endif %} · {{ m.titulo }}{% endblock %}
+{% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / <a href="{% url m.modulo|add:'_lista' %}">{{ m.titulo }}</a> / {% if obj %}Editar{% else %}Nuevo registro{% endif %}{% endblock %}
+{% block titulo_pagina %}{% if obj %}Editar {{ m.singular }}{% else %}Nuevo registro · {{ m.singular|capfirst }}{% endif %}{% endblock %}
+{% block bajada %}{% if obj %}{{ obj }}{% else %}{{ m.descripcion }}{% endif %}{% endblock %}
+{% block traza %}{{ m.traza }}{% endblock %}
+
+{% block contenido %}
+<form method="post" novalidate data-validar data-un-envio data-vigilar-cambios>
+    {% csrf_token %}
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Datos {% if m.femenino %}de la{% else %}del{% endif %} {{ m.singular }}</h2></div>
+        <div class="panel-cuerpo">
+            {% include "parciales/_errores_formulario.html" %}
+            {% block campos %}
+            <div class="rejilla rejilla-2">
+                {% for campo in form %}
+                    {% if campo.name != 'activo' %}{% include "parciales/_campo.html" %}{% endif %}
+                {% endfor %}
+            </div>
+            {% if form.activo %}{% include "parciales/_campo.html" with campo=form.activo %}{% endif %}
+            {% endblock %}
+        </div>
+        <div class="panel-pie">
+            <button type="submit" class="boton principal" data-texto-envio="Guardando…"><i class="bi bi-check-lg" aria-hidden="true"></i>Guardar</button>
+            <a href="{% if obj %}{% url m.modulo|add:'_ver' obj.pk %}{% else %}{% url m.modulo|add:'_lista' %}{% endif %}" class="boton" data-cancelar>Cancelar</a>
+            <span class="espacio"></span>
+            <span class="ruta">Los campos con <span class="obligatorio">*</span> son obligatorios</span>
+        </div>
+    </div>
+</form>
+{% endblock %}

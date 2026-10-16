@@ -1,5 +1,6 @@
 """
-Vistas del SGR. Cada vista corresponde a un caso de uso del informe.
+Módulos simulados heredados de la EV1 (datos en memoria, sin persistencia).
+Cada vista corresponde a un caso de uso del informe de la primera evaluación.
 
 Patrón usado en todos los formularios (POST, redirección, GET):
   - si el formulario es válido, se guarda, se avisa y se redirige;
@@ -19,20 +20,13 @@ from django.views.decorators.http import require_POST
 from . import calculos, datos, permisos
 from .context_processors import periodo_seleccionado
 from .forms import (
-    ETIQUETAS_COMPROMISO, TIPOS_INFORME, AccesoForm, ActividadForm, AtencionSocialForm,
-    CompromisoForm, DelegacionForm, EstadoCompromisoForm, EvidenciaForm, FiltroActividadesForm,
-    FiltroAuditoriaForm, InformeForm, MetaFormSet, PeriodoForm, UsuarioForm, ValidacionForm,
+    ETIQUETAS_COMPROMISO, TIPOS_INFORME, ActividadForm, AtencionSocialForm, CompromisoForm,
+    EstadoCompromisoForm, EvidenciaForm, FiltroActividadesForm, InformeForm, MetaFormSet, PeriodoForm,
+    ValidacionForm,
 )
 from .permisos import en_ambito, requiere_permiso, tiene_rol, usuario_actual
 
 A = datos.almacen
-
-CUENTAS_DEMO = [
-    ('bcastillo', 'Funcionario'),
-    ('arojas', 'Verificador y delegado'),
-    ('emunoz', 'Coordinador'),
-    ('faguirre', 'Administrador'),
-]
 
 
 # ---------------------------------------------------------------------------
@@ -65,32 +59,8 @@ def _respuesta_csv(nombre, filas):
 
 
 # ---------------------------------------------------------------------------
-# CU-01 · Acceso
+# Período de los módulos simulados
 # ---------------------------------------------------------------------------
-def acceso(request):
-    if usuario_actual(request):
-        return redirect('tablero')
-
-    form = AccesoForm(request.POST if request.method == 'POST' else None)
-    if request.method == 'POST' and form.is_valid():
-        request.session.cycle_key()
-        request.session['usuario'] = {
-            'usuario': form.cleaned_data['usuario'].strip().lower(),
-            **form.cuenta,
-        }
-        request.session.pop('periodo_id', None)
-        messages.success(request, f"Sesión iniciada como {form.cuenta['nombre']}.")
-        return redirect('tablero')
-
-    return render(request, 'acceso/login.html', {'form': form, 'cuentas': CUENTAS_DEMO})
-
-
-@require_POST
-def salir(request):
-    request.session.flush()
-    return redirect('acceso')
-
-
 @require_POST
 @requiere_permiso('tablero')
 def cambiar_periodo(request):
@@ -436,78 +406,6 @@ def atencion_social(request):
 
 
 # ---------------------------------------------------------------------------
-# CU-02 · Delegaciones
-# ---------------------------------------------------------------------------
-@requiere_permiso('delegaciones')
-def delegaciones(request):
-    usuario = usuario_actual(request)
-    form = DelegacionForm(request.POST if request.method == 'POST' else None)
-
-    if request.method == 'POST' and form.is_valid():
-        d = form.cleaned_data
-        delegacion = {
-            'id': datos.siguiente_id('delegaciones'), 'nombre': d['nombre'], 'ambito': d['ambito'],
-            'encargado': 'Por asignar', 'funcionarios': 0, 'estado': 'ACTIVA',
-            'correo': d['correo'], 'cumplimiento': 0,
-        }
-        A['delegaciones'].append(delegacion)
-        datos.registrar_auditoria(usuario['nombre'], 'ALTA', 'delegación', delegacion['id'], None, d['nombre'])
-        messages.success(request, f"Delegación {d['nombre']} creada.")
-        return redirect('delegaciones')
-
-    return render(request, 'configuracion/delegaciones.html', {'filas': A['delegaciones'], 'form': form})
-
-
-@require_POST
-@requiere_permiso('delegaciones')
-def delegacion_estado(request, id):
-    usuario = usuario_actual(request)
-    delegacion = datos.buscar('delegaciones', id=id)
-    if not delegacion:
-        raise Http404
-
-    if delegacion['estado'] == 'ACTIVA':
-        if delegacion['funcionarios'] > 0:
-            messages.error(request, f"{delegacion['nombre']} tiene {delegacion['funcionarios']} funcionarios "
-                                    'activos. Reasígnelos antes de desactivarla.')
-            return redirect('delegaciones')
-        delegacion['estado'] = 'INACTIVA'
-        messages.success(request, f"Delegación {delegacion['nombre']} desactivada.")
-    else:
-        delegacion['estado'] = 'ACTIVA'
-        messages.success(request, f"Delegación {delegacion['nombre']} reactivada.")
-
-    anterior = 'INACTIVA' if delegacion['estado'] == 'ACTIVA' else 'ACTIVA'
-    datos.registrar_auditoria(usuario['nombre'], 'CAMBIO_ESTADO', 'delegación', id, anterior, delegacion['estado'])
-    return redirect('delegaciones')
-
-
-# ---------------------------------------------------------------------------
-# CU-03 · Usuarios y roles
-# ---------------------------------------------------------------------------
-@requiere_permiso('usuarios')
-def usuarios(request):
-    usuario = usuario_actual(request)
-    form = UsuarioForm(request.POST if request.method == 'POST' else None)
-
-    if request.method == 'POST' and form.is_valid():
-        d = form.cleaned_data
-        nuevo = {
-            'id': datos.siguiente_id('usuarios'), 'rut': d['rut'], 'nombre': d['nombre'],
-            'correo': d['correo'], 'cargo': d['cargo'], 'delegacion': d['delegacion'],
-            'roles': d['roles'], 'estado': 'ACTIVO',
-        }
-        A['usuarios'].append(nuevo)
-        datos.buscar('delegaciones', nombre=d['delegacion'])['funcionarios'] += 1
-        datos.registrar_auditoria(usuario['nombre'], 'ALTA', 'usuario', nuevo['id'], None,
-                                  f"{d['nombre']} ({', '.join(d['roles'])})")
-        messages.success(request, f"Usuario {d['nombre']} creado con {len(d['roles'])} rol(es).")
-        return redirect('usuarios')
-
-    return render(request, 'configuracion/usuarios.html', {'filas': A['usuarios'], 'form': form})
-
-
-# ---------------------------------------------------------------------------
 # CU-05 · Períodos
 # ---------------------------------------------------------------------------
 @requiere_permiso('periodos')
@@ -702,35 +600,4 @@ def informes(request):
 
     return render(request, 'informes/informes.html', {
         'form': form, 'titulo': titulo, 'cabecera': cabecera, 'filas': filas,
-    })
-
-
-# ---------------------------------------------------------------------------
-# CU-16 · Auditoría
-# ---------------------------------------------------------------------------
-NOMBRES_EVENTO = {
-    'ALTA': 'Alta', 'CAMBIO_ESTADO': 'Cambio de estado', 'CAMBIO_PARAMETRO': 'Cambio de parámetro',
-    'VALIDACION': 'Validación', 'ACCESO_DENEGADO': 'Acceso denegado', 'EXPORTACION': 'Exportación',
-}
-
-
-@requiere_permiso('auditoria')
-def auditoria(request):
-    usuario = usuario_actual(request)
-    filtro = FiltroAuditoriaForm(request.GET or None)
-    eventos = sorted(A['auditoria'], key=lambda e: e['fecha'], reverse=True)
-    if filtro.is_valid() and filtro.cleaned_data['evento']:
-        eventos = [e for e in eventos if e['evento'] == filtro.cleaned_data['evento']]
-
-    if request.GET.get('exportar') == 'csv':
-        datos.registrar_auditoria(usuario['nombre'], 'EXPORTACION', 'auditoría', None, '—', f'{len(eventos)} eventos')
-        return _respuesta_csv(f'auditoria-{calculos.hoy():%Y%m%d}.csv', [
-            ['Fecha', 'Usuario', 'Evento', 'Entidad', 'Registro', 'Valor anterior', 'Valor nuevo'],
-            *[[e['fecha'].strftime('%d-%m-%Y %H:%M'), e['usuario'], NOMBRES_EVENTO.get(e['evento'], e['evento']),
-               e['entidad'], e['registro'] or '', e['anterior'], e['nuevo']] for e in eventos],
-        ])
-
-    return render(request, 'auditoria/auditoria.html', {
-        'filtro': filtro,
-        'eventos': [{**e, 'nombre_evento': NOMBRES_EVENTO.get(e['evento'], e['evento'])} for e in eventos],
     })

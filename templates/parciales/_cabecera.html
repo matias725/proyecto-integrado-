@@ -1,0 +1,54 @@
+{% load static %}
+{# Cabecera institucional: marca, delegación activa y usuario conectado #}
+<header class="cabecera">
+    <div class="cabecera-izquierda">
+        <button type="button" class="boton-menu" data-alternar-menu aria-controls="menuLateral" aria-expanded="false">
+            <i class="bi bi-list" aria-hidden="true"></i><span class="solo-lectores">Abrir menú</span>
+        </button>
+        <a href="{% url 'inicio' %}" class="marca">
+            <span class="marca-texto">
+                <b>Municipalidad de La Serena</b>
+                <span>Sistema de Gestión de Resultados</span>
+            </span>
+        </a>
+    </div>
+
+    {# Distintivo de la delegación activa: texto + ícono, nunca solo color #}
+    <div class="distintivo" role="group" aria-label="Delegación activa">
+        <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+        {% if delegacion_activa %}
+            {% if delegaciones_autorizadas|length > 1 %}
+            <form method="post" action="{% url 'cambiar_delegacion' %}" id="formDelegacion">
+                {% csrf_token %}
+                <input type="hidden" name="siguiente" value="{{ request.get_full_path }}">
+                <label for="selectorDelegacion" class="etiqueta">Delegación activa</label>
+                <select id="selectorDelegacion" name="delegacion" data-cambio-contexto>
+                    {% for d in delegaciones_autorizadas %}
+                        <option value="{{ d.pk }}"{% if d.pk == delegacion_activa.pk %} selected{% endif %}>{{ d.codigo }} | Delegación {{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+                <noscript><button type="submit" class="boton pequeno">Cambiar</button></noscript>
+            </form>
+            {% else %}
+            <span>
+                <span class="etiqueta">Delegación activa</span>
+                <b>{{ delegacion_activa.codigo }}</b> | Delegación {{ delegacion_activa.nombre }}
+            </span>
+            <i class="bi bi-lock-fill fijo" title="Contexto fijo: su perfil tiene una sola delegación" aria-label="Contexto fijo"></i>
+            {% endif %}
+        {% else %}
+            <span>Sin delegación autorizada</span>
+        {% endif %}
+    </div>
+
+    <div class="usuario">
+        <span class="datos">
+            <b>{{ user.nombre }}</b>
+            <span>{{ user.rol.nombre }}</span>
+        </span>
+        <form method="post" action="{% url 'salir' %}">
+            {% csrf_token %}
+            <button type="submit" class="boton-salir"><i class="bi bi-box-arrow-right" aria-hidden="true"></i>Salir</button>
+        </form>
+    </div>
+</header>

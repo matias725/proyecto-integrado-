@@ -2,16 +2,16 @@
 
 {% block titulo %}Acceso denegado{% endblock %}
 {% block titulo_pagina %}Acceso denegado{% endblock %}
-{% block bajada %}Su rol no permite usar esta sección. El intento quedó registrado en la auditoría.{% endblock %}
+{% block bajada %}Su rol no permite esta acción o el registro pertenece a una delegación que no tiene autorizada. El intento quedó registrado en la auditoría.{% endblock %}
 {% block traza %}RNF-005 · CA-07{% endblock %}
 
 {% block contenido %}
 <div class="panel">
     <div class="vacio">
         <i class="bi bi-shield-lock" aria-hidden="true"></i>
-        <h3>Esta sección requiere otro rol</h3>
+        <h3>No tiene permiso para continuar</h3>
         <p>Si necesita acceso, solicítelo al administrador del sistema.</p>
-        <a href="{% url 'tablero' %}" class="boton principal">Volver al tablero</a>
+        <a href="{% url 'inicio' %}" class="boton principal">Volver al inicio</a>
     </div>
 </div>
 {% endblock %}

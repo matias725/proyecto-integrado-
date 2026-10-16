@@ -1,0 +1,40 @@
+{% extends "layouts/acceso.html" %}
+{% block titulo %}Validar código{% endblock %}
+
+{% block tarjeta %}
+<h1>Validar código</h1>
+<div class="paso">Paso 2 de 3 · Verificación</div>
+<div class="progreso" aria-hidden="true"><span class="hecho"></span><span class="hecho"></span><span></span></div>
+<p class="bajada">Código enviado a <b>{{ correo }}</b>. Vigencia: {{ vigencia }} minutos.</p>
+
+<form method="post" novalidate data-un-envio id="formCodigo">
+    {% csrf_token %}
+    <div class="campo{% if form.codigo.errors %} invalido{% endif %}">
+        <label for="digito1">Código de verificación <span class="obligatorio" aria-hidden="true">*</span></label>
+        {# Seis casillas para escribir o pegar; el valor real viaja en un solo campo #}
+        <div class="casillas-codigo" data-casillas-codigo="id_codigo">
+            {% for n in "123456" %}
+            <input type="text" id="digito{{ n }}" inputmode="numeric" maxlength="1" autocomplete="{% if n == '1' %}one-time-code{% else %}off{% endif %}"
+                   aria-label="Dígito {{ n }} de 6">
+            {% endfor %}
+        </div>
+        <input type="hidden" name="codigo" id="id_codigo" value="{{ form.codigo.value|default:'' }}">
+        <span class="ayuda">Puede pegar el código completo. Use las flechas para moverse entre casillas.</span>
+        {% for error in form.codigo.errors %}<span class="mensaje-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ error }}</span>{% endfor %}
+    </div>
+    <button type="submit" class="boton principal ancho" data-texto-envio="Verificando…">
+        <i class="bi bi-shield-check" aria-hidden="true"></i>Verificar código
+    </button>
+</form>
+
+<div class="enlaces-acceso">
+    <form method="post" action="{% url 'recuperar_reenviar' %}">
+        {% csrf_token %}
+        <button type="submit" data-cuenta-regresiva="{{ segundos_reenvio }}" {% if segundos_reenvio %}disabled{% endif %}>
+            Reenviar código
+        </button>
+        <span class="ruta" data-texto-espera></span>
+    </form>
+    <a href="{% url 'acceso' %}">Volver al inicio de sesión</a>
+</div>
+{% endblock %}

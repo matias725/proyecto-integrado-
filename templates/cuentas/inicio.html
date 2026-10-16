@@ -1,0 +1,77 @@
+{% extends "layouts/app.html" %}
+
+{% block titulo %}Inicio{% endblock %}
+{% block migas %}Inicio{% endblock %}
+{% block titulo_pagina %}Hola, {{ user.nombre }}{% endblock %}
+{% block bajada %}Perfil {{ user.rol.nombre }} · {{ user.rol.get_alcance_display|lower }}. Estos son los módulos que su rol tiene autorizados.{% endblock %}
+{% block traza %}Requisito «Demostración de roles y permisos» · RNF-005{% endblock %}
+
+{% block contenido %}
+<div class="rejilla rejilla-3">
+    <div class="panel dato">
+        <span class="etiqueta">Delegación activa</span>
+        <span class="valor">{{ delegacion_activa.codigo|default:'—' }}</span>
+        <span class="apoyo">{% if delegacion_activa %}Delegación {{ delegacion_activa.nombre }} · {{ delegaciones_autorizadas|length }} autorizada{{ delegaciones_autorizadas|length|pluralize }}{% else %}Sin delegación asignada{% endif %}</span>
+    </div>
+    <div class="panel dato">
+        <span class="etiqueta">Módulos operativos</span>
+        <span class="valor">{{ operativos }}</span>
+        <span class="apoyo">Con persistencia en la base de datos</span>
+    </div>
+    <div class="panel dato">
+        <span class="etiqueta">Módulos simulados</span>
+        <span class="valor">{{ simulados }}</span>
+        <span class="apoyo">Navegables con datos de demostración</span>
+    </div>
+</div>
+
+{% if resumen %}
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Últimas atenciones de la delegación</h2>
+        <span class="espacio"></span>
+        <span class="ruta">{{ resumen.total }} en total · {{ resumen.mias }} registradas por usted</span>
+        {% if user.rol and 'atenciones.crear' in user.permisos_codigos %}
+        <a href="{% url 'atenciones_crear' %}" class="boton principal pequeno"><i class="bi bi-plus-lg" aria-hidden="true"></i>Ingresar atención</a>
+        {% endif %}
+    </div>
+    {% if resumen.ultimas %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr><th>Folio</th><th>Fecha</th><th>Solicitante</th><th>Tipo · Sub atención</th></tr></thead>
+            <tbody>
+            {% for a in resumen.ultimas %}
+                <tr><td><a href="{% url 'atenciones_ver' a.pk %}" class="codigo">{{ a.folio }}</a></td><td>{{ a.creada|date:"d-m-Y H:i" }}</td>
+                    <td>{{ a.solicitante.nombre }}</td><td>{{ a.tipo }} · {{ a.subatencion }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio"><p>Aún no hay atenciones en esta delegación.</p></div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="panel">
+    <div class="panel-cabecera"><h2>Módulos autorizados para su rol</h2></div>
+    <div class="panel-cuerpo">
+        {% regroup modulos by grupo as grupos %}
+        {% for g in grupos %}
+        <h3 class="subtitulo">{{ g.grouper }}</h3>
+        <div class="tarjetas-modulo">
+            {% for mod in g.list %}
+            <a class="tarjeta-modulo" href="{% if mod.operativo and mod.codigo != 'auditoria' and mod.codigo != 'correos' %}{% url mod.codigo|add:'_lista' %}{% else %}{% url mod.codigo %}{% endif %}">
+                <i class="bi {{ mod.icono }}" aria-hidden="true"></i>
+                <span>
+                    <b>{{ mod.nombre }}</b>
+                    <small>{{ mod.acciones|join:", "|capfirst }}</small><br>
+                    {% if mod.operativo %}<span class="estado ok">Operativo</span>{% else %}<span class="estado pendiente">Simulado</span>{% endif %}
+                </span>
+            </a>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

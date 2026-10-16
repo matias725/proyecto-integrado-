@@ -56,28 +56,6 @@ TRANSICIONES = {
 
 
 # ---------------------------------------------------------------------------
-# CU-01 · Acceso
-# ---------------------------------------------------------------------------
-class AccesoForm(forms.Form):
-    usuario = forms.CharField(
-        label='Usuario', max_length=50,
-        widget=forms.TextInput(attrs={'autocomplete': 'username', 'placeholder': 'nombre.apellido'}))
-    clave = forms.CharField(
-        label='Contraseña',
-        widget=forms.PasswordInput(attrs={'autocomplete': 'current-password'}))
-
-    def clean(self):
-        limpio = super().clean()
-        if self.errors:
-            return limpio
-        self.cuenta = datos.verificar_cuenta(limpio.get('usuario'), limpio.get('clave'))
-        if not self.cuenta:
-            # Mensaje genérico: no revela si falló el usuario o la contraseña.
-            raise ValidationError('Usuario o contraseña incorrectos. Verifique sus datos e intente nuevamente.')
-        return limpio
-
-
-# ---------------------------------------------------------------------------
 # CU-07 · Registrar actividad
 # ---------------------------------------------------------------------------
 class ActividadForm(forms.Form):
@@ -276,64 +254,6 @@ class AtencionSocialForm(forms.Form):
 
 
 # ---------------------------------------------------------------------------
-# CU-02 · Delegaciones
-# ---------------------------------------------------------------------------
-class DelegacionForm(forms.Form):
-    nombre = forms.CharField(label='Nombre', min_length=3, max_length=80, help_text='El nombre no puede repetirse.')
-    ambito = forms.CharField(label='Ámbito territorial', min_length=8, max_length=150)
-    correo = forms.EmailField(
-        label='Correo', widget=forms.EmailInput(attrs={'placeholder': 'delegacion@laserena.cl'}))
-    telefono = forms.CharField(
-        label='Teléfono', required=False, validators=[validar_telefono],
-        widget=forms.TextInput(attrs={'type': 'tel', 'placeholder': '+56 9 1234 5678'}))
-
-    def clean_nombre(self):
-        nombre = self.cleaned_data['nombre'].strip()
-        if any(d['nombre'].lower() == nombre.lower() for d in datos.almacen['delegaciones']):
-            raise ValidationError('Ya existe una delegación con ese nombre.')
-        return nombre
-
-
-# ---------------------------------------------------------------------------
-# CU-03 · Usuarios y roles
-# ---------------------------------------------------------------------------
-class UsuarioForm(forms.Form):
-    rut = forms.CharField(
-        label='RUT', max_length=12, validators=[validar_rut],
-        widget=forms.TextInput(attrs={'placeholder': '12.345.678-5'}))
-    nombre = forms.CharField(label='Nombre completo', min_length=6, max_length=160)
-    correo = forms.EmailField(label='Correo institucional')
-    telefono = forms.CharField(
-        label='Teléfono', required=False, validators=[validar_telefono],
-        widget=forms.TextInput(attrs={'type': 'tel', 'placeholder': '+56 9 1234 5678'}))
-    cargo = forms.ChoiceField(label='Cargo')
-    delegacion = forms.ChoiceField(label='Delegación')
-    roles = forms.MultipleChoiceField(
-        label='Roles', widget=forms.CheckboxSelectMultiple,
-        help_text='Los permisos del usuario son la suma de todos sus roles.',
-        error_messages={'required': 'Seleccione al menos un rol: sin rol el usuario no tendría permisos.'})
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['cargo'].choices = opciones(datos.almacen['cargos'])
-        self.fields['delegacion'].choices = opciones(
-            [d['nombre'] for d in datos.almacen['delegaciones'] if d['estado'] == 'ACTIVA'])
-        self.fields['roles'].choices = [(r, r) for r in datos.almacen['roles']]
-
-    def clean_rut(self):
-        rut = formatear_rut(self.cleaned_data['rut'])
-        if datos.buscar('usuarios', rut=rut):
-            raise ValidationError('Ya existe un usuario con ese RUT.')
-        return rut
-
-    def clean_correo(self):
-        correo = self.cleaned_data['correo'].lower()
-        if datos.buscar('usuarios', correo=correo):
-            raise ValidationError('Ya existe un usuario con ese correo.')
-        return correo
-
-
-# ---------------------------------------------------------------------------
 # CU-05 · Períodos
 # ---------------------------------------------------------------------------
 class PeriodoForm(forms.Form):
@@ -467,18 +387,3 @@ class InformeForm(forms.Form):
         if desde and hasta and hasta < desde:
             self.add_error('hasta', 'La fecha final no puede ser anterior a la inicial.')
         return limpio
-
-
-EVENTOS_AUDITORIA = [
-    ('', 'Todos los eventos'),
-    ('ALTA', 'Alta'),
-    ('CAMBIO_ESTADO', 'Cambio de estado'),
-    ('CAMBIO_PARAMETRO', 'Cambio de parámetro'),
-    ('VALIDACION', 'Validación'),
-    ('ACCESO_DENEGADO', 'Acceso denegado'),
-    ('EXPORTACION', 'Exportación'),
-]
-
-
-class FiltroAuditoriaForm(forms.Form):
-    evento = forms.ChoiceField(label='Evento', required=False, choices=EVENTOS_AUDITORIA)

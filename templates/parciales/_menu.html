@@ -1,19 +1,17 @@
-{# Menú lateral: solo muestra las secciones que el rol del usuario puede usar #}
-<aside class="lateral">
-    <div class="marca">
-        <strong>SGR</strong>
-        <span>Municipalidad de La Serena</span>
-    </div>
+{# Menú lateral: solo muestra los módulos que el rol puede ver #}
+<aside class="lateral" id="menuLateral">
     <nav class="menu" aria-label="Menú principal">
-        {% with actual=request.resolver_match.url_name %}
+        <a href="{% url 'inicio' %}"{% if request.resolver_match.url_name == 'inicio' %} class="activo" aria-current="page"{% endif %}>
+            <i class="bi bi-house" aria-hidden="true"></i>Inicio
+        </a>
         {% for grupo in menu %}
             <div class="menu-grupo">{{ grupo.titulo }}</div>
             {% for enlace in grupo.enlaces %}
-                <a href="{% url enlace.url %}"{% if actual in enlace.activos %} class="activo" aria-current="page"{% endif %}>
+                <a href="{% url enlace.url %}"{% if enlace.activo %} class="activo" aria-current="page"{% endif %}>
                     <i class="bi {{ enlace.icono }}" aria-hidden="true"></i>{{ enlace.texto }}
+                    {% if enlace.simulado %}<span class="marca-simulado">Simulado</span>{% endif %}
                 </a>
             {% endfor %}
         {% endfor %}
-        {% endwith %}
     </nav>
 </aside>

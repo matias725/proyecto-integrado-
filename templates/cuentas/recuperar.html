@@ -1,0 +1,22 @@
+{% extends "layouts/acceso.html" %}
+{% block titulo %}Recuperar contraseña{% endblock %}
+
+{% block tarjeta %}
+<h1>Recuperar contraseña</h1>
+<div class="paso">Paso 1 de 3 · Solicitar código</div>
+<div class="progreso" aria-hidden="true"><span class="hecho"></span><span></span><span></span></div>
+<p class="bajada">Ingrese el correo asociado a su cuenta. Le enviaremos un código de 6 dígitos.</p>
+
+<form method="post" novalidate data-validar data-un-envio>
+    {% csrf_token %}
+    {% include "parciales/_campo.html" with campo=form.correo %}
+    <button type="submit" class="boton principal ancho" data-texto-envio="Enviando…">
+        <i class="bi bi-envelope" aria-hidden="true"></i>Enviar código
+    </button>
+</form>
+<p class="ruta nota-acceso">Si la cuenta existe y está activa, recibirá las instrucciones.</p>
+
+<div class="enlaces-acceso">
+    <a href="{% url 'acceso' %}">Volver al inicio de sesión</a>
+</div>
+{% endblock %}
