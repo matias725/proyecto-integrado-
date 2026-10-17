@@ -220,3 +220,13 @@ class RecuperacionTests(PruebaSGR):
         self.solicitar()
         self.assertNotIn(self.clave, mail.outbox[0].body)
         self.assertIn('10 minutos', mail.outbox[0].body)
+
+    @override_settings(EMAIL_BACKEND='cuentas.correo.BandejaBackend', SGR_BANDEJA_REENVIAR_SMTP=True,
+                       EMAIL_HOST='127.0.0.1', EMAIL_PORT=1, EMAIL_TIMEOUT=2)
+    def test_falla_smtp_no_interrumpe_recuperacion(self):
+        """PR-22 · Si el servidor SMTP falla, la solicitud continúa y el código queda en la bandeja"""
+        from cuentas.models import CorreoSaliente
+        with self.assertLogs('sgr', level='ERROR'):
+            r = self.solicitar()
+        self.assertRedirects(r, reverse('recuperar_validar'))
+        self.assertEqual(CorreoSaliente.objects.filter(destinatario='bcastillo@example.test').count(), 1)

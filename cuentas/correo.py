@@ -7,6 +7,8 @@ entorno sin servidor de correo. En producción se reemplaza por SMTP
 (SGR_CORREO_BACKEND=django.core.mail.backends.smtp.EmailBackend).
 """
 
+import logging
+
 from django.conf import settings
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.mail.backends.smtp import EmailBackend as SMTPBackend
@@ -22,5 +24,10 @@ class BandejaBackend(BaseEmailBackend):
                 CorreoSaliente.objects.create(destinatario=destinatario, asunto=mensaje.subject, cuerpo=mensaje.body)
             enviados += 1
         if settings.SGR_BANDEJA_REENVIAR_SMTP and email_messages:
-            SMTPBackend(fail_silently=self.fail_silently).send_messages(email_messages)
+            # La copia en la bandeja ya quedó guardada: si el SMTP falla se registra
+            # el error y el flujo continúa (el código sigue disponible en la bandeja).
+            try:
+                SMTPBackend(fail_silently=False).send_messages(email_messages)
+            except Exception:
+                logging.getLogger('sgr').exception('No se pudo reenviar el correo por SMTP')
         return enviados

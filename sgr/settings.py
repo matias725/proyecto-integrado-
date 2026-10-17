@@ -171,6 +171,7 @@ EMAIL_PORT = int(env('SGR_SMTP_PUERTO', '587'))
 EMAIL_HOST_USER = env('SGR_SMTP_USUARIO', '')
 EMAIL_HOST_PASSWORD = env('SGR_SMTP_CLAVE', '')
 EMAIL_USE_TLS = env_bool('SGR_SMTP_TLS', True)
+EMAIL_TIMEOUT = 15                         # segundos; evita que la solicitud quede colgada
 DEFAULT_FROM_EMAIL = env('SGR_CORREO_REMITENTE', 'SGR La Serena <no-responder@sgr.example.test>')
 SGR_BANDEJA_REENVIAR_SMTP = env_bool('SGR_BANDEJA_REENVIAR_SMTP', False)
 
@@ -215,7 +216,7 @@ LOGGING = {
 SGR_POR_PAGINA = 10
 # Muestra las cuentas de evaluación en la pantalla de acceso (apagar en producción real)
 SGR_CUENTAS_DEMO = env_bool('SGR_CUENTAS_DEMO', DEBUG)
-SGR_VERSION = env('SGR_VERSION', 'ev2-1.0.3')
+SGR_VERSION = env('SGR_VERSION', 'ev2-1.0.4')
 
 # Fecha fija para los módulos simulados heredados de la EV1, de modo que sus
 # cálculos coincidan con el script SQL (74 de 91 días, 81,32 % esperado).

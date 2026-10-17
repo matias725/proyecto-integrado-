@@ -10,7 +10,7 @@
 ## Cómo regenerar todo
 
 ```bash
-python manage.py test pruebas                       # 124 pruebas funcionales
+python manage.py test pruebas                       # 125 pruebas funcionales
 python manage.py test pruebas_ui                    # 14 pruebas en navegador + capturas
 python scripts/generar_matriz_pruebas.py --ui       # vuelve a ejecutar todo y rehace la matriz
 ```

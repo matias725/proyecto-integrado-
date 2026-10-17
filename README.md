@@ -29,7 +29,7 @@ Proyecto Integrado · INACAP 2026 · **Segunda evaluación (EV2)**.
 | Ingreso de atención | **Operativo** | Lista dependiente tipo → sub atención, delegación/responsable/fecha automáticos, folio, sin doble envío |
 | Listado de atenciones | **Operativo** | Filtrado por la delegación activa, búsqueda por folio/RUT/nombre, Excel |
 | Auditoría | **Operativo** | Solo lectura, filtros y Excel |
-| Bandeja de correos de prueba | **Operativo** | Muestra los correos de recuperación sin necesidad de SMTP (solo Superadministrador) |
+| Correo de recuperación | **Operativo** | Envío real por Gmail (SMTP) y copia en la Bandeja de correos de prueba (solo Superadministrador); ver sección 4 |
 | Tablero, actividades, evidencias, validación, agenda, atención social, períodos, metas, informes | **Simulado** | Pantallas navegables de la EV1 con datos de demostración en memoria, sujetas a los permisos reales del rol. Se marcan con la etiqueta «Simulado» |
 | Despliegue en AWS | **Operativo** | http://34.232.208.74/ · EC2 + Nginx + Gunicorn + MySQL 8 (sección 6) |
 
@@ -87,6 +87,16 @@ Toda la configuración se lee de variables de entorno (archivo `.env`, que **no*
 | `SGR_CORREO_BACKEND`, `SGR_SMTP_*` | Correo real (por defecto, bandeja de prueba) |
 | `SGR_HTTPS=1` | Cookies seguras, redirección y HSTS cuando hay certificado |
 
+### Correo (códigos de recuperación)
+
+Sin configurar SMTP, los correos quedan solo en la **Bandeja de correos de prueba** (menú Control, usuario `admin`). Para que el código llegue al buzón real:
+
+1. En la cuenta de Google que enviará los correos: activar la verificación en 2 pasos y crear una **contraseña de aplicación** en https://myaccount.google.com/apppasswords.
+2. En el servidor: `sudo bash /opt/sgr/app/deploy/configurar_correo.sh` (pide el Gmail y la contraseña de aplicación sin mostrarla, la guarda solo en `/opt/sgr/.env` y envía un correo de prueba).
+3. En el sistema, como `admin`: **Usuarios → editar** la cuenta que se usará en la demostración y poner un correo real. Las cuentas de evaluación usan `@example.test`, que no recibe correos.
+
+Si Gmail rechaza el envío, la recuperación sigue funcionando: el error queda en `journalctl -u sgr` y el código se puede ver en la bandeja de prueba.
+
 ### Base de datos
 
 - Esquema: se crea con `python manage.py migrate`.
@@ -102,7 +112,7 @@ La interfaz sigue las normas gráficas de la Municipalidad (color institucional 
 ## 5. Pruebas
 
 ```bash
-python manage.py test pruebas            # 124 pruebas funcionales automatizadas (≈ 5 s)
+python manage.py test pruebas            # 125 pruebas funcionales automatizadas (≈ 5 s)
 pip install -r requirements-dev.txt && playwright install chromium
 python manage.py test pruebas_ui         # 14 pruebas de interfaz en navegador real (SweetAlert2, doble envío…)
 ```
@@ -163,7 +173,7 @@ Pasos resumidos:
    También acepta una carpeta: subir el código con `scp` y ejecutar `sudo bash deploy/instalar_ec2.sh /tmp/sgr`.
 4. Verificar `http://IP-ELÁSTICA/salud/` → `{"estado": "ok"}` e ingresar con las cuentas de evaluación.
 
-**URL pública:** http://34.232.208.74/ · **Versión publicada:** `ev2-v1.0.3` · **Salud:** http://34.232.208.74/salud/ · **Acceso:** cuentas de la sección 1.
+**URL pública:** http://34.232.208.74/ · **Versión publicada:** `ev2-v1.0.4` · **Salud:** http://34.232.208.74/salud/ · **Acceso:** cuentas de la sección 1.
 
 ### Componentes publicados (AWS Academy, región us-east-1)
 
