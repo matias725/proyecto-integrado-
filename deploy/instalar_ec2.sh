@@ -2,19 +2,38 @@
 # =====================================================================
 # Instalación del SGR en una instancia EC2 Ubuntu 24.04 (una sola vez).
 # Uso:  sudo bash deploy/instalar_ec2.sh https://github.com/USUARIO/REPO.git
+#   o:  sudo bash deploy/instalar_ec2.sh /ruta/al/codigo   (copia ya subida por scp)
 # Deja: MySQL 8 local, Gunicorn como servicio y Nginx en el puerto 80.
 # Si usa Amazon RDS, omita la sección MySQL y complete SGR_DB_HOST en .env.
 # =====================================================================
 set -euo pipefail
-REPO="${1:?Indique la URL del repositorio Git}"
-IP_PUBLICA="$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo localhost)"
+ORIGEN="${1:?Indique la URL del repositorio Git o la carpeta con el código}"
+
+# IMDSv2 (obligatorio por defecto en instancias nuevas): primero se pide un token
+TOKEN_IMDS="$(curl -sf -X PUT http://169.254.169.254/latest/api/token \
+  -H 'X-aws-ec2-metadata-token-ttl-seconds: 60' || true)"
+IP_PUBLICA="$(curl -sf -H "X-aws-ec2-metadata-token: ${TOKEN_IMDS}" \
+  http://169.254.169.254/latest/meta-data/public-ipv4 || true)"
+IP_PUBLICA="${IP_PUBLICA:-localhost}"
 
 apt-get update
-apt-get install -y python3-venv python3-pip nginx mysql-server git
+apt-get install -y python3-venv python3-pip nginx mysql-server git rsync
+
+# Memoria de intercambio en instancias pequeñas (t3.micro: 1 GB de RAM)
+if [ ! -f /swapfile ] && [ "$(awk '/MemTotal/ {print $2}' /proc/meminfo)" -lt 2000000 ]; then
+  fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
 
 # --- Usuario y código ---------------------------------------------------
 id -u sgr >/dev/null 2>&1 || useradd --system --create-home --home-dir /opt/sgr --shell /bin/bash sgr
-sudo -u sgr git clone "$REPO" /opt/sgr/app
+if [ -d "$ORIGEN" ]; then
+  mkdir -p /opt/sgr/app
+  rsync -a --delete --exclude .venv --exclude .env --exclude db.sqlite3 "$ORIGEN"/ /opt/sgr/app/
+  chown -R sgr:sgr /opt/sgr/app
+else
+  sudo -u sgr git clone "$ORIGEN" /opt/sgr/app
+fi
 sudo -u sgr python3 -m venv /opt/sgr/venv
 sudo -u sgr /opt/sgr/venv/bin/pip install -r /opt/sgr/app/requirements.txt
 
@@ -34,6 +53,7 @@ SGR_DB_NOMBRE=sgr_laserena
 SGR_DB_USUARIO=sgr
 SGR_DB_CLAVE=${CLAVE_BD}
 SGR_DB_HOST=127.0.0.1
+SGR_GUNICORN_WORKERS=3
 ENV
 chown sgr:sgr /opt/sgr/.env && chmod 600 /opt/sgr/.env
 ln -sf /opt/sgr/.env /opt/sgr/app/.env

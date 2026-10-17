@@ -31,7 +31,7 @@ Proyecto Integrado · INACAP 2026 · **Segunda evaluación (EV2)**.
 | Auditoría | **Operativo** | Solo lectura, filtros y Excel |
 | Bandeja de correos de prueba | **Operativo** | Muestra los correos de recuperación sin necesidad de SMTP (solo Superadministrador) |
 | Tablero, actividades, evidencias, validación, agenda, atención social, períodos, metas, informes | **Simulado** | Pantallas navegables de la EV1 con datos de demostración en memoria, sujetas a los permisos reales del rol. Se marcan con la etiqueta «Simulado» |
-| Despliegue en AWS | **Pendiente** | Archivos listos en `deploy/` y guía en la sección 6; se completa al publicar |
+| Despliegue en AWS | **Operativo** | http://34.232.208.74/ · EC2 + Nginx + Gunicorn + MySQL 8 (sección 6) |
 
 ### Perfiles de evaluación
 
@@ -145,9 +145,25 @@ Pasos resumidos:
 1. Crear una instancia EC2 Ubuntu 24.04 (t3.small o t3.micro) con un grupo de seguridad que permita **HTTP 80** desde Internet y **SSH 22** solo desde la IP del equipo.
 2. Asignar una **IP elástica**.
 3. Conectarse por SSH y ejecutar `sudo bash instalar_ec2.sh <URL-del-repositorio>` (el script está en `deploy/`).
+   También acepta una carpeta: subir el código con `scp` y ejecutar `sudo bash deploy/instalar_ec2.sh /tmp/sgr`.
 4. Verificar `http://IP-ELÁSTICA/salud/` → `{"estado": "ok"}` e ingresar con las cuentas de evaluación.
 
-**URL pública:** _se completará al publicar_ · **Acceso:** cuentas de la sección 1.
+**URL pública:** http://34.232.208.74/ · **Salud:** http://34.232.208.74/salud/ · **Acceso:** cuentas de la sección 1.
+
+### Componentes publicados (AWS Academy, región us-east-1)
+
+| Recurso | Valor |
+|---|---|
+| Instancia EC2 | `sgr-laserena-ev2` · t3.small · Ubuntu 24.04 LTS · disco gp3 20 GB |
+| IP elástica | 34.232.208.74 |
+| Grupo de seguridad | `sgr-ev2-sg`: HTTP 80 abierto; SSH 22 solo desde la IP del equipo |
+| Par de llaves | `sgr-ev2` (el archivo `.pem` no se sube al repositorio) |
+| Servicios | `nginx` (80) → `sgr` (Gunicorn, 127.0.0.1:8000, 3 workers) → `mysql` (local, base `sgr_laserena`) |
+| Secretos | `/opt/sgr/.env` (permisos 600), generados por `instalar_ec2.sh` |
+
+Actualizar a una nueva versión: `sudo bash /opt/sgr/app/deploy/actualizar.sh`.
+
+> En AWS Academy la instancia se detiene al cerrar el laboratorio; la IP elástica se conserva. Al iniciar el laboratorio, encender la instancia: los servicios arrancan solos.
 
 ---
 
