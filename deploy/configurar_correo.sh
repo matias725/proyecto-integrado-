@@ -10,9 +10,13 @@ set -euo pipefail
 ENV_FILE=/opt/sgr/.env
 
 read -rp "Correo Gmail que enviará los códigos: " GMAIL
-read -rsp "Contraseña de aplicación de Google (no se muestra): " CLAVE; echo
-CLAVE="${CLAVE// /}"                       # Google la muestra en grupos de 4 con espacios
-[ -n "$GMAIL" ] && [ -n "$CLAVE" ] || { echo "Faltan datos." >&2; exit 1; }
+[[ "$GMAIL" == *@* ]] || { echo "Escriba el correo completo, por ejemplo nombre@gmail.com." >&2; exit 1; }
+while true; do
+  read -rsp "Contraseña de aplicación de Google (16 letras, no se muestra): " CLAVE; echo
+  CLAVE="${CLAVE//[[:space:]]/}"           # Google la muestra en grupos de 4 con espacios
+  [ "${#CLAVE}" -eq 16 ] && break
+  echo "Se recibieron ${#CLAVE} caracteres y deben ser 16. Vuelva a pegarla (clic derecho) y presione Enter."
+done
 
 # Quita la configuración de correo anterior y agrega la nueva
 sed -i '/^SGR_CORREO_BACKEND=/d; /^SGR_BANDEJA_REENVIAR_SMTP=/d; /^SGR_SMTP_/d; /^SGR_CORREO_REMITENTE=/d' "$ENV_FILE"
