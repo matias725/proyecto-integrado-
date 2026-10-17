@@ -126,6 +126,21 @@ Las pruebas también se ejecutaron contra **MySQL 8.0** (`SGR_DB_MOTOR=mysql`), 
 bash pruebas_estres/ejecutar.sh http://IP-O-DOMINIO 90    # 4 etapas de 90 s
 ```
 
+### Resultado de estrés en AWS (EC2 t3.small, 17-10-2026)
+
+Locust desde un equipo en Chile contra http://34.232.208.74, 4 etapas de 90 s. Detalle en [`docs/pruebas/estres/aws/`](docs/pruebas/estres/aws/) y en la hoja «Umbrales» de la matriz.
+
+| Usuarios | Solicitudes | Req/s | Promedio | p95 | Errores | CPU servidor (prom.) |
+|---|---|---|---|---|---|---|
+| 10 | 478 | 5,3 | 243 ms | 320 ms | 0 % | 13 % |
+| 25 | 1 100 | 12,2 | 514 ms | 3,7 s | 0 % | 31 % |
+| 50 | 1 670 | 18,5 | 1,2 s | 5,6 s | 0 % | 59 % |
+| 100 | 1 216 | 13,5 | 6,0 s | 38 s | 0 % | 93 % |
+
+- **Sin errores** en ninguna etapa y `/salud/` respondió 200 en < 0,6 s tras cada etapa (recuperación correcta).
+- **Degradación** desde 25-50 usuarios, causada por los inicios de sesión simultáneos (hash PBKDF2 de la contraseña, intensivo en CPU). Ya autenticados, la mediana de las páginas se mantiene en ~160-220 ms (incluye ~150 ms de red Chile → us-east-1).
+- **Límite seguro** observado en esta instancia: ~50 usuarios concurrentes. Para más carga: instancia con más vCPU o dos instancias tras un balanceador.
+
 ---
 
 ## 6. Despliegue en AWS

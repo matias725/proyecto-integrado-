@@ -35,7 +35,9 @@ from openpyxl.utils import get_column_letter  # noqa: E402
 NOTA_ESTRES = ('Lectura: el cuello de botella es el inicio de sesión simultáneo (cada acceso calcula el hash '
                    'PBKDF2 de la contraseña, ~0,3 s de CPU). Al subir 50-100 usuarios a razón de 10-20 por segundo, '
                    'la CPU llega al 100 % mientras ingresan; una vez dentro, las páginas vuelven a responder en '
-                   'decenas de milisegundos. En la corrida local Locust compartía la misma CPU que el servidor.')
+                   'decenas de milisegundos. En la corrida local Locust compartía la misma CPU que el servidor; '
+                   'en AWS (t3.small) las latencias incluyen ~150 ms de red entre Chile y us-east-1. '
+                   'Mejora propuesta: más vCPU o un balanceador con dos instancias para absorber los ingresos simultáneos.')
 
 ALEXIS, MATIAS, CARLOS = 'Alexis Muñoz', 'Matías Zepeda', 'Carlos Araya'
 HOY = date.today().strftime('%d-%m-%Y')
@@ -491,7 +493,7 @@ def main():
 
     hoja_tabla(libro, 'Estrés',
                'Carga progresiva (10 → 25 → 50 → 100 usuarios). Cada usuario espera 1-3 s entre acciones. '
-               'Resultados completos en docs/pruebas/estres/. La corrida en AWS se agrega al publicar.',
+               'Resultados completos en docs/pruebas/estres/ (carpetas local/ y aws/).',
                ['Herramienta', 'Entorno', 'Volumen de datos', 'Escenarios', 'Usuarios concurrentes', 'Duración (s)',
                 'Solicitudes', 'Solicitudes/s', 'Latencia promedio (ms)', 'Latencia p95 (ms)', 'Errores',
                 'p95 páginas (ms)', 'p95 acceso (ms)', 'p95 Excel (ms)', 'CPU promedio / máx.', 'Memoria máx.'],

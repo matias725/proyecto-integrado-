@@ -1,0 +1,4 @@
+Tras 10 usuarios: /salud/ 200 en 0.586003s
+Tras 25 usuarios: /salud/ 200 en 0.272505s
+Tras 50 usuarios: /salud/ 200 en 0.272486s
+Tras 100 usuarios: /salud/ 200 en 0.272998s

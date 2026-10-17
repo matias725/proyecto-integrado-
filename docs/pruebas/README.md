@@ -5,7 +5,7 @@
 | `matriz_pruebas_sgr_ev2.xlsx` | Matriz de pruebas funcionales (requisito, módulo, precondiciones, pasos, esperado, obtenido, estado, evidencia, responsable, fecha), detalle de las pruebas automatizadas, estrés, umbrales y pendientes |
 | `evidencias/` | Capturas generadas por las pruebas de interfaz (`UI-xx`), una por caso |
 | `estres/local/` | Resultados de Locust (`cNN_stats.csv`, historial por segundo) y consumo de CPU/memoria (`monitor.csv`) de la corrida local |
-| `estres/aws/` | Se agrega al ejecutar la misma prueba contra el servidor publicado |
+| `estres/aws/` | Resultados de la misma prueba contra el servidor publicado (EC2 t3.small, 17-10-2026) y `monitor.csv` del servidor |
 
 ## Cómo regenerar todo
 
