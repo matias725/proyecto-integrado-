@@ -215,7 +215,7 @@ LOGGING = {
 SGR_POR_PAGINA = 10
 # Muestra las cuentas de evaluación en la pantalla de acceso (apagar en producción real)
 SGR_CUENTAS_DEMO = env_bool('SGR_CUENTAS_DEMO', DEBUG)
-SGR_VERSION = env('SGR_VERSION', 'ev2-1.0.0')
+SGR_VERSION = env('SGR_VERSION', 'ev2-1.0.3')
 
 # Fecha fija para los módulos simulados heredados de la EV1, de modo que sus
 # cálculos coincidan con el script SQL (74 de 91 días, 81,32 % esperado).

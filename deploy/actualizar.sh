@@ -8,4 +8,8 @@ sudo -u sgr /opt/sgr/venv/bin/pip install -r requirements.txt
 sudo -u sgr /opt/sgr/venv/bin/python manage.py migrate --noinput
 sudo -u sgr /opt/sgr/venv/bin/python manage.py collectstatic --noinput
 systemctl restart sgr
-curl -fsS http://127.0.0.1:8000/salud/ && echo " · versión publicada"
+for _ in $(seq 1 20); do      # espera a que Gunicorn termine de arrancar
+  curl -fsS http://127.0.0.1:8000/salud/ 2>/dev/null && echo " · versión publicada" && exit 0
+  sleep 1
+done
+echo "El servicio no respondió; revise: journalctl -u sgr -n 50" >&2; exit 1

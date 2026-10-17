@@ -163,7 +163,7 @@ Pasos resumidos:
    También acepta una carpeta: subir el código con `scp` y ejecutar `sudo bash deploy/instalar_ec2.sh /tmp/sgr`.
 4. Verificar `http://IP-ELÁSTICA/salud/` → `{"estado": "ok"}` e ingresar con las cuentas de evaluación.
 
-**URL pública:** http://34.232.208.74/ · **Salud:** http://34.232.208.74/salud/ · **Acceso:** cuentas de la sección 1.
+**URL pública:** http://34.232.208.74/ · **Versión publicada:** `ev2-v1.0.3` · **Salud:** http://34.232.208.74/salud/ · **Acceso:** cuentas de la sección 1.
 
 ### Componentes publicados (AWS Academy, región us-east-1)
 
