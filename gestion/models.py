@@ -49,6 +49,12 @@ class Periodo(models.Model):
         help_text='Bajo este porcentaje de lo esperado al día, el semáforo queda en rojo.')
     cumplimiento_minimo = models.PositiveSmallIntegerField('cumplimiento mínimo (%)', default=80)
     creado = models.DateTimeField('creado', auto_now_add=True)
+    # Un único período abierto a la vez: vale 1 si está abierto y NULL si no, con índice único.
+    # MySQL no admite índices únicos parciales; una columna generada logra lo mismo en MySQL y SQLite.
+    marca_abierto = models.GeneratedField(
+        expression=models.Case(models.When(estado='ABIERTO', then=models.Value(1)),
+                               output_field=models.PositiveSmallIntegerField()),
+        output_field=models.PositiveSmallIntegerField(null=True), db_persist=True, unique=True, editable=False)
 
     class Meta:
         verbose_name = 'período'
@@ -56,8 +62,6 @@ class Periodo(models.Model):
         ordering = ['-inicio']
         constraints = [
             models.CheckConstraint(condition=Q(termino__gt=models.F('inicio')), name='periodo_fechas_validas'),
-            # Un único período abierto a la vez: las actividades se imputan a él
-            models.UniqueConstraint(fields=['estado'], condition=Q(estado='ABIERTO'), name='periodo_un_abierto'),
         ]
 
     def __str__(self):
@@ -229,11 +233,14 @@ class Actividad(models.Model):
         indexes = [
             # Regla 3: conteo de ingresos del día por funcionario
             models.Index(fields=['funcionario', 'ingresada_el'], name='act_ingresos_diarios'),
-            # Avance por ítem del período (tablero, informes)
-            models.Index(fields=['periodo', 'funcionario', 'item'], name='act_avance_item'),
-            # Listado y TUBO de la delegación activa
-            models.Index(fields=['delegacion', '-fecha'], name='act_delegacion_fecha'),
-            models.Index(fields=['delegacion', 'validacion'], name='act_bandeja_validacion'),
+            # Avance por ítem del período (tablero, informes). Índice «cubriente»: tiene todas las
+            # columnas que filtra y agrupa el cálculo, así MySQL no lee la fila completa.
+            models.Index(fields=['funcionario', 'periodo', 'estado', 'puntua', 'validacion', 'item'],
+                         name='act_avance_item'),
+            # Listado y TUBO de la delegación activa, más recientes primero
+            models.Index(fields=['delegacion', '-fecha', '-id'], name='act_delegacion_fecha'),
+            # Bandeja de validación: filtra y ordena por fecha sin ordenar en memoria
+            models.Index(fields=['delegacion', 'validacion', '-fecha', '-id'], name='act_bandeja_validacion'),
         ]
 
     def __str__(self):

@@ -482,6 +482,13 @@ class ValidacionYAccesoTests(BaseMatriz):
         self.assertMensaje(r, 'Ya hay un período abierto')
         self.assertEqual(Periodo.objects.filter(estado=Periodo.ABIERTO).count(), 1)
 
+    def test_base_de_datos_impide_dos_periodos_abiertos(self):
+        """PV-16 · Aunque se salte la pantalla, la base de datos rechaza un segundo período abierto"""
+        from django.db import IntegrityError, transaction
+        cerrado = Periodo.objects.get(estado=Periodo.CERRADO)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Periodo.objects.filter(pk=cerrado.pk).update(estado=Periodo.ABIERTO)
+
     def test_periodos_superpuestos_se_rechazan(self):
         """PV-14 · Un período que se superpone con otro existente se rechaza"""
         self.entrar('emunoz')
