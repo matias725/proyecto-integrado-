@@ -135,7 +135,7 @@ CASOS = [
      'Cancelar no elimina; confirmar elimina y muestra éxito. Eliminar por GET no está permitido.',
      ['UI-03', 'UI-04', 'PC-02', 'PS-03'], 'UI-03-confirmar-eliminar.png', MATIAS),
     # ----- Listados y Excel -----
-    ('CF-22', 'Paginador y total', 'Listados', '14 ítems cargados',
+    ('CF-22', 'Paginador y total', 'Listados', '29 ítems cargados',
      '1. Abrir Ítems y metas. 2. Navegar páginas. 3. Escribir una página inexistente en la URL.',
      'Muestra «Mostrando X a Y de N registros»; página inválida muestra la última válida sin error.',
      ['PL-01', 'PL-02'], '', MATIAS),
@@ -210,20 +210,110 @@ CASOS = [
      '1. Consultar /salud/. 2. Abrir rutas inexistentes. 3. Enviar formularios sin token CSRF.',
      'Salud 200; 404 claros; envíos sin token se rechazan sin guardar; cabeceras de seguridad presentes.',
      ['PX-01', 'PX-02', 'PX-03', 'PX-04', 'PX-06'], '', CARLOS),
-    ('CF-41', 'Módulos simulados navegables', 'Módulos en desarrollo', 'Perfil admin y bcastillo',
+    ('CF-41', 'Módulos de la matriz operativos', 'Matriz SGR', 'Perfil admin y bcastillo',
      '1. Abrir tablero, actividades, evidencias, validación, agenda, atención social, períodos, metas e informes.',
-     'Todas las pantallas cargan, se identifican como simuladas y respetan los permisos del rol.',
+     'Todas las pantallas cargan con datos reales de la base, sin marca «simulado», y respetan los permisos del rol.',
      ['PX-05', 'PP-10'], '', CARLOS),
     ('CF-42', 'Diseño adaptable', 'Interfaz', 'Teléfono (390 px)',
      '1. Ingresar desde un teléfono. 2. Abrir el menú.',
      'Sin desplazamiento horizontal; menú desplegable; selector de delegación visible.',
      ['UI-14'], 'UI-14-movil.png', CARLOS),
+    # ----- Matriz SGR: nuevo requerimiento (EV2) -----
+    ('CF-43', 'Regla 1: solicitud del delegado no puntúa', 'Actividades', 'Funcionaria ftest (DEL06), período abierto',
+     '1. Registrar una actividad marcando «La solicita el delegado».',
+     'Se guarda como otra gestión: no suma puntos y muestra el motivo «regla 1».',
+     ['RG-01', 'PM-04'], '', MATIAS),
+    ('CF-44', 'Regla 2: nombre y teléfono del usuario', 'Actividades', 'Funcionaria ftest',
+     '1. Registrar sin teléfono. 2. Registrar sin nombre. 3. Registrar con teléfono «12345». 4. Con «912345678».',
+     'Sin nombre o teléfono se guarda sin puntaje; un teléfono inválido se rechaza; el válido se normaliza a +56 9.',
+     ['RG-02', 'RG-03', 'RG-04', 'RG-05'], '', MATIAS),
+    ('CF-45', 'Regla 3: máximo 7 ingresos por día', 'Actividades', 'Funcionaria con 6 y con 7 ingresos hoy',
+     '1. Con 6 ingresos, registrar el 7.º. 2. Con 7, intentar el 8.º. 3. Con 7 ingresos ayer, registrar hoy.',
+     'El 7.º se acepta; el 8.º se rechaza con mensaje y no se guarda; el cupo es por día de ingreso.',
+     ['RG-06', 'RG-07', 'RG-08', 'PM-13'], '', MATIAS),
+    ('CF-46', 'Regla 4: cierre semanal el lunes', 'Actividades', 'Fecha del sistema fija (SGR_FECHA_HOY)',
+     '1. El miércoles 04-11 registrar el lunes 02-11 y el domingo 01-11. 2. El lunes 09-11 registrar el viernes 06-11. '
+     '3. El martes 10-11 registrar el viernes 06-11. 4. Registrar una fecha futura.',
+     'Semana en curso aceptada; la semana anterior se acepta hasta el lunes siguiente y se rechaza desde el martes; '
+     'fecha futura rechazada.', ['RG-09', 'RG-10', 'RG-11', 'RG-12'], '', MATIAS),
+    ('CF-47', 'Regla 5: gestiones previas no puntúan', 'Actividades', 'Funcionaria ftest',
+     '1. Registrar una coordinación (gestión previa). 2. Registrar una solicitud pendiente y luego pasarla a Realizado.',
+     'La gestión previa no suma; la solicitud suma recién al quedar Realizada y deja historial y fecha de cierre.',
+     ['RG-13', 'RG-14', 'RG-17'], '', MATIAS),
+    ('CF-48', 'Regla 6: alertas de registro para cumplir', 'Tablero', 'Delegada arojas',
+     '1. Registrar 7 actividades el mismo día. 2. Abrir el tablero del equipo.',
+     'Aparece la alerta «Tope diario» (también texto repetido, ingreso tardío y muchas sin puntaje).',
+     ['PM-13'], '', ALEXIS),
+    ('CF-49', 'Regla 7: tope de 120 % por ítem', 'Tablero', 'Meta de 90 atenciones',
+     '1. Registrar 45 atenciones. 2. Registrar 200. 3. Con meta 10, registrar exactamente 12.',
+     '50 % y 10 puntos ponderados; 200 queda en 120 % y marcado como topado; 12 de 10 es 120 % sin marca.',
+     ['PM-01', 'PM-02', 'PM-03'], '', ALEXIS),
+    ('CF-50', 'Regla 8: felicitaciones con respaldo, solo el delegado', 'Felicitaciones y reclamos',
+     'Delegada arojas y funcionaria ftest',
+     '1. Como delegada, registrar sin respaldo. 2. Registrar con PDF. 3. Como funcionaria, intentar registrar.',
+     'Sin respaldo no se guarda; con respaldo suma +10 % (máx. 3); el funcionario recibe 403; reclamo descuenta 20 %.',
+     ['PV-09', 'PV-10', 'PV-11', 'PM-08', 'PM-09'], '', ALEXIS),
+    ('CF-51', 'Regla 9: ausencias ajustan la meta', 'Ausencias', 'Delegada arojas',
+     '1. Registrar 23 días de licencia en el trimestre. 2. Registrar una ausencia superpuesta. 3. Como funcionaria, '
+     'intentar registrar.', 'Meta 90 pasa a 67,5 (69 de 92 días); superpuesta rechazada; funcionario 403; solo '
+     'cuentan los días dentro del período.', ['PM-06', 'PM-07', 'PV-07', 'PV-08'], '', ALEXIS),
+    ('CF-52', 'Regla 10: resultado de equipo', 'Tablero', 'Delegación Rural con datos de demostración',
+     '1. Abrir el tablero como delegada.', 'Se muestra el promedio del equipo (solo quienes tienen metas) y su semáforo.',
+     ['PM-12', 'PM-10', 'PM-11'], 'UI-16-tablero-semaforo.png', ALEXIS),
+    ('CF-53', 'Ítem TUBO: solicitudes resueltas', 'Compromisos (TUBO)', 'Funcionaria con 4 solicitudes con compromiso',
+     '1. Dejar 3 realizadas y 1 pendiente.', 'El ítem TUBO marca 75 % de avance frente a la meta de 80 %.',
+     ['PM-05'], '', MATIAS),
+    ('CF-54', 'Validación del delegado', 'Validación', 'Actividades pendientes de validar',
+     '1. Rechazar sin motivo. 2. Rechazar con motivo. 3. Validar una actividad propia. 4. Validar como funcionario.',
+     'Sin motivo no se rechaza; la rechazada deja de sumar; nadie valida lo propio ni sin el permiso (403).',
+     ['PV-01', 'PV-02', 'PV-03', 'UI-17'], 'UI-17-bandeja-validacion.png', ALEXIS),
+    ('CF-55', 'Acceso por objeto', 'Actividades', 'Funcionarios y delegados de distintas delegaciones',
+     '1. Abrir la actividad de un compañero. 2. Abrir una actividad de otra delegación. 3. Listar actividades.',
+     '403 en ambos casos y queda en auditoría; el funcionario solo lista lo suyo.',
+     ['PV-04', 'PV-05', 'PV-06', 'PV-15'], '', ALEXIS),
+    ('CF-56', 'Registro sin duplicados ni campos alterados', 'Actividades', 'Formulario completo',
+     '1. Enviar dos veces el mismo formulario. 2. Alterar responsable, delegación y fecha de ingreso en el envío.',
+     'Una sola actividad; responsable, delegación y día de ingreso los asigna el servidor.',
+     ['RG-15', 'RG-16', 'UI-15'], 'UI-15-actividad-registrada.png', MATIAS),
+    ('CF-57', 'Períodos y metas', 'Configuración', 'Coordinador emunoz',
+     '1. Abrir un segundo período. 2. Crear un período superpuesto. 3. Agregar metas que superen 100 %. 4. Cambiar '
+     'estado en un período cerrado.', 'Todo se rechaza con mensaje; un solo período abierto; el cerrado queda congelado; '
+     'las metas de la matriz suman 100 % por cargo.', ['PV-12', 'PV-13', 'PV-14', 'PM-14', 'PM-15'], '', CARLOS),
+    ('CF-58', 'Evidencias seguras', 'Evidencias', 'Funcionaria ftest',
+     '1. Subir un PNG con nombre malicioso. 2. Subir un .exe. 3. Subir texto renombrado a .pdf. 4. Subir sobre el '
+     'tamaño máximo. 5. Descargar desde otra delegación. 6. Adjuntar a una actividad ajena.',
+     'Solo se aceptan formatos permitidos con contenido real; nombre aleatorio; descarga y carga fuera de alcance 403.',
+     ['PE-01', 'PE-02', 'PE-03', 'PE-04', 'PE-05', 'PE-06'], '', CARLOS),
+    ('CF-59', 'Importación de la base JJVV', 'Organizaciones', 'Excel con filas dudosas',
+     '1. Importar con territorios, socios no numéricos, repetidos y sin registro. 2. Reimportar. 3. Simular.',
+     'Normaliza nombres, traduce territorios, clasifica subfamilia, omite repetidos y anota observaciones; no pisa '
+     'organizaciones verificadas; la simulación no guarda.', ['PO-01', 'PO-02', 'PO-03', 'PO-04'], '', CARLOS),
+    ('CF-60', 'Organizaciones por territorio', 'Organizaciones', 'Delegado mtapia y funcionaria ftest',
+     '1. Listar organizaciones. 2. Abrir el formulario de actividad.',
+     'Cada perfil ve y ofrece solo organizaciones de su delegación.', ['PO-05', 'PO-06'], '', CARLOS),
+    ('CF-61', 'Informes y exportación de la matriz', 'Informes', 'Delegada arojas',
+     '1. Abrir el tablero propio. 2. Exportar la matriz a Excel.', 'Ficha propia visible; descarga .xlsx con todas las filas.',
+     ['PM-16'], '', CARLOS),
+    ('CF-62', 'Rendimiento con volumen', 'Tablero', '500 actividades adicionales',
+     '1. Medir consultas del tablero con pocas y con 500 actividades más.',
+     'Las consultas no crecen con el volumen (sin N+1) y quedan bajo 60.', ['PF-01'], '', CARLOS),
+    ('CF-63', 'Cabeceras de seguridad y CSP', 'Sistema', 'Ninguna',
+     '1. Revisar cabeceras de la página de acceso y de una página con sesión. 2. Revisar plantillas. 3. Usar '
+     'SweetAlert2 y los medidores con la CSP activa.', 'CSP sin unsafe-inline, Permissions-Policy, nosniff, DENY, '
+     'no-store con sesión; sin errores de CSP en el navegador.', ['SG-01', 'SG-02', 'SG-03', 'UI-15', 'UI-16'], '',
+     ALEXIS),
+    ('CF-64', 'Límite de intentos por IP', 'Acceso', 'Límite configurado en 3 intentos',
+     '1. Probar 4 cuentas distintas desde la misma IP. 2. Probar desde otra IP. 3. Falsificar X-Forwarded-For. '
+     '4. Repetir en recuperación de clave.', 'El 4.º intento responde 429 con Retry-After; otra IP no se afecta; '
+     'falsificar la cabecera no evita el límite.', ['SG-04', 'SG-05', 'SG-06', 'SG-07', 'SG-08', 'SG-09'], '', ALEXIS),
 ]
 
 GRUPOS = {
     'PA': 'Acceso', 'PR': 'Recuperación', 'PC': 'Mantenedores', 'PI': 'Integridad', 'PL': 'Listados y Excel',
     'PP': 'Perfiles y permisos', 'PD': 'Contexto de delegación', 'PT': 'Ingreso de atención',
     'PS': 'SweetAlert2', 'PU': 'Auditoría', 'PX': 'Sistema', 'UI': 'Interfaz (navegador)',
+    'RG': 'Reglas del requerimiento', 'PM': 'Cálculo de la matriz', 'PV': 'Validación y acceso por objeto',
+    'PE': 'Evidencias', 'PO': 'Organizaciones e importación', 'PF': 'Rendimiento', 'SG': 'Seguridad',
 }
 
 
@@ -534,9 +624,12 @@ def main():
         ('HTTPS con certificado', 'Pendiente',
          'Depende de contar con un dominio. La configuración está lista (SGR_HTTPS=1: cookies seguras, redirección y HSTS).',
          CARLOS),
-        ('Módulos tablero, actividades, evidencias, validación, agenda, atención social, períodos, metas e informes',
-         'Simulado', 'Fuera del alcance de la EV2 (que exige CRUD, acceso y recuperación). Son navegables, con datos '
-         'de demostración y sujetos a los permisos reales del rol.', MATIAS),
+        ('Datos reales de la base JJVV', 'Pendiente',
+         'El archivo entregado es confidencial y el repositorio es público: no se sube. Se importa en el servidor con '
+         'python manage.py sgr_importar_organizaciones archivo.xlsx (primero con --simular).', CARLOS),
+        ('Estrés de la matriz SGR en AWS', 'Pendiente',
+         'La prueba de estrés publicada cubre atenciones y acceso. La carga de la matriz se cubre con PF-01 '
+         '(consultas acotadas); repetir Locust en AWS tras desplegar esta versión.', CARLOS),
         ('Logo oficial', 'Pendiente', 'Se muestra automáticamente al copiar el archivo oficial en '
          'static/img/logo-municipalidad.png (no se reproduce sin autorización).', MATIAS),
         ('Pruebas en navegadores distintos de Chromium', 'Pendiente',
