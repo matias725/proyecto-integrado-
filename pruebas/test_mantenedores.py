@@ -271,17 +271,18 @@ class ListadosTests(PruebaSGR):
     def test_paginador_y_total(self):
         """PL-01 · El listado pagina y muestra el total de registros"""
         r = self.client.get(reverse('items_lista'))
-        self.assertEqual(r.context['pagina'].paginator.count, 14)
+        total = ItemMedicion.objects.count()          # 29 ítems de la matriz SGR
+        self.assertEqual(r.context['pagina'].paginator.count, total)
         self.assertEqual(len(r.context['filas']), 5)
-        self.assertContains(r, 'de 14 registros')
-        r = self.client.get(reverse('items_lista'), {'pagina': 3})
-        self.assertEqual(len(r.context['filas']), 4)
+        self.assertContains(r, f'de {total} registros')
+        r = self.client.get(reverse('items_lista'), {'pagina': -(-total // 5)})
+        self.assertEqual(len(r.context['filas']), total % 5 or 5)
 
     def test_pagina_fuera_de_rango(self):
         """PL-02 · Una página inexistente muestra la última válida (sin error)"""
         r = self.client.get(reverse('items_lista'), {'pagina': 999})
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.context['pagina'].number, 3)
+        self.assertEqual(r.context['pagina'].number, -(-ItemMedicion.objects.count() // 5))
         r = self.client.get(reverse('items_lista'), {'pagina': 'abc'})
         self.assertEqual(r.context['pagina'].number, 1)
 
@@ -328,7 +329,7 @@ class ListadosTests(PruebaSGR):
         r = self.client.get(reverse('items_exportar'))
         self.assertEqual(r['Content-Type'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         _, encabezados, datos = leer_excel(r)
-        self.assertEqual(len(datos), 14)  # la página muestra 5
+        self.assertEqual(len(datos), ItemMedicion.objects.count())  # la página muestra 5
         self.assertIn('Estado', encabezados)
 
     def test_exportar_coincide_con_listado_filtrado(self):
