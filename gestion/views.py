@@ -99,7 +99,9 @@ def tablero(request):
     propia = next((f for f in fichas if f['funcionario'].pk == request.user.pk), None)
     ficha = propia
     if ve_equipo(request.user):
-        ficha = next((f for f in fichas if str(f['funcionario'].pk) == elegido), None) or propia or (
+        # Sin elección, el delegado (que no tiene metas propias) ve la primera ficha con metas del equipo
+        con_metas = propia if propia and not propia['sin_metas'] else None
+        ficha = next((f for f in fichas if str(f['funcionario'].pk) == elegido), None) or con_metas or (
             fichas[0] if fichas else None)
     base = actividades_visibles(request).filter(periodo=periodo)
     return render(request, 'gestion/tablero.html', {
