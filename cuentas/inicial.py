@@ -11,7 +11,7 @@ from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
 
-from catalogos.models import Delegacion, ItemMedicion, SubAtencion, TipoAtencion
+from catalogos.models import Cargo, Delegacion, ItemMedicion, SubAtencion, TipoAtencion
 from core.validadores import digito_verificador
 
 from .models import Permiso, Rol, Usuario
@@ -40,34 +40,37 @@ ROLES = [
     },
     {
         'codigo': 'ROL02', 'nombre': 'Coordinador', 'alcance': Rol.GLOBAL,
-        'descripcion': 'Supervisa la gestión de todas las delegaciones y mantiene los catálogos de atención y medición.',
-        'permisos': _crud('items', 'tipos_atencion', 'sub_atenciones')
+        'descripcion': 'Coordinación de Delegaciones: configura períodos, metas y catálogos, y supervisa la matriz '
+                       'SGR de todas las delegaciones.',
+        'permisos': _crud('items', 'tipos_atencion', 'sub_atenciones', 'cargos', 'organizaciones')
         | _ver('delegaciones', 'roles', 'usuarios', 'atenciones', 'auditoria', 'tablero', 'actividades',
-               'agenda', 'informes')
-        | {'validacion.ver', 'validacion.editar', 'periodos.ver', 'periodos.crear', 'periodos.editar',
-           'metas.ver', 'metas.editar'},
+               'agenda', 'evidencias', 'informes', 'ausencias', 'observaciones', 'atencion_social')
+        | {'validacion.ver', 'periodos.ver', 'periodos.crear', 'periodos.editar', 'metas.ver', 'metas.editar'},
     },
     {
         'codigo': 'ROL03', 'nombre': 'Delegado municipal', 'alcance': Rol.DELEGACION,
-        'descripcion': 'Dirige una o más delegaciones: registra atenciones y administra a los funcionarios de su equipo.',
-        'permisos': {'atenciones.ver', 'atenciones.crear', 'usuarios.ver', 'usuarios.crear', 'usuarios.editar'}
-        | _ver('delegaciones', 'items', 'tipos_atencion', 'sub_atenciones', 'tablero', 'actividades',
-               'informes')
-        | {'validacion.ver', 'validacion.editar', 'agenda.ver', 'agenda.crear', 'agenda.editar',
-           'atencion_social.ver', 'atencion_social.crear'},
+        'descripcion': 'Dirige una o más delegaciones: valida actividades, registra ausencias, felicitaciones y '
+                       'reclamos de su equipo y administra a sus funcionarios.',
+        'permisos': {'atenciones.ver', 'atenciones.crear', 'usuarios.ver', 'usuarios.crear', 'usuarios.editar',
+                     'actividades.ver', 'actividades.crear', 'evidencias.ver', 'evidencias.crear',
+                     'validacion.ver', 'validacion.editar', 'observaciones.ver', 'observaciones.crear',
+                     'organizaciones.ver', 'organizaciones.crear', 'organizaciones.editar'}
+        | _crud('ausencias')
+        | _ver('delegaciones', 'items', 'tipos_atencion', 'sub_atenciones', 'cargos', 'tablero', 'agenda',
+               'informes', 'atencion_social', 'metas', 'periodos'),
     },
     {
         'codigo': 'ROL04', 'nombre': 'Funcionario', 'alcance': Rol.DELEGACION,
-        'descripcion': 'Atiende a vecinos y vecinas de su delegación y registra su gestión diaria.',
-        'permisos': {'atenciones.ver', 'atenciones.crear', 'tablero.ver', 'actividades.ver', 'actividades.crear',
-                     'evidencias.ver', 'evidencias.crear', 'agenda.ver', 'agenda.crear', 'agenda.editar',
-                     'atencion_social.ver', 'atencion_social.crear'},
+        'descripcion': 'Atiende a vecinos y vecinas de su delegación y registra su gestión diaria en la matriz SGR.',
+        'permisos': {'atenciones.ver', 'atenciones.crear', 'actividades.ver', 'actividades.crear',
+                     'evidencias.ver', 'evidencias.crear'}
+        | _ver('tablero', 'agenda', 'ausencias', 'observaciones', 'organizaciones', 'atencion_social', 'metas'),
     },
     {
         'codigo': 'ROL05', 'nombre': 'Consultor', 'alcance': Rol.GLOBAL,
-        'descripcion': 'Acceso de solo lectura a catálogos, atenciones e informes.',
+        'descripcion': 'Acceso de solo lectura a catálogos, atenciones, indicadores e informes.',
         'permisos': _ver('delegaciones', 'items', 'tipos_atencion', 'sub_atenciones', 'atenciones', 'tablero',
-                         'informes'),
+                         'informes', 'organizaciones', 'cargos'),
     },
 ]
 
@@ -80,21 +83,90 @@ DELEGACIONES = [
     ('DEL06', 'Rural', "O'Higgins 154"),
 ]
 
+# Ítems de la matriz SGR trimestral (hojas por cargo). (código, nombre, descripción, medición)
 ITEMS = [
-    ('IT001', 'Atenciones en terreno', 'Visitas y atenciones realizadas en el territorio'),
-    ('IT002', 'Compromisos cerrados en plazo', 'Compromisos de la agenda cerrados dentro de la fecha'),
-    ('IT003', 'Reuniones con organizaciones', 'Reuniones formales con juntas de vecinos y otras organizaciones'),
-    ('IT004', 'Casos sociales gestionados', 'Casos del área social con gestión registrada'),
-    ('IT005', 'Requerimientos derivados', 'Requerimientos canalizados a unidades municipales'),
-    ('IT006', 'Operativos municipales', 'Operativos de limpieza, salud o servicios en el territorio'),
-    ('IT007', 'Visitas domiciliarias', 'Visitas a hogares por casos sociales o emergencias'),
-    ('IT008', 'Catastros de emergencia', 'Levantamiento de daños tras eventos climáticos'),
-    ('IT009', 'Derivaciones a DIDECO', 'Casos derivados a Desarrollo Comunitario'),
-    ('IT010', 'Respuestas en plazo', 'Solicitudes respondidas dentro del plazo comprometido'),
-    ('IT011', 'Capacitaciones a dirigentes', 'Talleres para dirigentes vecinales'),
-    ('IT012', 'Catastro de organizaciones', 'Actualización del registro de organizaciones territoriales'),
-    ('IT013', 'Difusión de beneficios', 'Charlas y puntos informativos sobre beneficios municipales'),
-    ('IT014', 'Coordinaciones intersectoriales', 'Mesas de trabajo con otros servicios públicos'),
+    ('IT001', 'Atención de usuario teléfono y presencial', 'Atenciones a vecinos en oficina o por teléfono', 'CONTEO'),
+    ('IT002', 'Llamadas preventivas a usuarios', 'Llamado posterior a una atención registrada', 'CONTEO'),
+    ('IT003', 'Informe de inventarios', 'Inventario trimestral de la delegación', 'CONTEO'),
+    ('IT004', 'Informe a comunicaciones', 'Envío de la agenda de la delegación a Comunicaciones', 'CONTEO'),
+    ('IT005', 'Emergencia', 'Apoyo a vecinos durante emergencias declaradas', 'CONTEO'),
+    ('IT006', 'Visitas y reuniones con organizaciones', 'Reuniones con juntas de vecinos y organizaciones', 'CONTEO'),
+    ('IT007', 'Conformación de organizaciones', 'Constitución o renovación de directivas definitivas', 'CONTEO'),
+    ('IT008', 'Gestión de talleres y actividades', 'Talleres realizados con organizaciones', 'CONTEO'),
+    ('IT009', 'Soluciones de ingresos al TUBO', 'Porcentaje de solicitudes del TUBO de trabajo resueltas', 'TUBO'),
+    ('IT010', 'Atención social a usuario presencial', 'Atención social de casos en la delegación', 'CONTEO'),
+    ('IT011', 'Visita a terreno', 'Visitas domiciliarias o en terreno', 'CONTEO'),
+    ('IT012', 'Entrega de informe social', 'Informes sociales entregados', 'CONTEO'),
+    ('IT013', 'Entrega de beneficio', 'Beneficios sociales entregados', 'CONTEO'),
+    ('IT014', 'Informes de personal', 'Informes de personal de las cuadrillas (empleabilidad)', 'CONTEO'),
+    ('IT015', 'Informe semanal de trabajo', 'Informe semanal del programa de cuadrillas', 'CONTEO'),
+    ('IT016', 'Operativo de la delegación', 'Operativos de limpieza o mejoramiento de la delegación', 'CONTEO'),
+    ('IT017', 'Operativo DISERCO', 'Operativos coordinados con Servicios a la Comunidad', 'CONTEO'),
+    ('IT018', 'Talleres de educación ambiental', 'Talleres de reciclaje, compostaje, aseo y ornato', 'CONTEO'),
+    ('IT019', 'Terreno técnico', 'Análisis técnico en terreno para obras de mejoramiento', 'CONTEO'),
+    ('IT020', 'Atención de requerimiento de usuario', 'Requerimientos de servicios comunitarios atendidos', 'CONTEO'),
+    ('IT021', 'Reunión semanal con el equipo', 'Reunión semanal de coordinación de la delegación', 'CONTEO'),
+    ('IT022', 'Solución de problemas a usuarios', 'Problemas de usuarios particulares resueltos', 'CONTEO'),
+    ('IT023', 'Informe a la jefatura', 'Informes solicitados por la jefatura o Gabinete', 'CONTEO'),
+    ('IT024', 'Formación de comités de seguridad', 'Comités de seguridad conformados', 'CONTEO'),
+    ('IT025', 'Levantamiento de incivilidades', 'Incivilidades levantadas en terreno', 'CONTEO'),
+    ('IT026', 'Gestión de mediación', 'Mediaciones vecinales realizadas', 'CONTEO'),
+    ('IT027', 'Recuperación de espacios públicos', 'Espacios públicos recuperados', 'CONTEO'),
+    ('IT028', 'Infracciones varias', 'Infracciones cursadas o derivadas', 'CONTEO'),
+    ('IT029', 'Salidas a terreno de seguridad', 'Patrullajes y salidas preventivas', 'CONTEO'),
+]
+
+# Cargos del descriptor de funciones 2026. (código, nombre, función principal, es delegado)
+CARGOS = [
+    ('CAR01', 'Delegado', 'Representante de la alcaldía en el territorio; puente entre el municipio y los sectores.',
+     True),
+    ('CAR02', 'Gestor social', 'Atención de casos y acciones comunitarias para personas en situación de '
+     'vulnerabilidad.', False),
+    ('CAR03', 'Apoyo administrativo', 'Agenda, logística, atención de público, registro de atenciones e inventario.',
+     False),
+    ('CAR04', 'Territorial de organizaciones comunitarias', 'Registro, formación y asesoría de juntas de vecinos y '
+     'organizaciones funcionales (Leyes 19.418 y 20.500).', False),
+    ('CAR05', 'Gestor de compras y proyectos', 'Tramita los requerimientos de adquisiciones y el plan anual de '
+     'compras.', False),
+    ('CAR06', 'Gestión y planificación', 'Alinea objetivos con la operación, informa la matriz SGR y gestiona la '
+     'reunión semanal.', False),
+    ('CAR07', 'Coordinador de servicios comunitarios', 'Operativos de aseo, ornato y medio ambiente; cuadrillas de '
+     'empleabilidad y emergencia.', False),
+    ('CAR08', 'Gestor de seguridad', 'Comités de seguridad, incivilidades, mediación y recuperación de espacios.',
+     False),
+]
+
+# Metas por cargo de la matriz trimestral. (cargo, ítem, meta, ponderador %)
+METAS = [
+    ('CAR03', 'IT001', 240, 20), ('CAR03', 'IT002', 90, 30), ('CAR03', 'IT003', 1, 25), ('CAR03', 'IT004', 12, 20),
+    ('CAR03', 'IT005', 2, 5),
+    ('CAR04', 'IT001', 60, 15), ('CAR04', 'IT006', 24, 15), ('CAR04', 'IT007', 1, 25), ('CAR04', 'IT008', 6, 15),
+    ('CAR04', 'IT005', 2, 5), ('CAR04', 'IT009', 80, 25),
+    ('CAR02', 'IT010', 90, 20), ('CAR02', 'IT011', 12, 20), ('CAR02', 'IT012', 40, 25), ('CAR02', 'IT013', 8, 20),
+    ('CAR02', 'IT005', 2, 5), ('CAR02', 'IT009', 80, 10),
+    ('CAR07', 'IT014', 3, 10), ('CAR07', 'IT015', 12, 10), ('CAR07', 'IT016', 24, 15), ('CAR07', 'IT017', 12, 10),
+    ('CAR07', 'IT018', 12, 10), ('CAR07', 'IT019', 24, 10), ('CAR07', 'IT020', 24, 15), ('CAR07', 'IT005', 2, 5),
+    ('CAR07', 'IT009', 80, 15),
+    # La hoja PLAN y CON suma 85 %: se completa con «Informe a la jefatura» (descriptor, función 1)
+    ('CAR06', 'IT021', 12, 15), ('CAR06', 'IT022', 8, 30), ('CAR06', 'IT023', 12, 15), ('CAR06', 'IT005', 2, 5),
+    ('CAR06', 'IT009', 80, 35),
+    ('CAR08', 'IT024', 36, 20), ('CAR08', 'IT025', 40, 20), ('CAR08', 'IT026', 50, 10), ('CAR08', 'IT027', 50, 10),
+    ('CAR08', 'IT028', 45, 15), ('CAR08', 'IT029', 45, 10), ('CAR08', 'IT009', 80, 15),
+]
+
+# Subfamilias de organizaciones (correo de Gestión Delegaciones). (código, nombre, familia)
+TIPOS_ORGANIZACION = [
+    ('TO01', 'Junta de vecinos', 'TERRITORIAL'),
+    ('TO02', 'Club de adulto mayor', 'FUNCIONAL'),
+    ('TO03', 'Organización deportiva', 'FUNCIONAL'),
+    ('TO04', 'Centro de madres', 'FUNCIONAL'),
+    ('TO05', 'Centro u organización cultural', 'FUNCIONAL'),
+    ('TO06', 'Agrupación juvenil', 'FUNCIONAL'),
+    ('TO07', 'Comité de vecinos, allegados o seguridad', 'FUNCIONAL'),
+    ('TO08', 'Comité de vivienda o agua potable', 'FUNCIONAL'),
+    ('TO09', 'Centro de padres y apoderados', 'FUNCIONAL'),
+    ('TO10', 'Unión comunal', 'FUNCIONAL'),
+    ('TO11', 'Otra organización funcional', 'FUNCIONAL'),
 ]
 
 TIPOS = [
@@ -133,22 +205,27 @@ SUBATENCIONES = [
     ('SA021', 'Entrega de agua en camión aljibe', 'TA001', False),
 ]
 
-# (usuario, nombre, rol, delegaciones, activo)
+# (usuario, nombre, rol, delegaciones, activo, cargo)
 USUARIOS = [
-    ('admin', 'Felipe Aguirre Núñez', 'ROL01', ['DEL04'], True),
-    ('emunoz', 'Elena Muñoz Tapia', 'ROL02', ['DEL01'], True),
-    ('arojas', 'Ana Rojas Miranda', 'ROL03', ['DEL06', 'DEL03'], True),
-    ('bcastillo', 'Bruno Castillo Peña', 'ROL04', ['DEL06'], True),
-    ('cvega', 'Camila Vega Soto', 'ROL04', ['DEL06'], True),
-    ('dfuentes', 'Diego Fuentes Lara', 'ROL04', ['DEL01'], False),
-    ('mtapia', 'Marcela Tapia Cortés', 'ROL03', ['DEL01'], True),
-    ('jalvarez', 'Jorge Álvarez Rivera', 'ROL04', ['DEL01'], True),
-    ('pcontreras', 'Paula Contreras Díaz', 'ROL04', ['DEL02'], True),
-    ('rsilva', 'Rodrigo Silva Morales', 'ROL04', ['DEL03'], True),
-    ('lgonzalez', 'Luisa González Pizarro', 'ROL04', ['DEL04'], True),
-    ('fortiz', 'Francisco Ortiz Rojas', 'ROL04', ['DEL05'], True),
-    ('vcampos', 'Valentina Campos Araya', 'ROL03', ['DEL05', 'DEL02'], True),
-    ('lectura', 'Cuenta de Consulta', 'ROL05', ['DEL01'], True),
+    ('admin', 'Felipe Aguirre Núñez', 'ROL01', ['DEL04'], True, None),
+    ('emunoz', 'Elena Muñoz Tapia', 'ROL02', ['DEL01'], True, None),
+    ('arojas', 'Ana Rojas Miranda', 'ROL03', ['DEL06', 'DEL03'], True, 'CAR01'),
+    ('bcastillo', 'Bruno Castillo Peña', 'ROL04', ['DEL06'], True, 'CAR02'),
+    ('cvega', 'Camila Vega Soto', 'ROL04', ['DEL06'], True, 'CAR04'),
+    ('dfuentes', 'Diego Fuentes Lara', 'ROL04', ['DEL01'], False, 'CAR03'),
+    ('mtapia', 'Marcela Tapia Cortés', 'ROL03', ['DEL01'], True, 'CAR01'),
+    ('jalvarez', 'Jorge Álvarez Rivera', 'ROL04', ['DEL01'], True, 'CAR07'),
+    ('pcontreras', 'Paula Contreras Díaz', 'ROL04', ['DEL02'], True, 'CAR02'),
+    ('rsilva', 'Rodrigo Silva Morales', 'ROL04', ['DEL03'], True, 'CAR04'),
+    ('lgonzalez', 'Luisa González Pizarro', 'ROL04', ['DEL04'], True, 'CAR03'),
+    ('fortiz', 'Francisco Ortiz Rojas', 'ROL04', ['DEL05'], True, 'CAR06'),
+    ('vcampos', 'Valentina Campos Araya', 'ROL03', ['DEL05', 'DEL02'], True, 'CAR01'),
+    ('lectura', 'Cuenta de Consulta', 'ROL05', ['DEL01'], True, None),
+    # Equipo completo de la Delegación Rural para la demostración de la matriz
+    ('nperez', 'Natalia Pérez Olivares', 'ROL04', ['DEL06'], True, 'CAR03'),
+    ('tmorales', 'Tomás Morales Lagos', 'ROL04', ['DEL06'], True, 'CAR06'),
+    ('ilagos', 'Ignacio Lagos Ramírez', 'ROL04', ['DEL06'], True, 'CAR07'),
+    ('gsoto', 'Gabriela Soto Vergara', 'ROL04', ['DEL06'], True, 'CAR08'),
 ]
 
 
@@ -184,8 +261,17 @@ def cargar_base():
     for codigo, nombre, direccion in DELEGACIONES:
         Delegacion.objects.update_or_create(codigo=codigo, defaults={
             'nombre': nombre, 'direccion': direccion, 'comuna': 'La Serena'})
-    for codigo, nombre, descripcion in ITEMS:
-        ItemMedicion.objects.update_or_create(codigo=codigo, defaults={'nombre': nombre, 'descripcion': descripcion})
+    for codigo, nombre, descripcion, medicion in ITEMS:
+        ItemMedicion.objects.update_or_create(codigo=codigo, defaults={
+            'nombre': nombre, 'descripcion': descripcion, 'medicion': medicion})
+    for codigo, nombre, descripcion, es_delegado in CARGOS:
+        Cargo.objects.update_or_create(codigo=codigo, defaults={
+            'nombre': nombre, 'descripcion': descripcion, 'es_delegado': es_delegado})
+    from gestion.models import TipoOrganizacion
+    for codigo, nombre, familia in TIPOS_ORGANIZACION:
+        TipoOrganizacion.objects.update_or_create(codigo=codigo, defaults={'nombre': nombre, 'familia': familia})
+    from gestion.inicial import cargar_periodo_vigente
+    cargar_periodo_vigente(METAS)
     for codigo, nombre, descripcion, activo in TIPOS:
         TipoAtencion.objects.update_or_create(codigo=codigo, defaults={
             'nombre': nombre, 'descripcion': descripcion, 'activo': activo})
@@ -202,11 +288,14 @@ def cargar_demo(clave=CLAVE_DEMO):
 
     roles = {r.codigo: r for r in Rol.objects.all()}
     delegaciones = {d.codigo: d for d in Delegacion.objects.all()}
-    for usuario, nombre, rol, codigos, activo in USUARIOS:
+    cargos = {c.codigo: c for c in Cargo.objects.all()}
+    for usuario, nombre, rol, codigos, activo, cargo in USUARIOS:
         cuenta = Usuario.objects.filter(nombre_usuario=usuario).first()
         if cuenta is None:
             cuenta = Usuario.objects.create_user(usuario, f'{usuario}@example.test', clave,
                                                  nombre=nombre, rol=roles[rol], is_active=activo)
+        cuenta.cargo = cargos.get(cargo)
+        cuenta.save(update_fields=['cargo'])
         cuenta.delegaciones.set([delegaciones[c] for c in codigos])
 
     for cuerpo, nombre, telefono in SOLICITANTES:
@@ -235,3 +324,6 @@ def cargar_demo(clave=CLAVE_DEMO):
             # Fechas repartidas en las últimas semanas para que el listado sea realista
             hace = timedelta(days=(30 - n) * 2, hours=(n * 5) % 9, minutes=(n * 17) % 60)
             Atencion.objects.filter(pk=atencion.pk).update(creada=timezone.now().replace(hour=9, minute=0) - hace)
+
+    from gestion.inicial import cargar_demo_matriz
+    cargar_demo_matriz()

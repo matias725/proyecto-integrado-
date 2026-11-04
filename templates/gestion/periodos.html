@@ -1,0 +1,33 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+{% block titulo %}Períodos{% endblock %}
+{% block titulo_pagina %}Períodos de medición{% endblock %}
+{% block bajada %}Trimestres de la matriz SGR con sus parámetros de cálculo. Solo uno puede estar abierto; al cerrarlo, sus resultados quedan congelados.{% endblock %}
+{% block traza %}Matriz SGR · parámetros de la hoja RESUMEN{% endblock %}
+{% block contenido %}
+<div class="panel">
+    <div class="desplazable"><table class="tabla">
+        <thead><tr><th>Período</th><th>Fechas</th><th class="num">Días</th><th class="num">Tope ítem</th><th class="num">Tope total</th><th class="num">Felicitación</th><th class="num">Reclamo</th><th class="num">Metas</th><th class="num">Actividades</th><th>Estado</th>{% if puede_editar %}<th class="acciones">Acciones</th>{% endif %}</tr></thead>
+        <tbody>{% for p in periodos %}<tr><td><strong>{{ p.nombre }}</strong></td><td>{{ p.inicio|date:"d-m-Y" }} al {{ p.termino|date:"d-m-Y" }}</td><td class="num">{{ p.dias }}</td><td class="num">{{ p.tope_item }} %</td><td class="num">{{ p.tope_total }} %</td><td class="num">+{{ p.bono_felicitacion }} % (máx. {{ p.max_felicitaciones }})</td><td class="num">−{{ p.descuento_reclamo }} %</td><td class="num">{{ p.total_metas }}</td><td class="num">{{ p.total_actividades }}</td><td>{% estado p.estado %}</td>
+            {% if puede_editar %}<td class="acciones"><div class="acciones-fila">
+                {% if p.estado == 'ABIERTO' %}<form method="post" action="{% url 'periodo_estado' p.pk 'cerrar' %}" data-confirmar="¿Cerrar {{ p.nombre }}?" data-confirmar-detalle="Ya no se podrán ingresar ni validar actividades del período.">{% csrf_token %}<button class="enlace-accion peligro">Cerrar</button></form>
+                {% else %}<form method="post" action="{% url 'periodo_estado' p.pk 'abrir' %}" data-confirmar="¿Abrir {{ p.nombre }}?">{% csrf_token %}<button class="enlace-accion">Abrir</button></form>{% endif %}
+                {% if not p.total_metas %}<form method="post" action="{% url 'periodo_estado' p.pk 'copiar' %}">{% csrf_token %}<button class="enlace-accion">Copiar metas</button></form>{% endif %}
+            </div></td>{% endif %}</tr>{% endfor %}</tbody>
+    </table></div>
+</div>
+{% if form %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>Nuevo período</h2></div>
+    <form method="post" novalidate data-validar data-un-envio>{% csrf_token %}
+        <div class="panel-cuerpo">
+            {% include "parciales/_errores_formulario.html" %}
+            <div class="rejilla rejilla-3">{% include "parciales/_campo.html" with campo=form.nombre %}{% include "parciales/_campo.html" with campo=form.inicio %}{% include "parciales/_campo.html" with campo=form.termino %}</div>
+            <div class="rejilla rejilla-4">{% include "parciales/_campo.html" with campo=form.tope_item %}{% include "parciales/_campo.html" with campo=form.tope_total %}{% include "parciales/_campo.html" with campo=form.umbral_naranjo %}{% include "parciales/_campo.html" with campo=form.cumplimiento_minimo %}</div>
+            <div class="rejilla rejilla-3">{% include "parciales/_campo.html" with campo=form.bono_felicitacion %}{% include "parciales/_campo.html" with campo=form.max_felicitaciones %}{% include "parciales/_campo.html" with campo=form.descuento_reclamo %}</div>
+        </div>
+        <div class="panel-pie"><button type="submit" class="boton principal" data-texto-envio="Guardando…">Crear período</button><span class="ruta">Se crea cerrado: copie las metas y ábralo cuando corresponda.</span></div>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

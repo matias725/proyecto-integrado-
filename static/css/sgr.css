@@ -520,3 +520,32 @@ body.menu-abierto::after { content: ""; position: fixed; inset: 0; background: r
 .marca .logo, .acceso-cabecera .logo { height: 40px; width: auto; display: block; background: #fff; border-radius: 3px; padding: 3px; }
 .marca { display: flex; align-items: center; gap: 12px; }
 .acceso-cabecera { display: flex; align-items: center; gap: 10px; }
+
+/* =====================================================================
+   Matriz SGR (EV2): tablero de equipo, TUBO y reglas de puntaje
+   ===================================================================== */
+.dato .valor.valor-texto { font-size: 1.15rem; }
+.punto.neutro { background: var(--linea); }
+.estado .punto { margin-right: 5px; vertical-align: 1px; }
+.contador-diario { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--tinta-media); }
+.contador-diario b { font-variant-numeric: tabular-nums; }
+.contador-diario.lleno b { color: var(--rojo); }
+.reglas-ingreso { margin: 0; padding-left: 18px; font-size: .86rem; color: var(--tinta-media); }
+.reglas-ingreso li { margin: 3px 0; }
+.sin-puntaje { color: var(--ambar); font-size: .8rem; }
+.columnas-tubo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.columna-tubo { background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); min-width: 0; }
+.columna-tubo h3 { margin: 0; padding: 10px 12px; font-size: .9rem; border-bottom: 1px solid var(--linea-suave);
+    display: flex; justify-content: space-between; }
+.columna-tubo ul { list-style: none; margin: 0; padding: 8px; display: grid; gap: 8px; }
+.columna-tubo li a { display: block; padding: 8px 10px; border: 1px solid var(--linea-suave); border-radius: var(--radio);
+    color: inherit; text-decoration: none; font-size: .85rem; }
+.columna-tubo li a:hover { border-color: var(--inst-borde); background: var(--inst-suave); }
+.columna-tubo li.vencida a { border-left: 3px solid var(--rojo); }
+.ficha-total { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: .9rem; padding: 12px 18px;
+    border-top: 1px solid var(--linea-suave); }
+.ficha-total b { font-variant-numeric: tabular-nums; }
+.formulario-en-linea { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.formulario-en-linea .campo { margin: 0; }
+@media (max-width: 900px) { .columnas-tubo { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .columnas-tubo { grid-template-columns: 1fr; } }

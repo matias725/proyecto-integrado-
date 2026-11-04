@@ -9,7 +9,6 @@ import json
 from django import template
 from django.utils.html import format_html, json_script
 
-from core import permisos
 from cuentas.modulos import ESTADOS as ESTADOS_MODULO, OPERATIVO
 
 register = template.Library()
@@ -31,10 +30,12 @@ ESTADOS = {
     'INACTIVA': ('neutro', 'Inactiva'),
     'INACTIVO': ('neutro', 'Inactivo'),
     'ABIERTO': ('ok', 'Abierto'),
+    'POR_VALIDAR': ('pendiente', 'Por validar'),
     'CERRADO': ('neutro', 'Cerrado'),
 }
 
-CLASE_SEMAFORO = {'verde': 'ok', 'ambar': 'pendiente', 'rojo': 'error'}
+CLASE_SEMAFORO = {'verde': 'ok', 'ambar': 'pendiente', 'rojo': 'error', 'neutro': 'neutro'}
+TEXTO_SEMAFORO = {'verde': 'Verde', 'ambar': 'Naranjo', 'rojo': 'Rojo', 'neutro': 'Sin metas'}
 
 
 @register.simple_tag
@@ -54,6 +55,13 @@ def clase_semaforo(color):
     return CLASE_SEMAFORO.get(color, 'neutro')
 
 
+@register.simple_tag
+def semaforo(color):
+    """Insignia del semáforo con color y texto (no depende solo del color: accesibilidad)."""
+    return format_html('<span class="estado {}"><i class="punto {}" aria-hidden="true"></i>{}</span>',
+                       CLASE_SEMAFORO.get(color, 'neutro'), color, TEXTO_SEMAFORO.get(color, color))
+
+
 @register.filter
 def cifra(valor, decimales=1):
     """Número con coma decimal y punto de miles: 1234.5 -> 1.234,5"""
@@ -62,12 +70,6 @@ def cifra(valor, decimales=1):
     except (TypeError, ValueError):
         return valor
     return texto.replace(',', '§').replace('.', ',').replace('§', '.')
-
-
-@register.filter
-def puede(usuario, seccion):
-    """{% if usuario_actual|puede:'informes' %} muestra algo solo a quien tiene permiso."""
-    return permisos.puede(usuario, seccion)
 
 
 @register.filter
@@ -95,9 +97,9 @@ def rellenar(**valores):
 
 
 @register.inclusion_tag('parciales/_medidor.html')
-def medidor(fila, esperado):
-    """Barra de avance con la marca de la meta esperada al día (RN-007, RN-008)."""
-    return {'fila': fila, 'esperado': esperado}
+def medidor(fila, esperado, tope=120):
+    """Barra de avance con la marca de lo esperado al día y el tope por ítem (regla 7)."""
+    return {'fila': fila, 'esperado': esperado, 'tope': tope}
 
 
 @register.simple_tag(takes_context=True)

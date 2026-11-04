@@ -1,0 +1,30 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+{% block titulo %}Historial por vecino{% endblock %}
+{% block titulo_pagina %}Historial por vecino{% endblock %}
+{% block bajada %}Atenciones registradas por RUT en {{ delegacion_activa.nombre_completo }}, para el seguimiento de casos sociales y las llamadas preventivas.{% endblock %}
+{% block traza %}Descriptor de funciones · Gestor social y Apoyo administrativo{% endblock %}
+{% block contenido %}
+<form method="get" class="herramientas" role="search">
+    <div class="buscador-campo"><label for="busqueda">Buscar vecino</label>
+        <div class="buscador"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="busqueda" name="q" value="{{ texto }}" maxlength="60" placeholder="Nombre o RUT…"></div></div>
+    <div><button type="submit" class="boton"><i class="bi bi-funnel" aria-hidden="true"></i>Buscar</button></div>
+</form>
+<div class="rejilla rejilla-2 alineado-arriba">
+    <div class="panel">
+        {% if pagina.object_list %}
+        <table class="tabla"><thead><tr><th>Vecino</th><th>Teléfono</th><th class="num">Atenciones</th></tr></thead>
+            <tbody>{% for s in pagina.object_list %}<tr><td><a href="?rut={{ s.rut|urlencode }}{% if texto %}&q={{ texto|urlencode }}{% endif %}">{{ s.nombre }}</a><div class="ruta">{{ s.rut }}</div></td><td>{{ s.telefono|default:'—' }}</td><td class="num">{{ s.total }}</td></tr>{% endfor %}</tbody></table>
+        {% else %}<div class="vacio"><p>Sin vecinos atendidos{% if texto %} que coincidan{% endif %}.</p></div>{% endif %}
+        {% include "parciales/_paginador.html" %}
+    </div>
+    <div class="panel">
+        {% if caso %}
+        <div class="panel-cabecera"><div><h2>{{ caso.solicitante.nombre }}</h2><span class="ruta">{{ caso.solicitante.rut }} · {{ caso.solicitante.telefono|default:'sin teléfono' }}</span></div></div>
+        <ul class="historial">{% for a in caso.atenciones %}
+            <li><b>{{ a.tipo }} · {{ a.subatencion }}</b><p>{{ a.descripcion }}</p><span class="ruta"><a href="{% url 'atenciones_ver' a.pk %}">{{ a.folio }}</a> · {{ a.responsable.nombre }} · {{ a.creada|date:"d-m-Y H:i" }}</span></li>
+        {% endfor %}</ul>
+        {% else %}<div class="vacio"><i class="bi bi-person-lines-fill" aria-hidden="true"></i><p>Elija un vecino para ver su historial.</p></div>{% endif %}
+    </div>
+</div>
+{% endblock %}

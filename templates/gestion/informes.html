@@ -1,0 +1,38 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+{% block titulo %}Informes{% endblock %}
+{% block titulo_pagina %}Informe de la matriz SGR{% endblock %}
+{% block bajada %}{{ delegacion_activa.nombre_completo }} · {{ periodo.nombre }} · esperado al día {{ esperado|cifra }} %. Equivale a la hoja RESUMEN del Excel trimestral.{% endblock %}
+{% block traza %}Matriz SGR · hoja RESUMEN · regla 10{% endblock %}
+{% block accion %}{% include "gestion/_selector_periodo.html" %}
+<a href="{% url 'informes_exportar' %}?periodo={{ periodo.pk }}" class="boton secundario" data-exportar><i class="bi bi-file-earmark-excel" aria-hidden="true"></i>Exportar matriz</a>{% endblock %}
+{% block contenido %}
+<div class="rejilla rejilla-3">
+    <div class="panel dato {{ equipo.color }}"><span class="etiqueta">Promedio del equipo</span><span class="valor">{% if equipo %}{{ equipo.promedio|cifra }} %{% else %}—{% endif %}</span><span class="apoyo">{{ equipo.integrantes|default:0 }} integrantes con metas</span></div>
+    <div class="panel dato{% if equipo.bajo_minimo %} rojo{% endif %}"><span class="etiqueta">Bajo el mínimo ({{ periodo.cumplimiento_minimo }} %)</span><span class="valor">{{ equipo.bajo_minimo|default:0 }}</span><span class="apoyo">Revise sus ítems con menor avance</span></div>
+    <div class="panel dato"><span class="etiqueta">Dispersión del equipo</span><span class="valor">{% if equipo %}{{ equipo.dispersion|cifra }}{% else %}—{% endif %}</span><span class="apoyo">Puntos entre el mayor y el menor resultado</span></div>
+</div>
+<div class="panel">
+    <div class="panel-cabecera"><h2>Resultado por funcionario</h2></div>
+    <div class="desplazable"><table class="tabla">
+        <thead><tr><th>Funcionario</th><th>Cargo</th><th class="num">Gestión</th><th class="num">Felicitaciones</th><th class="num">Reclamos</th><th class="num">Ausencia</th><th class="num">Total</th><th>Semáforo</th></tr></thead>
+        <tbody>{% for f in fichas %}<tr><td>{{ f.funcionario.nombre }}</td><td>{{ f.cargo.nombre }}</td><td class="num">{% if f.sin_metas %}—{% else %}{{ f.gestion|cifra }} %{% endif %}</td><td class="num">{{ f.felicitaciones_validas }}</td><td class="num">{{ f.reclamos }}</td><td class="num">{{ f.dias_ausencia }} d</td><td class="num"><strong>{% if f.sin_metas %}—{% else %}{{ f.total|cifra }} %{% endif %}</strong></td><td>{% semaforo f.color %}</td></tr>{% endfor %}</tbody>
+    </table></div>
+</div>
+<div class="rejilla rejilla-2 alineado-arriba">
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Actividades por ítem</h2></div>
+        <div class="desplazable"><table class="tabla">
+            <thead><tr><th>Ítem</th><th class="num">Registradas</th><th class="num">Suman</th><th class="num">Sin puntaje</th></tr></thead>
+            <tbody>{% for i in por_item %}<tr><td>{{ i.item__nombre }}<div class="ruta">{{ i.item__codigo }}</div></td><td class="num">{{ i.total }}</td><td class="num">{{ i.suman }}</td><td class="num">{{ i.sin }}</td></tr>{% empty %}<tr><td colspan="4">Sin actividades en el período.</td></tr>{% endfor %}</tbody>
+        </table></div>
+    </div>
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Organizaciones del territorio</h2><span class="espacio"></span>{% if user|tiene_permiso:'organizaciones.ver' %}<a class="boton pequeno" href="{% url 'organizaciones_lista' %}">Ver todas</a>{% endif %}</div>
+        <div class="desplazable"><table class="tabla">
+            <thead><tr><th>Subfamilia</th><th class="num">Organizaciones</th></tr></thead>
+            <tbody>{% for o in organizaciones %}<tr><td>{{ o.tipo__nombre }}</td><td class="num">{{ o.n }}</td></tr>{% empty %}<tr><td colspan="2">Sin organizaciones registradas.</td></tr>{% endfor %}</tbody>
+        </table></div>
+    </div>
+</div>
+{% endblock %}

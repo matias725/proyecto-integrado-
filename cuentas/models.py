@@ -16,7 +16,7 @@ from django.db import models
 from django.db.models.functions import Lower
 from django.utils import timezone
 
-from catalogos.models import Catalogo, Delegacion, validador_codigo
+from catalogos.models import Cargo, Catalogo, Delegacion, validador_codigo
 
 from .modulos import ACCIONES, NOMBRES
 
@@ -93,6 +93,8 @@ class Usuario(AbstractBaseUser):
     rol = models.ForeignKey(Rol, on_delete=models.PROTECT, related_name='usuarios', verbose_name='rol')
     delegaciones = models.ManyToManyField(Delegacion, blank=True, related_name='usuarios',
                                           verbose_name='delegaciones autorizadas')
+    cargo = models.ForeignKey(Cargo, on_delete=models.PROTECT, null=True, blank=True, related_name='usuarios',
+                              verbose_name='cargo', help_text='Define las metas de la matriz SGR que se le aplican.')
     is_active = models.BooleanField('activo', default=True)
     intentos_fallidos = models.PositiveSmallIntegerField('intentos fallidos', default=0)
     bloqueado_hasta = models.DateTimeField('bloqueado hasta', null=True, blank=True)

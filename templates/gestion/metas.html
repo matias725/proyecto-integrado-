@@ -1,0 +1,32 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+{% block titulo %}Metas{% endblock %}
+{% block titulo_pagina %}Metas y ponderaciones{% endblock %}
+{% block bajada %}Ítems, metas trimestrales y ponderadores por cargo en {{ periodo.nombre }}. Los ponderadores de cada cargo deben sumar 100 %.{% endblock %}
+{% block traza %}Matriz SGR · hojas por cargo{% endblock %}
+{% block accion %}{% include "gestion/_selector_periodo.html" %}{% endblock %}
+{% block contenido %}
+{% if form %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>{% if editar %}Editar meta «{{ editar }}»{% else %}Agregar meta{% endif %}</h2></div>
+    <form method="post" novalidate data-validar data-un-envio>{% csrf_token %}
+        <div class="panel-cuerpo">{% include "parciales/_errores_formulario.html" %}
+            <div class="rejilla rejilla-4">{% include "parciales/_campo.html" with campo=form.cargo %}{% include "parciales/_campo.html" with campo=form.item %}{% include "parciales/_campo.html" with campo=form.meta %}{% include "parciales/_campo.html" with campo=form.ponderador %}</div></div>
+        <div class="panel-pie"><button type="submit" class="boton principal" data-texto-envio="Guardando…">Guardar meta</button>{% if editar %}<a class="boton" href="{% url 'metas' %}">Cancelar</a>{% endif %}</div>
+    </form>
+</div>
+{% endif %}
+{% for c in cargos %}
+<div class="panel">
+    <div class="panel-cabecera"><div><h2>{{ c.cargo.nombre }}</h2><span class="ruta">{{ c.cargo.descripcion }}</span></div><span class="espacio"></span>
+        {% if c.filas %}{% if c.completo %}{% insignia 'ok' 'Suma 100 %' %}{% else %}{% insignia 'pendiente' 'Suma ' %}{{ c.suma|cifra }} %{% endif %}{% else %}{% insignia 'neutro' 'Sin metas' %}{% endif %}</div>
+    {% if c.filas %}
+    <div class="desplazable"><table class="tabla">
+        <thead><tr><th>Ítem</th><th>Medición</th><th class="num">Meta</th><th class="num">Ponderador</th>{% if form %}<th class="acciones">Acciones</th>{% endif %}</tr></thead>
+        <tbody>{% for m in c.filas %}<tr><td>{{ m.item.nombre }}<div class="ruta">{{ m.item.codigo }}</div></td><td>{{ m.item.get_medicion_display }}</td><td class="num">{{ m.meta }}{% if m.item.medicion == 'TUBO' %} %{% endif %}</td><td class="num">{{ m.ponderador|cifra:0 }} %</td>
+            {% if form %}<td class="acciones"><div class="acciones-fila"><a class="enlace-accion" href="?editar={{ m.pk }}">Editar</a><form method="post" action="{% url 'meta_eliminar' m.pk %}" data-confirmar="¿Eliminar la meta?">{% csrf_token %}<button class="enlace-accion peligro">Eliminar</button></form></div></td>{% endif %}</tr>{% endfor %}</tbody>
+    </table></div>
+    {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

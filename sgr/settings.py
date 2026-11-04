@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'cuentas',
     'catalogos',
     'atenciones',
+    'gestion',
 ]
 
 MIDDLEWARE = [
@@ -218,9 +219,14 @@ SGR_POR_PAGINA = 10
 SGR_CUENTAS_DEMO = env_bool('SGR_CUENTAS_DEMO', DEBUG)
 SGR_VERSION = env('SGR_VERSION', 'ev2-1.0.4')
 
-# Fecha fija para los módulos simulados heredados de la EV1, de modo que sus
-# cálculos coincidan con el script SQL (74 de 91 días, 81,32 % esperado).
-SGR_FECHA_REFERENCIA = date(2026, 9, 12)
+# Fecha de trabajo fija (AAAA-MM-DD) para demostraciones y pruebas. Vacía = fecha real.
+SGR_FECHA_HOY = date.fromisoformat(env('SGR_FECHA_HOY')) if env('SGR_FECHA_HOY') else None
+
+# Evidencias y respaldos: fuera de la carpeta pública; se descargan por una vista que valida el alcance
+MEDIA_ROOT = Path(env('SGR_ARCHIVOS_DIR', str(BASE_DIR / 'archivos')))
+MEDIA_URL = '/archivos-no-publicos/'
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
 SGR_EVIDENCIA_FORMATOS = {
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',

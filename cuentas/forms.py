@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, password_validation
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from catalogos.models import Delegacion
+from catalogos.models import Cargo, Delegacion
 from core.forms_base import FormularioCatalogo
 from core.reglas import motivo_no_desactivar
 
@@ -161,7 +161,7 @@ class UsuarioForm(forms.ModelForm):
 
     class Meta:
         model = Usuario
-        fields = ['nombre', 'nombre_usuario', 'correo', 'rol', 'delegaciones', 'is_active']
+        fields = ['nombre', 'nombre_usuario', 'correo', 'rol', 'cargo', 'delegaciones', 'is_active']
         widgets = {'delegaciones': forms.CheckboxSelectMultiple}
         labels = {'is_active': 'Cuenta activa'}
 
@@ -178,6 +178,8 @@ class UsuarioForm(forms.ModelForm):
             roles = roles | Rol.objects.filter(pk=self.instance.rol_id)
         self.fields['rol'].queryset = roles.distinct().order_by('codigo')
         self.fields['delegaciones'].queryset = delegaciones.order_by('codigo')
+        self.fields['cargo'].queryset = Cargo.objects.filter(activo=True)
+        self.fields['cargo'].empty_label = 'Sin cargo (no participa en la matriz SGR)'
         self.fields['delegaciones'].required = True
         self.fields['delegaciones'].help_text = 'Al menos una. La primera se usa como contexto inicial.'
         self.fields['nombre_usuario'].help_text = 'Minúsculas, sin espacios. Sirve para ingresar junto con el correo.'
