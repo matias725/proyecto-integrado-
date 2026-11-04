@@ -35,7 +35,7 @@ def grupo_limitado(path):
     """Rutas con límite por IP: el acceso ('/') y todo el flujo de recuperación."""
     if path == '/':
         return 'acceso'
-    if path.startswith('/recuperar/'):
+    if path.startswith('/recuperar/') or path.startswith('/bienvenida/'):
         return 'recuperar'
     return None
 

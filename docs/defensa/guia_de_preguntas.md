@@ -77,7 +77,7 @@ Cinco comandos con SQLite o el script `instalar_ec2.sh` en AWS. *Mostrar*: `docs
 ## 6. Pruebas
 
 **¿Cuántas pruebas tienen y qué cubren?**
-213 automáticas (196 funcionales + 17 en navegador), todas aprobadas, también contra MySQL 8. 64 casos funcionales con trazabilidad a cada regla. *Mostrar*: hoja «Matriz funcional».
+222 automáticas (205 funcionales + 17 en navegador), todas aprobadas, también contra MySQL 8. 65 casos funcionales con trazabilidad a cada regla. *Mostrar*: hoja «Matriz funcional».
 
 **¿Probaron los bordes?**
 Sí: 7.º y 8.º ingreso, lunes y martes del cierre, exactamente 120 % y más, ausencia que empieza antes del período, 4 felicitaciones (cuentan 3), total que no baja de 0. *Mostrar*: sección 5 del plan de pruebas.

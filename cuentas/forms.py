@@ -186,8 +186,9 @@ class UsuarioForm(forms.ModelForm):
         if self.instance.pk:
             self.fields['clave'].help_text = 'Déjela en blanco para conservar la contraseña actual.'
         else:
-            self.fields['clave'].required = True
-            self.fields['confirmacion'].required = True
+            self.fields['clave'].label = 'Contraseña inicial (opcional)'
+            self.fields['clave'].help_text = ('Recomendado: déjela en blanco. La persona recibirá un correo de '
+                                              'bienvenida con un enlace para crear su propia contraseña.')
         if self.instance.pk and actor and self.instance.pk == actor.pk:
             self.fields['is_active'].disabled = True
             self.fields['is_active'].help_text = 'No puede desactivar su propia cuenta.'
@@ -238,6 +239,10 @@ class UsuarioForm(forms.ModelForm):
         usuario = super().save(commit=False)
         if self.cleaned_data.get('clave'):
             usuario.set_password(self.cleaned_data['clave'])
+        elif not usuario.pk:
+            # Sin contraseña inicial nadie puede ingresar con esta cuenta hasta que la persona
+            # defina la suya con el enlace del correo de bienvenida.
+            usuario.set_unusable_password()
         if commit:
             usuario.save()
             self.save_m2m()

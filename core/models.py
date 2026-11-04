@@ -15,6 +15,7 @@ class Auditoria(models.Model):
         ('CAMBIO_ESTADO', 'Cambio de estado'),
         ('CAMBIO_CLAVE', 'Cambio de contraseña'),
         ('RECUPERACION', 'Recuperación de contraseña'),
+        ('BIENVENIDA', 'Correo de bienvenida'),
         ('CAMBIO_CONTEXTO', 'Cambio de delegación activa'),
         ('EXPORTACION', 'Exportación'),
         ('ACCESO_DENEGADO', 'Acceso denegado'),

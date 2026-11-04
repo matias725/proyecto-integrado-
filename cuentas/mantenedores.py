@@ -72,6 +72,17 @@ class Usuarios(Mantenedor):
     def kwargs_formulario(self, request):
         return {'actor': request.user}
 
+    def despues_de_crear(self, request, obj):
+        from django.contrib import messages
+
+        from .bienvenida import enviar_bienvenida
+        if enviar_bienvenida(request, obj):
+            messages.info(request, f'Se envió un correo de bienvenida a {obj.correo} con un enlace para que '
+                                   'cree su contraseña.')
+        else:
+            messages.warning(request, f'La cuenta quedó creada, pero no se pudo enviar el correo a {obj.correo}. '
+                                      'La persona puede usar «¿Olvidó su contraseña?» para crear la suya.')
+
 
 ROLES = Roles()
 USUARIOS = Usuarios()

@@ -161,6 +161,8 @@ SGR_CODIGO_MAX_INTENTOS = int(env('SGR_CODIGO_MAX_INTENTOS', '5'))
 SGR_CODIGO_MAX_POR_HORA = int(env('SGR_CODIGO_MAX_POR_HORA', '5'))
 SGR_LOGIN_MAX_INTENTOS = int(env('SGR_LOGIN_MAX_INTENTOS', '5'))
 SGR_LOGIN_BLOQUEO_MIN = int(env('SGR_LOGIN_BLOQUEO_MIN', '10'))
+# Enlace del correo de bienvenida al crear una cuenta (horas de vigencia)
+PASSWORD_RESET_TIMEOUT = int(env('SGR_BIENVENIDA_HORAS', '72')) * 3600
 # Límite por dirección IP (acceso y recuperación): intentos por ventana de minutos
 SGR_IP_MAX_INTENTOS = int(env('SGR_IP_MAX_INTENTOS', '20'))
 SGR_IP_VENTANA_MIN = int(env('SGR_IP_VENTANA_MIN', '15'))

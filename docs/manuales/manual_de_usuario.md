@@ -22,6 +22,12 @@ Sistema de Gestión de Resultados de las delegaciones municipales. Reemplaza el 
 2. Si se equivoca 5 veces, la cuenta se bloquea 10 minutos. Si desde un mismo equipo se hacen muchos intentos con distintas cuentas, el sistema pausa los intentos de esa conexión durante 15 minutos.
 3. ¿Olvidó la clave? Pulse **«¿Olvidó su contraseña?»**, escriba su correo y copie el **código de 6 dígitos** que llega (vence en 10 minutos). Luego defina una clave nueva de al menos 8 caracteres con mayúscula, minúscula, número y símbolo.
 
+**Cuenta nueva.** Cuando el administrador o su delegado crea su cuenta, le llega un correo de bienvenida con su usuario y un enlace para **crear su propia contraseña**. El enlace sirve una sola vez y vence en 72 horas; si vence, use «¿Olvidó su contraseña?».
+
+![Correo de bienvenida](capturas/15-correo-bienvenida.png)
+
+![Crear contraseña](capturas/16-crear-contrasena.png)
+
 Si trabaja en más de una delegación, elija la **delegación activa** en el selector de la cabecera. Todo lo que vea y registre corresponde a esa delegación.
 
 ![Inicio del funcionario](capturas/01-inicio-funcionario.png)

@@ -306,6 +306,12 @@ CASOS = [
      '1. Probar 4 cuentas distintas desde la misma IP. 2. Probar desde otra IP. 3. Falsificar X-Forwarded-For. '
      '4. Repetir en recuperación de clave.', 'El 4.º intento responde 429 con Retry-After; otra IP no se afecta; '
      'falsificar la cabecera no evita el límite.', ['SG-04', 'SG-05', 'SG-06', 'SG-07', 'SG-08', 'SG-09'], '', ALEXIS),
+    ('CF-65', 'Correo de bienvenida al crear una cuenta', 'Usuarios', 'Perfil admin',
+     '1. Crear una cuenta sin contraseña. 2. Intentar ingresar. 3. Abrir el enlace del correo y crear la contraseña. '
+     '4. Reusar o alterar el enlace. 5. Simular una falla del correo.',
+     'Llega un correo con un enlace de un solo uso; sin usarlo no se puede ingresar; con él se crea la contraseña '
+     'con los mismos requisitos; reusado o alterado se rechaza; si el correo falla la cuenta igual queda creada.',
+     ['PB-01', 'PB-02', 'PB-03', 'PB-04', 'PB-05', 'PB-06', 'PB-07', 'PB-08', 'PB-09'], '16-crear-contrasena.png', ALEXIS),
 ]
 
 GRUPOS = {
@@ -313,7 +319,7 @@ GRUPOS = {
     'PP': 'Perfiles y permisos', 'PD': 'Contexto de delegación', 'PT': 'Ingreso de atención',
     'PS': 'SweetAlert2', 'PU': 'Auditoría', 'PX': 'Sistema', 'UI': 'Interfaz (navegador)',
     'RG': 'Reglas del requerimiento', 'PM': 'Cálculo de la matriz', 'PV': 'Validación y acceso por objeto',
-    'PE': 'Evidencias', 'PO': 'Organizaciones e importación', 'PF': 'Rendimiento', 'SG': 'Seguridad',
+    'PE': 'Evidencias', 'PO': 'Organizaciones e importación', 'PF': 'Rendimiento', 'SG': 'Seguridad', 'PB': 'Correo de bienvenida',
 }
 
 

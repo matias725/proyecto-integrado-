@@ -14,11 +14,12 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
 from django.utils import timezone
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_decode
 from django.views.decorators.http import require_POST
 
 from core.context_processors import url_de
@@ -247,6 +248,36 @@ def nueva_clave(request):
     return render(request, 'cuentas/recuperar_nueva.html', {
         'form': form, 'paso': 3, 'requisitos': REQUISITOS,
     })
+
+
+# ---------------------------------------------------------------------------
+# Bienvenida: la persona crea su contraseña con el enlace del correo
+# ---------------------------------------------------------------------------
+def bienvenida(request, uidb64, token):
+    try:
+        usuario = Usuario.objects.get(pk=urlsafe_base64_decode(uidb64).decode(), is_active=True)
+    except (Usuario.DoesNotExist, ValueError, TypeError, OverflowError):
+        usuario = None
+    if usuario is None or not default_token_generator.check_token(usuario, token):
+        messages.warning(request, 'El enlace de bienvenida no es válido, ya se usó o venció. Puede crear su '
+                                  'contraseña con «¿Olvidó su contraseña?».')
+        return redirect('recuperar')
+    if request.user.is_authenticated and request.user.pk != usuario.pk:
+        logout(request)
+
+    form = NuevaClaveForm(usuario, request.POST if request.method == 'POST' else None)
+    if request.method == 'POST':
+        if form.is_valid():
+            usuario.set_password(form.cleaned_data['clave'])
+            usuario.intentos_fallidos = 0
+            usuario.bloqueado_hasta = None
+            usuario.save(update_fields=['password', 'intentos_fallidos', 'bloqueado_hasta'])
+            registrar(request, 'CAMBIO_CLAVE', 'cuenta', usuario.pk, 'Contraseña creada desde la bienvenida',
+                      usuario=usuario)
+            messages.success(request, 'Contraseña creada. Ya puede ingresar con su usuario o correo.')
+            return redirect('acceso')
+        messages.error(request, 'La contraseña no se guardó. Revise los requisitos indicados.')
+    return render(request, 'cuentas/bienvenida.html', {'form': form, 'requisitos': REQUISITOS, 'usuario': usuario})
 
 
 # ---------------------------------------------------------------------------

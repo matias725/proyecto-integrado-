@@ -3,7 +3,7 @@
 | Archivo o carpeta | Contenido |
 |---|---|
 | `plan_de_pruebas_ev2.md` | Plan: estrategia, entorno, criterios, trazabilidad con las 10 reglas, resultados obtenidos vs esperados y recomendaciones |
-| `ejecucion_mysql8.txt` | Salida de las 196 pruebas contra MySQL 8.0 |
+| `ejecucion_mysql8.txt` | Salida de las 205 pruebas contra MySQL 8.0 |
 | `matriz_pruebas_sgr_ev2.xlsx` | Matriz de pruebas funcionales (requisito, módulo, precondiciones, pasos, esperado, obtenido, estado, evidencia, responsable, fecha), detalle de las pruebas automatizadas, estrés, umbrales y pendientes |
 | `evidencias/` | Capturas generadas por las pruebas de interfaz (`UI-xx`), una por caso |
 | `estres/local/` | Resultados de Locust (`cNN_stats.csv`, historial por segundo) y consumo de CPU/memoria (`monitor.csv`) de la corrida local |
@@ -12,7 +12,7 @@
 ## Cómo regenerar todo
 
 ```bash
-python manage.py test pruebas                       # 196 pruebas funcionales
+python manage.py test pruebas                       # 205 pruebas funcionales
 python manage.py test pruebas_ui                    # 17 pruebas en navegador + capturas
 SGR_DB_MOTOR=mysql python manage.py test pruebas    # las mismas contra MySQL 8 (ejecucion_mysql8.txt)
 python scripts/generar_matriz_pruebas.py --ui       # vuelve a ejecutar todo y rehace la matriz

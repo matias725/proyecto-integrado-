@@ -1,4 +1,4 @@
-# Ejecución de las pruebas automáticas contra MySQL 8.0.46-0ubuntu0.24.04.4 · 04-11-2026 15:35
+# Ejecución de las pruebas automáticas contra MySQL 8.0.46-0ubuntu0.24.04.4 · 04-11-2026 16:07
 # Comando: SGR_DB_MOTOR=mysql python manage.py test pruebas -v 2
 PA-02 · Acceso correcto con correo (sin distinguir mayúsculas) ... /home/claude/proyecto-integrado-/.venv/lib/python3.13/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/claude/proyecto-integrado-/staticfiles/
 PA-01 · Acceso correcto con nombre de usuario y contraseña ... ok
@@ -12,11 +12,11 @@ PA-07 · Cuenta inactiva con contraseña errónea: no revela que existe ... ok
 PA-13 · Tras ingresar vuelve a la ruta pedida, nunca a un sitio externo ... ok
 PA-08 · Usuario con rol desactivado no puede ingresar ... ok
 PA-12 · Rutas protegidas redirigen al acceso cuando no hay sesión ... ok
-PA-11 · Cerrar sesión exige POST (protección CSRF) ... 2026-11-04 12:35:57,512 WARNING django.request Method Not Allowed (GET): /salir/
+PA-11 · Cerrar sesión exige POST (protección CSRF) ... 2026-11-04 13:07:03,504 WARNING django.request Method Not Allowed (GET): /salir/
 PA-15 · Un usuario con sesión que abre el acceso es llevado al inicio ... ok
 PA-04 · Usuario inexistente: mismo mensaje que clave incorrecta (no revela cuentas) ... ok
 PT-07 · El selector dependiente entrega solo sub atenciones activas del tipo ... ok
-PT-08 · El selector dependiente rechaza tipos inválidos o inactivos ... 2026-11-04 12:35:58,404 WARNING django.request Bad Request: /api/subatenciones/
+PT-08 · El selector dependiente rechaza tipos inválidos o inactivos ... 2026-11-04 13:07:04,402 WARNING django.request Bad Request: /api/subatenciones/
 PT-16 · La búsqueda de atenciones encuentra por folio y por RUT ... ok
 PT-09 · Solicitante, tipo, sub atención y descripción son obligatorios ... ok
 PT-13 · Abrir el formulario y salir (cancelar) no crea registros ... ok
@@ -26,16 +26,25 @@ PT-03 · Doble envío del mismo formulario no crea dos atenciones ... ok
 PT-15 · El listado y el Excel de atenciones se limitan a la delegación activa ... ok
 PT-01 · Registrar una atención entrega confirmación con identificador (folio) ... ok
 PT-10 · El RUT se valida con dígito verificador ... ok
-PT-14 · Un perfil sin permiso de crear no puede registrar atenciones ... 2026-11-04 12:35:58,855 WARNING django.request Forbidden: /atenciones/nueva/
+PT-14 · Un perfil sin permiso de crear no puede registrar atenciones ... 2026-11-04 13:07:04,809 WARNING django.request Forbidden: /atenciones/nueva/
 PT-12 · Un vecino ya registrado se reutiliza (sin duplicar por RUT) ... ok
 PT-04 · La sub atención debe pertenecer al tipo elegido ... ok
 PT-05 · Una sub atención inactiva no puede usarse ... ok
 PT-06 · Un tipo de atención inactivo no puede usarse ... ok
+PB-06 · La contraseña creada desde la bienvenida cumple los mismos requisitos ... ok
+PB-07 · Si el administrador pone una contraseña inicial, igual llega el correo para cambiarla ... ok
+PB-01 · Crear una cuenta sin contraseña envía un correo de bienvenida a la persona ... ok
+PB-09 · Editar una cuenta existente no envía otra bienvenida ... ok
+PB-05 · Un enlace con el token alterado o de otra cuenta se rechaza ... ok
+PB-03 · El enlace permite crear la contraseña y luego ingresar con ella ... ok
+PB-04 · Usado el enlace, no sirve de nuevo ... ok
+PB-08 · Si el correo falla, la cuenta queda creada y se avisa al administrador ... 2026-11-04 13:07:06,051 ERROR cuentas.bienvenida No se pudo enviar la bienvenida a la cuenta 61
+PB-02 · Sin contraseña inicial, la cuenta no permite ingresar hasta usar el enlace ... ok
 PC-03 · Campos obligatorios validados en el servidor ... ok
 PC-01 · Crear, consultar, listar, editar, desactivar y eliminar en los 6 mantenedores ... ok
 PC-06 · El formulario de alta propone el siguiente código disponible ... ok
 PC-04 · Código o nombre duplicado (sin distinguir mayúsculas) es rechazado ... ok
-PC-02 · Eliminar y cambiar estado no se ejecutan por GET ... 2026-11-04 12:36:00,623 WARNING django.request Method Not Allowed (GET): /items/59/eliminar/
+PC-02 · Eliminar y cambiar estado no se ejecutan por GET ... 2026-11-04 13:07:07,587 WARNING django.request Method Not Allowed (GET): /items/88/eliminar/
 PC-05 · El código debe respetar el formato del catálogo (p. ej. TA001) ... ok
 PI-05 · Una sub atención no puede activarse si su tipo está inactivo ... ok
 PI-02 · No se desactiva una delegación con usuarios activos ... ok
@@ -81,13 +90,13 @@ PM-07 · Borde: solo cuentan los días de ausencia dentro del período ... ok
 PM-10 · Semáforo: verde ≥ esperado; naranjo ≥ 60 % de lo esperado; rojo bajo eso ... ok
 PM-16 · El tablero muestra la ficha propia y el informe exporta la matriz a Excel ... ok
 PM-09 · Borde: el total queda entre 0 y el tope total del período (150 %) ... ok
-PE-05 · Un funcionario de otra delegación no descarga la evidencia (403) ... 2026-11-04 12:36:05,235 WARNING django.request Forbidden: /contexto/delegacion/
-PE-06 · No se adjuntan archivos a actividades de otro funcionario (403) ... 2026-11-04 12:36:05,275 WARNING django.request Forbidden: /actividades/3812/evidencia/
+PE-05 · Un funcionario de otra delegación no descarga la evidencia (403) ... 2026-11-04 13:07:12,150 WARNING django.request Forbidden: /contexto/delegacion/
+PE-06 · No se adjuntan archivos a actividades de otro funcionario (403) ... 2026-11-04 13:07:12,193 WARNING django.request Forbidden: /actividades/4317/evidencia/
 PE-04 · Borde: un archivo sobre el tamaño máximo se rechaza ... ok
 PE-03 · Un archivo de texto renombrado a .pdf se rechaza por su contenido ... ok
 PE-02 · Un ejecutable se rechaza ... ok
 PE-01 · Un PNG válido se guarda con nombre aleatorio (no el original) ... ok
-PO-05 · Un delegado solo ve organizaciones de sus delegaciones ... 2026-11-04 12:36:06,397 WARNING django.request Forbidden: /contexto/delegacion/
+PO-05 · Un delegado solo ve organizaciones de sus delegaciones ... 2026-11-04 13:07:13,276 WARNING django.request Forbidden: /contexto/delegacion/
 PO-06 · Al registrar una actividad solo se ofrecen organizaciones de la delegación activa ... ok
 PO-02 · Importa, traduce territorios, omite repetidos y anota datos dudosos ... ok
 PO-03 · Reimportar actualiza, pero no pisa una organización ya verificada ... ok
@@ -113,45 +122,45 @@ RG-16 · Responsable, delegación y día de ingreso no se pueden alterar desde e
 PF-01 · El tablero usa las mismas consultas con 10 o con 500 actividades (sin N+1) ... ok
 PV-08 · Borde: una ausencia que se superpone a otra del mismo funcionario se rechaza ... ok
 PV-16 · Aunque se salte la pantalla, la base de datos rechaza un segundo período abierto ... ok
-PV-15 · El perfil de consulta no registra actividades (403) ... 2026-11-04 12:36:10,133 WARNING django.request Forbidden: /actividades/nueva/
-PV-05 · Un delegado de otra delegación no abre ni valida la actividad (403) ... 2026-11-04 12:36:10,159 WARNING django.request Forbidden: /contexto/delegacion/
+PV-15 · El perfil de consulta no registra actividades (403) ... 2026-11-04 13:07:16,885 WARNING django.request Forbidden: /actividades/nueva/
+PV-05 · Un delegado de otra delegación no abre ni valida la actividad (403) ... 2026-11-04 13:07:16,910 WARNING django.request Forbidden: /contexto/delegacion/
 PV-01 · El delegado valida; un rechazo exige motivo y deja de sumar ... ok
-PV-03 · Un funcionario no puede validar (403) ... 2026-11-04 12:36:10,261 WARNING django.request Forbidden: /actividades/6370/validar/
-PV-04 · Acceso por objeto: un funcionario no abre la actividad de un compañero (403) ... 2026-11-04 12:36:10,305 WARNING django.request Forbidden: /actividades/6371/
+PV-03 · Un funcionario no puede validar (403) ... 2026-11-04 13:07:17,018 WARNING django.request Forbidden: /actividades/6875/validar/
+PV-04 · Acceso por objeto: un funcionario no abre la actividad de un compañero (403) ... 2026-11-04 13:07:17,050 WARNING django.request Forbidden: /actividades/6876/
 PV-06 · El listado del funcionario muestra solo sus actividades ... ok
-PV-02 · El delegado no puede validar una actividad propia (403) ... 2026-11-04 12:36:10,388 WARNING django.request Forbidden: /actividades/6373/validar/
+PV-02 · El delegado no puede validar una actividad propia (403) ... 2026-11-04 13:07:17,118 WARNING django.request Forbidden: /actividades/6878/validar/
 PV-12 · Con el período cerrado no se cambia el estado de sus actividades ... ok
 PV-14 · Un período que se superpone con otro existente se rechaza ... ok
 PV-10 · Regla 8: el delegado registra la felicitación con respaldo PDF y suma al funcionario ... ok
 PV-09 · Regla 8: sin respaldo formal no se registra la felicitación ... ok
-PV-11 · Regla 8: la felicitación no puede venir del funcionario (403) ... 2026-11-04 12:36:10,601 WARNING django.request Forbidden: /felicitaciones-reclamos/
-PV-07 · Regla 9: el funcionario no puede registrar ausencias (403); el delegado sí ... 2026-11-04 12:36:10,635 WARNING django.request Forbidden: /semaforo/
+PV-11 · Regla 8: la felicitación no puede venir del funcionario (403) ... 2026-11-04 13:07:17,322 WARNING django.request Forbidden: /felicitaciones-reclamos/
+PV-07 · Regla 9: el funcionario no puede registrar ausencias (403); el delegado sí ... 2026-11-04 13:07:17,358 WARNING django.request Forbidden: /semaforo/
 PV-13 · No se puede abrir un segundo período mientras otro está abierto ... ok
-PD-08 · Ver una atención de una delegación no autorizada devuelve 403 ... 2026-11-04 12:36:11,536 WARNING django.request Forbidden: /atenciones/364/
+PD-08 · Ver una atención de una delegación no autorizada devuelve 403 ... 2026-11-04 13:07:18,235 WARNING django.request Forbidden: /atenciones/394/
 PD-01 · La cabecera muestra código y nombre de la delegación, usuario y rol ... ok
-PD-05 · Forzar una delegación no autorizada se rechaza (403) y el contexto no cambia ... 2026-11-04 12:36:11,599 WARNING django.request Forbidden: /contexto/delegacion/
+PD-05 · Forzar una delegación no autorizada se rechaza (403) y el contexto no cambia ... 2026-11-04 13:07:18,301 WARNING django.request Forbidden: /contexto/delegacion/
 PD-04 · Cambiar la delegación activa cambia el listado y la exportación ... ok
-PD-07 · El cambio de contexto exige POST con token CSRF ... 2026-11-04 12:36:11,682 WARNING django.request Method Not Allowed (GET): /contexto/delegacion/
-PD-09 · Consultar por URL una delegación no autorizada devuelve 403 ... 2026-11-04 12:36:11,713 WARNING django.request Forbidden: /delegaciones/68/
+PD-07 · El cambio de contexto exige POST con token CSRF ... 2026-11-04 13:07:18,377 WARNING django.request Method Not Allowed (GET): /contexto/delegacion/
+PD-09 · Consultar por URL una delegación no autorizada devuelve 403 ... 2026-11-04 13:07:18,402 WARNING django.request Forbidden: /delegaciones/74/
 PD-06 · Si la sesión apunta a una delegación ajena, el servidor la corrige ... ok
 PD-02 · Con una sola delegación el contexto es fijo (sin selector) ... ok
 PD-03 · Con varias delegaciones el selector ofrece solo las autorizadas ... ok
 PP-12 · Un delegado no puede asignar delegaciones que no tiene autorizadas ... ok
 PP-11 · Un delegado no puede asignar roles globales (escalada de privilegios) ... ok
-PP-15 · Un delegado no puede editar cuentas con rol global ... 2026-11-04 12:36:12,739 WARNING django.request Forbidden: /usuarios/224/
-PP-14 · Alterar el id en la URL para editar un usuario ajeno se rechaza con 403 ... 2026-11-04 12:36:12,763 WARNING django.request Forbidden: /usuarios/231/editar/
+PP-15 · Un delegado no puede editar cuentas con rol global ... 2026-11-04 13:07:19,331 WARNING django.request Forbidden: /usuarios/250/
+PP-14 · Alterar el id en la URL para editar un usuario ajeno se rechaza con 403 ... 2026-11-04 13:07:19,367 WARNING django.request Forbidden: /usuarios/257/editar/
 PP-13 · Un delegado solo lista usuarios de sus delegaciones ... ok
 PP-16 · Al editar, el delegado no borra delegaciones que no administra ... ok
 PP-05 · Los botones Crear/Editar/Eliminar aparecen solo con permiso ... ok
-PP-06 · Quitar un permiso al rol oculta el módulo y bloquea la ruta ... 2026-11-04 12:36:13,744 WARNING django.request Forbidden: /atenciones/
+PP-06 · Quitar un permiso al rol oculta el módulo y bloquea la ruta ... 2026-11-04 13:07:20,302 WARNING django.request Forbidden: /atenciones/
 PP-02 · Coordinador ve catálogos y auditoría, pero no la bandeja de correos ... ok
 PP-03 · Delegado municipal no ve Roles ni Auditoría ... ok
 PP-04 · Funcionario solo ve atenciones y sus módulos operativos de trabajo ... ok
 PP-01 · Superadministrador ve todos los módulos del menú ... ok
-PP-07 · Escribir la URL de un módulo no autorizado devuelve 403 y queda auditado ... 2026-11-04 12:36:14,790 WARNING django.request Forbidden: /roles/
-PP-09 · Consultor puede ver catálogos pero no crear ni editar ... 2026-11-04 12:36:14,875 WARNING django.request Forbidden: /items/nuevo/
-PP-10 · Los módulos simulados también respetan los permisos del rol ... 2026-11-04 12:36:14,933 WARNING django.request Forbidden: /periodos/
-PP-08 · Un POST directo sin permiso no modifica datos ... 2026-11-04 12:36:14,953 WARNING django.request Forbidden: /roles/76/eliminar/
+PP-07 · Escribir la URL de un módulo no autorizado devuelve 403 y queda auditado ... 2026-11-04 13:07:21,283 WARNING django.request Forbidden: /roles/
+PP-09 · Consultor puede ver catálogos pero no crear ni editar ... 2026-11-04 13:07:21,353 WARNING django.request Forbidden: /items/nuevo/
+PP-10 · Los módulos simulados también respetan los permisos del rol ... 2026-11-04 13:07:21,408 WARNING django.request Forbidden: /periodos/
+PP-08 · Un POST directo sin permiso no modifica datos ... 2026-11-04 13:07:21,429 WARNING django.request Forbidden: /roles/81/eliminar/
 PR-11 · El código debe tener exactamente 6 dígitos ... ok
 PR-06 · Código incorrecto informa intentos restantes ... ok
 PR-20 · Al cambiar la contraseña el código queda usado y la sesión de recuperación se cierra ... ok
@@ -177,24 +186,24 @@ PR-09 · El código vence 10 minutos después de emitido ... ok
 SG-01 · La página de acceso envía CSP estricta, Permissions-Policy, nosniff y anti-iframe ... ok
 SG-02 · Las páginas con sesión llevan Cache-Control no-store (equipos compartidos) ... ok
 SG-03 · Ninguna pantalla trae <style>, style="…" ni manejadores on…= (requisito de la CSP) ... ok
-SG-07 · La recuperación de clave también tiene límite por IP ... 2026-11-04 12:36:18,122 WARNING django.request Too Many Requests: /recuperar/
-SG-04 · Tras 3 intentos desde la misma IP, el 4.º responde 429 aunque cambie la cuenta ... 2026-11-04 12:36:18,135 WARNING django.request Too Many Requests: /
+SG-07 · La recuperación de clave también tiene límite por IP ... 2026-11-04 13:07:24,592 WARNING django.request Too Many Requests: /recuperar/
+SG-04 · Tras 3 intentos desde la misma IP, el 4.º responde 429 aunque cambie la cuenta ... 2026-11-04 13:07:24,605 WARNING django.request Too Many Requests: /
 SG-08 · Solo cuentan los envíos (POST); abrir la página de acceso no consume intentos ... ok
-SG-05 · El límite es por IP: otra dirección sigue pudiendo intentar ... 2026-11-04 12:36:18,162 WARNING django.request Too Many Requests: /
+SG-05 · El límite es por IP: otra dirección sigue pudiendo intentar ... 2026-11-04 13:07:24,636 WARNING django.request Too Many Requests: /
 SG-09 · Sin proxy configurado se usa REMOTE_ADDR y se ignora X-Forwarded-For ... ok
-SG-06 · Inventar X-Forwarded-For no evita el límite: se usa la IP que agrega Nginx ... 2026-11-04 12:36:18,180 WARNING django.request Too Many Requests: /
+SG-06 · Inventar X-Forwarded-For no evita el límite: se usa la IP que agrega Nginx ... 2026-11-04 13:07:24,657 WARNING django.request Too Many Requests: /
 PU-01 · La auditoría nunca guarda contraseñas ... ok
-PU-02 · La auditoría lista y filtra eventos; no ofrece edición ... 2026-11-04 12:36:19,120 WARNING django.request Method Not Allowed (POST): /auditoria/
+PU-02 · La auditoría lista y filtra eventos; no ofrece edición ... 2026-11-04 13:07:25,443 WARNING django.request Method Not Allowed (POST): /auditoria/
 PX-04 · Las respuestas incluyen cabeceras de seguridad básicas ... ok
-PX-06 · Un envío sin token CSRF se rechaza con una pantalla clara y sin guardar ... 2026-11-04 12:36:20,074 WARNING django.security.csrf Forbidden (CSRF cookie not set.): /
+PX-06 · Un envío sin token CSRF se rechaza con una pantalla clara y sin guardar ... 2026-11-04 13:07:26,258 WARNING django.security.csrf Forbidden (CSRF cookie not set.): /
 PX-05 · Los módulos de la matriz SGR son operativos: sin datos en memoria ni marca «simulado» ... ok
-PX-02 · Una ruta inexistente devuelve 404 ... 2026-11-04 12:36:20,361 WARNING django.request Not Found: /no-existe/
-PX-03 · Un registro inexistente devuelve 404 (no error 500) ... 2026-11-04 12:36:20,392 WARNING django.request Not Found: /items/99999/
+PX-02 · Una ruta inexistente devuelve 404 ... 2026-11-04 13:07:26,482 WARNING django.request Not Found: /no-existe/
+PX-03 · Un registro inexistente devuelve 404 (no error 500) ... 2026-11-04 13:07:26,508 WARNING django.request Not Found: /items/99999/
 PX-01 · El punto de salud responde 200 con la base de datos disponible ... ok
 PS-03 · Los formularios de eliminar y desactivar piden confirmación (data-confirmar) ... ok
 PS-02 · Si la operación falla se muestra error y nunca un mensaje de éxito ... ok
 PS-01 · Una operación exitosa se comunica a SweetAlert2 con nivel «success» ... ok
 PS-04 · SweetAlert2 se sirve desde el propio sistema (sin depender de un CDN) ... ok
 PS-05 · Los mensajes con caracteres especiales no inyectan código ... ok
-Ran 196 tests in 25.057s
+Ran 205 tests in 25.070s
 OK

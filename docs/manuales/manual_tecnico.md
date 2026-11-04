@@ -49,7 +49,7 @@ gestion/        Matriz SGR: modelos, reglas.py, calculos.py, forms.py, views.py,
                 importacion.py (base JJVV), inicial.py (períodos, metas y demostración)
 templates/      layouts/, parciales/, una carpeta por app
 static/         css/sgr.css, js/sgr.js, vendor/, img/
-pruebas/        pruebas funcionales (196)            pruebas_ui/  navegador real (17)
+pruebas/        pruebas funcionales (205)            pruebas_ui/  navegador real (17)
 pruebas_estres/ Locust y monitor de recursos       scripts/     matriz de pruebas, EXPLAIN, SQL
 deploy/         instalar_ec2.sh, actualizar.sh, sgr.service, nginx-sgr.conf
 docs/           bd/, seguridad/, pruebas/, manuales/
@@ -185,7 +185,7 @@ for a in Actividad.objects.all():
 ## 8. Pruebas
 
 ```bash
-python manage.py test pruebas          # 196 pruebas funcionales (≈ 12 s en SQLite, ≈ 25 s en MySQL)
+python manage.py test pruebas          # 205 pruebas funcionales (≈ 12 s en SQLite, ≈ 25 s en MySQL)
 python manage.py test pruebas_ui       # 17 pruebas en Chromium con capturas en docs/pruebas/evidencias/
 ```
 

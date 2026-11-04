@@ -4,7 +4,7 @@
 |---|---|
 | Versión del sistema | `ev2-2.0.0` (matriz SGR) |
 | Fecha de ejecución | 04-11-2026 |
-| Resultado | **213 de 213** pruebas aprobadas en SQLite (196 funcionales + 17 en navegador) · **196 de 196** contra MySQL 8.0 · **64 de 64** casos funcionales aprobados |
+| Resultado | **222 de 222** pruebas aprobadas en SQLite (205 funcionales + 17 en navegador) · **205 de 205** contra MySQL 8.0 · **65 de 65** casos funcionales aprobados |
 | Matriz con el detalle | [`matriz_pruebas_sgr_ev2.xlsx`](matriz_pruebas_sgr_ev2.xlsx) (hojas: Matriz funcional, Pruebas automatizadas, Estrés, Umbrales, Pendientes) |
 
 ---
@@ -24,11 +24,11 @@ Verificar que el SGR cumple el **nuevo requerimiento** de la Coordinación de De
 | Nivel | Qué verifica | Herramienta | Dónde | Cantidad |
 |---|---|---|---|---|
 | Reglas y cálculo | Cada regla con su caso normal y su **borde** (7.º/8.º ingreso, lunes/martes, exactamente 120 %) | `django.test` | `pruebas/test_matriz.py` | 62 |
-| Funcional de pantallas | Flujo completo por HTTP: formulario → servidor → base → respuesta | `django.test.Client` | `pruebas/*.py` | 196 en total |
+| Funcional de pantallas | Flujo completo por HTTP: formulario → servidor → base → respuesta | `django.test.Client` | `pruebas/*.py` | 205 en total |
 | Permisos y acceso por objeto | 403 al salir del perfil, de la delegación o del dueño | `django.test.Client` | `test_permisos.py`, `test_matriz.py` | 30+ |
 | Seguridad | CSP, cabeceras, límite por IP, archivos maliciosos, CSRF | `django.test.Client` | `test_seguridad.py`, `test_matriz.py`, `test_sistema.py` | 20+ |
 | Interfaz | SweetAlert2, confirmaciones, doble clic, lista dependiente, medidores, **sin errores de CSP** | Playwright + Chromium | `pruebas_ui/test_interfaz.py` | 17 |
-| Base de datos | Mismas pruebas sobre MySQL 8 (restricciones, columna generada, collation) | `SGR_DB_MOTOR=mysql` | `ejecucion_mysql8.txt` | 196 |
+| Base de datos | Mismas pruebas sobre MySQL 8 (restricciones, columna generada, collation) | `SGR_DB_MOTOR=mysql` | `ejecucion_mysql8.txt` | 205 |
 | Rendimiento con volumen | Consultas acotadas (sin N+1) y planes de ejecución con 60.000 actividades | `CaptureQueriesContext`, `EXPLAIN ANALYZE` | `PF-01`, `docs/bd/explain_mysql8.txt` | 1 + 5 consultas |
 | Carga concurrente | 10 → 25 → 50 → 100 usuarios simultáneos | Locust + monitor de CPU/memoria | `pruebas_estres/`, `estres/aws/` | 4 etapas |
 
@@ -107,9 +107,9 @@ Evidencias:
 
 | Indicador | Esperado | Obtenido | Estado |
 |---|---|---|---|
-| Casos funcionales aprobados | 100 % | 64 de 64 | Cumple |
-| Pruebas automáticas (SQLite) | 0 fallas | 213 de 213 | Cumple |
-| Pruebas automáticas (MySQL 8) | 0 fallas | 196 de 196 | Cumple |
+| Casos funcionales aprobados | 100 % | 65 de 65 | Cumple |
+| Pruebas automáticas (SQLite) | 0 fallas | 222 de 222 | Cumple |
+| Pruebas automáticas (MySQL 8) | 0 fallas | 205 de 205 | Cumple |
 | Errores de JavaScript o CSP en el navegador | 0 | 0 en 17 pruebas | Cumple |
 | Consultas del tablero al crecer el volumen | Constantes | Iguales con 10 y 500 actividades | Cumple |
 | Consulta más lenta de la matriz con 60.000 actividades | ≤ 10 ms | 2,1 ms (avance por ítem) | Cumple tras optimizar |

@@ -32,7 +32,7 @@ Proyecto Integrado · INACAP 2026 · **Segunda evaluación (EV2)** · versión `
 | Recuperación de contraseña | **Operativo** | 3 pasos: código de 6 dígitos por correo (vence en 10 min, reenvío a los 45 s, máximo 5 intentos y 5 códigos por hora), nueva contraseña con requisitos |
 | Delegaciones | **Operativo** | CRUD completo, búsqueda, paginador, Excel |
 | Roles y permisos | **Operativo** | CRUD + matriz de permisos por módulo y acción; alcance global o por delegación |
-| Usuarios | **Operativo** | CRUD, rol, delegaciones autorizadas, contraseña con requisitos |
+| Usuarios | **Operativo** | CRUD, rol, delegaciones autorizadas, contraseña con requisitos. Al crear una cuenta, la persona recibe un **correo de bienvenida** con un enlace de un solo uso (72 h) para crear su propia contraseña |
 | Ítems y metas (ítems) | **Operativo** | CRUD de ítems de medición |
 | Tipo de Atención | **Operativo** | CRUD; no se desactiva si tiene sub atenciones activas |
 | Sub Atención | **Operativo** | CRUD; asociada a un tipo activo, nombre único dentro del tipo |
@@ -131,7 +131,7 @@ La interfaz sigue las normas gráficas de la Municipalidad (color institucional 
 ## 5. Pruebas
 
 ```bash
-python manage.py test pruebas            # 196 pruebas funcionales automatizadas (≈ 12 s)
+python manage.py test pruebas            # 205 pruebas funcionales automatizadas (≈ 12 s)
 pip install -r requirements-dev.txt && playwright install chromium
 python manage.py test pruebas_ui         # 17 pruebas de interfaz en navegador real (SweetAlert2, CSP, doble envío…)
 ```
