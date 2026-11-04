@@ -243,4 +243,4 @@ SGR_EVIDENCIA_FORMATOS = {
     '.png': 'image/png',
     '.pdf': 'application/pdf',
 }
-SGR_EVIDENCIA_MAX_MB = 2
+SGR_EVIDENCIA_MAX_MB = int(env('SGR_EVIDENCIA_MAX_MB', '2'))
