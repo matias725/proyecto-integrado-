@@ -278,7 +278,7 @@ CASOS = [
     ('CF-57', 'Períodos y metas', 'Configuración', 'Coordinador emunoz',
      '1. Abrir un segundo período. 2. Crear un período superpuesto. 3. Agregar metas que superen 100 %. 4. Cambiar '
      'estado en un período cerrado.', 'Todo se rechaza con mensaje; un solo período abierto; el cerrado queda congelado; '
-     'las metas de la matriz suman 100 % por cargo.', ['PV-12', 'PV-13', 'PV-14', 'PM-14', 'PM-15'], '', CARLOS),
+     'las metas de la matriz suman 100 % por cargo; la base rechaza un segundo período abierto.', ['PV-12', 'PV-13', 'PV-14', 'PV-16', 'PM-14', 'PM-15'], '', CARLOS),
     ('CF-58', 'Evidencias seguras', 'Evidencias', 'Funcionaria ftest',
      '1. Subir un PNG con nombre malicioso. 2. Subir un .exe. 3. Subir texto renombrado a .pdf. 4. Subir sobre el '
      'tamaño máximo. 5. Descargar desde otra delegación. 6. Adjuntar a una actividad ajena.',

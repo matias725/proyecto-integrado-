@@ -227,7 +227,7 @@ LOGGING = {
 SGR_POR_PAGINA = 10
 # Muestra las cuentas de evaluación en la pantalla de acceso (apagar en producción real)
 SGR_CUENTAS_DEMO = env_bool('SGR_CUENTAS_DEMO', DEBUG)
-SGR_VERSION = env('SGR_VERSION', 'ev2-1.0.4')
+SGR_VERSION = env('SGR_VERSION', 'ev2-2.0.0')
 
 # Fecha de trabajo fija (AAAA-MM-DD) para demostraciones y pruebas. Vacía = fecha real.
 SGR_FECHA_HOY = date.fromisoformat(env('SGR_FECHA_HOY')) if env('SGR_FECHA_HOY') else None
