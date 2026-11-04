@@ -9,6 +9,7 @@ Cada prueba lleva en la primera línea de su docstring un identificador
 import re
 
 from django.core import mail
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -31,6 +32,10 @@ class PruebaSGR(TestCase):
     def setUpTestData(cls):
         cargar_base()
         cargar_demo(CLAVE_DEMO)
+
+    def _pre_setup(self):
+        super()._pre_setup()
+        cache.clear()           # el límite de intentos por IP no se arrastra entre pruebas
 
     # ----- utilidades ----------------------------------------------------
     def entrar(self, usuario, clave=None):

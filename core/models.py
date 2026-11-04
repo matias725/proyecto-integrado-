@@ -46,8 +46,9 @@ def registrar(request, evento, entidad, registro='', detalle='', usuario=None):
     delegacion = getattr(request, 'delegacion_activa', None) if request else None
     ip = None
     if request:
-        reenviada = request.META.get('HTTP_X_FORWARDED_FOR', '')
-        ip = (reenviada.split(',')[0].strip() or request.META.get('REMOTE_ADDR')) or None
+        from .seguridad import ip_cliente
+        ip = ip_cliente(request)
+        ip = None if ip == 'desconocida' else ip
     return Auditoria.objects.create(
         usuario=usuario,
         usuario_texto=usuario.nombre if usuario else '',

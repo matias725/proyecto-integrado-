@@ -83,6 +83,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'cuentas.middleware.ContextoDelegacionMiddleware',
+    'core.seguridad.SeguridadMiddleware',
 ]
 
 ROOT_URLCONF = 'sgr.urls'
@@ -160,6 +161,15 @@ SGR_CODIGO_MAX_INTENTOS = int(env('SGR_CODIGO_MAX_INTENTOS', '5'))
 SGR_CODIGO_MAX_POR_HORA = int(env('SGR_CODIGO_MAX_POR_HORA', '5'))
 SGR_LOGIN_MAX_INTENTOS = int(env('SGR_LOGIN_MAX_INTENTOS', '5'))
 SGR_LOGIN_BLOQUEO_MIN = int(env('SGR_LOGIN_BLOQUEO_MIN', '10'))
+# Límite por dirección IP (acceso y recuperación): intentos por ventana de minutos
+SGR_IP_MAX_INTENTOS = int(env('SGR_IP_MAX_INTENTOS', '20'))
+SGR_IP_VENTANA_MIN = int(env('SGR_IP_VENTANA_MIN', '15'))
+# Caché compartida entre los procesos de Gunicorn (el conteo por IP debe verse en todos)
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}} if DEBUG else {
+    'default': {'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+                'LOCATION': env('SGR_CACHE_DIR', str(BASE_DIR / 'cache'))}}
+# En AWS el sistema queda detrás de Nginx: la IP real es la última de X-Forwarded-For
+SGR_DETRAS_DE_PROXY = env_bool('SGR_DETRAS_DE_PROXY', not DEBUG)
 
 # ---------------------------------------------------------------------------
 # Correo

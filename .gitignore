@@ -16,3 +16,4 @@ media/
 *.pem
 *.key
 archivos/
+cache/

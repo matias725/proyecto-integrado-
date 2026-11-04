@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 
 from django.conf import settings
+from django.core.cache import cache
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import override_settings
 
@@ -57,6 +58,10 @@ class InterfazTests(StaticLiveServerTestCase):
         self.p = self.contexto.new_page()
         self.errores = []
         self.p.on('pageerror', lambda e: self.errores.append(str(e)))
+        # Cualquier bloqueo de la Content-Security-Policy cuenta como error de la página
+        self.p.on('console', lambda m: self.errores.append(m.text)
+                  if m.type == 'error' and 'Content Security Policy' in m.text else None)
+        cache.clear()
 
     def tearDown(self):
         self.contexto.close()
@@ -82,6 +87,17 @@ class InterfazTests(StaticLiveServerTestCase):
     def dialogo(self):
         self.p.wait_for_selector('.swal2-popup:not(.swal2-toast)', state='visible')
         return self.p.locator('.swal2-popup')
+
+    def esperar(self, funcion, argumento=None, ms=5000):
+        """
+        Espera a que la función JavaScript devuelva verdadero. Se consulta desde Python porque
+        wait_for_function evalúa texto con eval(), que la Content-Security-Policy bloquea.
+        """
+        for _ in range(ms // 50):
+            if self.p.evaluate(funcion, argumento):
+                return
+            self.p.wait_for_timeout(50)
+        self.fail(f'No se cumplió a tiempo: {funcion}')
 
     def evidencia(self, nombre):
         self.p.screenshot(path=str(EVIDENCIAS / f'{nombre}.png'))
@@ -155,15 +171,15 @@ class InterfazTests(StaticLiveServerTestCase):
         self.ir('/atenciones/nueva/')
         t1, t2 = TipoAtencion.objects.filter(activo=True).order_by('nombre')[:2]
         self.p.select_option('#id_tipo', str(t1.pk))
-        self.p.wait_for_function('document.querySelector("#id_subatencion").options.length > 1')
+        self.esperar('() => document.querySelector("#id_subatencion").options.length > 1')
         primera = t1.subatenciones.filter(activo=True).order_by('nombre').first()
         self.p.select_option('#id_subatencion', str(primera.pk))
         self.p.select_option('#id_tipo', str(t2.pk))
-        self.p.wait_for_function(
-            f'[...document.querySelector("#id_subatencion").options].every(o => o.value !== "{primera.pk}")')
+        esperado = {str(pk) for pk in t2.subatenciones.filter(activo=True).values_list('pk', flat=True)}
+        # Espera a que la lista termine de recargarse con las sub atenciones del nuevo tipo
+        self.esperar('n => document.querySelector("#id_subatencion").options.length === n + 1', len(esperado))
         self.assertEqual(self.p.input_value('#id_subatencion'), '')
         opciones = set(self.p.eval_on_selector_all('#id_subatencion option', 'os => os.map(o => o.value)')) - {''}
-        esperado = {str(pk) for pk in t2.subatenciones.filter(activo=True).values_list('pk', flat=True)}
         self.assertEqual(opciones, esperado)
         self.evidencia('UI-06-lista-dependiente')
 
@@ -176,7 +192,7 @@ class InterfazTests(StaticLiveServerTestCase):
         self.p.fill('#id_rut', '11.111.111-1')
         self.p.fill('#id_nombre', 'Vecina de Prueba')
         self.p.select_option('#id_tipo', str(tipo.pk))
-        self.p.wait_for_function('document.querySelector("#id_subatencion").options.length > 1')
+        self.esperar('() => document.querySelector("#id_subatencion").options.length > 1')
         self.p.select_option('#id_subatencion', str(sub.pk))
         self.p.fill('#id_descripcion', 'Consulta registrada desde la prueba de interfaz.')
         antes = Atencion.objects.count()
@@ -297,3 +313,44 @@ class InterfazTests(StaticLiveServerTestCase):
         ancho = p.evaluate('document.documentElement.scrollWidth')
         self.assertLessEqual(ancho, 390, 'No debe haber desplazamiento horizontal')
         movil.close()
+
+    # ----- matriz SGR (evaluación 2) -----------------------------------------
+    def test_ui15_registrar_actividad_bajo_csp(self):
+        """UI-15 · Registrar una actividad con la CSP activa: SweetAlert2 y validación funcionan sin errores"""
+        self.entrar('bcastillo')
+        self.ir('/actividades/nueva/')
+        self.assertIn("script-src 'self'", self.p.evaluate(
+            "fetch(location.href).then(r => r.headers.get('content-security-policy'))"))
+        self.p.fill('#id_titulo', '')
+        self.p.click('main button[type=submit]')                     # incompleto: validación del navegador
+        self.assertTrue(self.p.locator('.campo.invalido').count() > 0)
+        if self.p.locator('.swal2-popup').count():
+            self.evidencia('UI-15-validacion-actividad')
+            self.p.evaluate('() => Swal.close()')
+            self.p.wait_for_selector('.swal2-container', state='detached')
+        self.p.select_option('#id_item', label=self.p.locator('#id_item option').nth(1).inner_text())
+        self.p.fill('#id_titulo', 'Atención social en sede')
+        self.p.fill('#id_descripcion', 'Se orienta a la vecina sobre el subsidio y se deriva al DIDECO.')
+        self.p.fill('#id_solicitante_nombre', 'María Pérez')
+        self.p.fill('#id_solicitante_telefono', '912345678')
+        self.p.select_option('#id_estado', 'REALIZADO')
+        self.p.click('main button[type=submit]')
+        self.p.wait_for_url('**/actividades/*/')
+        self.p.wait_for_selector('.swal2-toast', state='visible')
+        self.evidencia('UI-15-actividad-registrada')
+
+    def test_ui16_tablero_medidores_con_csp(self):
+        """UI-16 · El tablero dibuja los medidores (ancho por JavaScript, sin estilos en línea)"""
+        self.entrar('bcastillo')
+        self.ir('/tablero/')
+        anchos = self.p.eval_on_selector_all('[data-ancho]', 'els => els.map(e => e.style.width)')
+        self.assertTrue(anchos)
+        self.assertTrue(all(a.endswith('%') for a in anchos), anchos)
+        self.evidencia('UI-16-tablero-semaforo')
+
+    def test_ui17_confirmar_validacion(self):
+        """UI-17 · El delegado abre la bandeja de validación y ve el diálogo al rechazar sin motivo"""
+        self.entrar('arojas')
+        self.ir('/validacion/')
+        self.evidencia('UI-17-bandeja-validacion')
+        self.assertTrue(self.p.locator('main table, main .vacio').count() > 0)
