@@ -52,9 +52,20 @@ class Delegacion(Catalogo):
 
 
 class ItemMedicion(Catalogo):
+    CONTEO = 'CONTEO'
+    TUBO = 'TUBO'
+    MEDICIONES = [
+        (CONTEO, 'Conteo de actividades realizadas'),
+        (TUBO, 'Porcentaje de solicitudes del TUBO resueltas'),
+    ]
+
     codigo = models.CharField('código', max_length=6, unique=True, validators=[validador_codigo('IT', 3)])
     nombre = models.CharField('nombre', max_length=120, unique=True)
     descripcion = models.CharField('descripción', max_length=250)
+    medicion = models.CharField(
+        'forma de medición', max_length=8, choices=MEDICIONES, default=CONTEO,
+        help_text='Conteo: suma una unidad por actividad realizada. TUBO: la meta es un porcentaje (ej. 80) '
+                  'de solicitudes del tubo de trabajo resueltas.')
 
     class Meta:
         verbose_name = 'ítem'
@@ -94,6 +105,26 @@ class SubAtencion(Catalogo):
         constraints = [
             models.UniqueConstraint(Lower('nombre'), 'tipo', name='subatencion_nombre_por_tipo_ci'),
         ]
+
+    def __str__(self):
+        return self.nombre
+
+
+class Cargo(Catalogo):
+    """Cargo del descriptor de funciones de las delegaciones (año 2026)."""
+
+    codigo = models.CharField('código', max_length=6, unique=True, validators=[validador_codigo('CAR', 2)])
+    nombre = models.CharField('nombre', max_length=80, unique=True)
+    descripcion = models.CharField('función principal', max_length=300)
+    es_delegado = models.BooleanField(
+        'es delegado', default=False,
+        help_text='El delegado valida actividades y registra felicitaciones, reclamos y ausencias de su equipo.')
+
+    class Meta:
+        verbose_name = 'cargo'
+        verbose_name_plural = 'cargos'
+        ordering = ['codigo']
+        constraints = [models.UniqueConstraint(Lower('nombre'), name='cargo_nombre_unico_ci')]
 
     def __str__(self):
         return self.nombre

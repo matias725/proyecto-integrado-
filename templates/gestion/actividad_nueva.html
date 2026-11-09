@@ -1,0 +1,78 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Registrar actividad{% endblock %}
+{% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / <a href="{% url 'actividades' %}">Actividades</a> / Registrar{% endblock %}
+{% block titulo_pagina %}Registrar actividad{% endblock %}
+{% block bajada %}{{ periodo.nombre }} · {{ delegacion_activa.nombre_completo }}. El responsable, la delegación y el día de ingreso se asignan automáticamente.{% endblock %}
+{% block traza %}Matriz SGR · reglas 1 a 5 del nuevo requerimiento{% endblock %}
+{% block accion %}<span class="contador-diario{% if ingresos_hoy >= max_diario %} lleno{% endif %}"><i class="bi bi-calendar-check" aria-hidden="true"></i>Ingresos de hoy <b>{{ ingresos_hoy }}/{{ max_diario }}</b></span>{% endblock %}
+
+{% block contenido %}
+{% if ingresos_hoy >= max_diario %}
+<div class="aviso alerta"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+    <div>Ya registró {{ max_diario }} actividades hoy, el máximo diario. Podrá ingresar más mañana (la semana se cierra el lunes siguiente).</div></div>
+{% endif %}
+<div class="aviso info"><i class="bi bi-info-circle" aria-hidden="true"></i>
+    <div><b>Para que la actividad sume puntaje:</b>
+        <ul class="reglas-ingreso">
+            <li>Registre la <b>acción realizada</b> (el taller hecho, no su coordinación).</li>
+            <li>Incluya <b>nombre y teléfono</b> del usuario atendido.</li>
+            <li>Si el solicitante es el delegado o la delegación, se registra como otra gestión, sin puntaje.</li>
+            <li>Puede ingresar actividades desde el {{ fecha_minima|date:"d-m-Y" }}. Máximo {{ max_diario }} por día.</li>
+        </ul></div>
+</div>
+
+<form method="post" novalidate data-validar data-un-envio data-vigilar-cambios>
+    {% csrf_token %}
+    {{ form.token_envio }}
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Actividad</h2></div>
+        <div class="panel-cuerpo">
+            {% include "parciales/_errores_formulario.html" %}
+            <div class="rejilla rejilla-3">
+                {% include "parciales/_campo.html" with campo=form.fecha %}
+                {% include "parciales/_campo.html" with campo=form.item %}
+                {% include "parciales/_campo.html" with campo=form.origen %}
+            </div>
+            {% include "parciales/_campo.html" with campo=form.titulo %}
+            {% include "parciales/_campo.html" with campo=form.descripcion %}
+            <fieldset class="campo{% if form.naturaleza.errors %} invalido{% endif %}">
+                <legend>{{ form.naturaleza.label|capfirst }} <span class="obligatorio" aria-hidden="true">*</span></legend>
+                <div class="opciones">{{ form.naturaleza }}</div>
+                <span class="ayuda">Regla 5: los correos, coordinaciones e invitaciones no dan punto; el punto se da al realizar la acción.</span>
+            </fieldset>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Usuario atendido</h2></div>
+        <div class="panel-cuerpo">
+            <div class="rejilla rejilla-2">
+                {% include "parciales/_campo.html" with campo=form.solicitante_nombre %}
+                {% include "parciales/_campo.html" with campo=form.solicitante_telefono %}
+            </div>
+            {% include "parciales/_campo.html" with campo=form.solicitante_es_delegado %}
+            <div class="rejilla rejilla-3">
+                {% include "parciales/_campo.html" with campo=form.organizacion %}
+                {% include "parciales/_campo.html" with campo=form.territorio %}
+                {% include "parciales/_campo.html" with campo=form.area_apoyo %}
+            </div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Seguimiento en el TUBO</h2></div>
+        <div class="panel-cuerpo">
+            <div class="rejilla rejilla-2">
+                {% include "parciales/_campo.html" with campo=form.estado %}
+                {% include "parciales/_campo.html" with campo=form.fecha_compromiso %}
+            </div>
+        </div>
+        <div class="panel-pie">
+            <button type="submit" class="boton principal" data-texto-envio="Guardando…"{% if ingresos_hoy >= max_diario %} disabled{% endif %}><i class="bi bi-check-lg" aria-hidden="true"></i>Guardar actividad</button>
+            <a href="{% url 'actividades' %}" class="boton" data-cancelar>Cancelar</a>
+            <span class="espacio"></span>
+            <span class="ruta">Los campos con <span class="obligatorio">*</span> son obligatorios</span>
+        </div>
+    </div>
+</form>
+{% endblock %}

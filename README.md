@@ -2,7 +2,17 @@
 
 Sistema web para registrar y supervisar la gestión de las **delegaciones municipales de la Ilustre Municipalidad de La Serena**: atenciones a vecinos y vecinas, catálogos de atención, usuarios, roles y permisos por delegación.
 
-Proyecto Integrado · INACAP 2026 · **Segunda evaluación (EV2)**.
+Proyecto Integrado · INACAP 2026 · **Segunda evaluación (EV2)** · versión `ev2-2.0.0`: incorpora la **matriz SGR** del nuevo requerimiento de la Coordinación de Delegaciones.
+
+| Documento | Para qué |
+|---|---|
+| [Guía de instalación](docs/instalacion.md) | Paso a paso en Windows, Linux, MySQL y AWS |
+| [Manual de usuario](docs/manuales/manual_de_usuario.md) | Cómo usa el sistema cada perfil, con capturas |
+| [Manual técnico](docs/manuales/manual_tecnico.md) | Arquitectura, dónde vive cada regla, cómo extender |
+| [Modelo de datos](docs/bd/modelo_de_datos.md) | Diagrama ER, normalización, índices y EXPLAIN |
+| [Seguridad](docs/seguridad/owasp_top10.md) | Controles por riesgo OWASP Top 10 |
+| [Plan de pruebas](docs/pruebas/plan_de_pruebas_ev2.md) | Estrategia, trazabilidad, resultados y comparación |
+| [Cómo colaborar](CONTRIBUTING.md) | Ramas, commits, PR y pruebas |
 
 | Integrante | Responsabilidad principal en la EV2 |
 |---|---|
@@ -22,7 +32,7 @@ Proyecto Integrado · INACAP 2026 · **Segunda evaluación (EV2)**.
 | Recuperación de contraseña | **Operativo** | 3 pasos: código de 6 dígitos por correo (vence en 10 min, reenvío a los 45 s, máximo 5 intentos y 5 códigos por hora), nueva contraseña con requisitos |
 | Delegaciones | **Operativo** | CRUD completo, búsqueda, paginador, Excel |
 | Roles y permisos | **Operativo** | CRUD + matriz de permisos por módulo y acción; alcance global o por delegación |
-| Usuarios | **Operativo** | CRUD, rol, delegaciones autorizadas, contraseña con requisitos |
+| Usuarios | **Operativo** | CRUD, rol, delegaciones autorizadas, contraseña con requisitos. Al crear una cuenta, la persona recibe un **correo de bienvenida** con un enlace de un solo uso (72 h) para crear su propia contraseña |
 | Ítems y metas (ítems) | **Operativo** | CRUD de ítems de medición |
 | Tipo de Atención | **Operativo** | CRUD; no se desactiva si tiene sub atenciones activas |
 | Sub Atención | **Operativo** | CRUD; asociada a un tipo activo, nombre único dentro del tipo |
@@ -30,7 +40,16 @@ Proyecto Integrado · INACAP 2026 · **Segunda evaluación (EV2)**.
 | Listado de atenciones | **Operativo** | Filtrado por la delegación activa, búsqueda por folio/RUT/nombre, Excel |
 | Auditoría | **Operativo** | Solo lectura, filtros y Excel |
 | Correo de recuperación | **Operativo** | Envío real por Gmail (SMTP) y copia en la Bandeja de correos de prueba (solo Superadministrador); ver sección 4 |
-| Tablero, actividades, evidencias, validación, agenda, atención social, períodos, metas, informes | **Simulado** | Pantallas navegables de la EV1 con datos de demostración en memoria, sujetas a los permisos reales del rol. Se marcan con la etiqueta «Simulado» |
+| **Matriz SGR: registro de actividades** | **Operativo** | Reemplaza el Excel trimestral. Aplica las 10 reglas del nuevo requerimiento: sin puntaje si lo pide el delegado (1), nombre y teléfono obligatorios para sumar (2), máximo 7 ingresos por día (3), cierre semanal el lunes (4), gestiones previas sin puntaje (5) |
+| **Matriz SGR: tablero y semáforo** | **Operativo** | Cumplimiento por ítem con tope de 120 % (7), semáforo contra lo esperado al día, alertas de registro «para cumplir» (6) y resultado del equipo (10) |
+| Compromisos (TUBO) | **Operativo** | Solicitudes con fecha de compromiso, vencidas y por vencer; ítem TUBO medido como % de resueltas |
+| Evidencias | **Operativo** | JPG, PNG y PDF validados por contenido, nombre aleatorio, descarga solo con permiso sobre la actividad |
+| Validación | **Operativo** | El delegado valida o rechaza con motivo; nadie valida lo propio |
+| Ausencias del equipo | **Operativo** | Solo el delegado; ajustan la meta a los días efectivos (9) |
+| Felicitaciones y reclamos | **Operativo** | Solo el delegado y con respaldo formal (8); +10 % (máx. 3) y −20 % |
+| Períodos y metas | **Operativo** | Trimestres con sus parámetros, un solo período abierto (también en la base), metas y ponderadores por cargo que suman 100 %, copia desde el período anterior |
+| Organizaciones | **Operativo** | Base JJVV y organizaciones funcionales por territorio; importador con limpieza y observaciones (`sgr_importar_organizaciones`) |
+| Informes e historial por vecino | **Operativo** | Matriz completa del período en pantalla y Excel; historial de atenciones por RUT |
 | Despliegue en AWS | **Operativo** | http://34.232.208.74/ · EC2 + Nginx + Gunicorn + MySQL 8 (sección 6) |
 
 ### Perfiles de evaluación
@@ -41,8 +60,8 @@ Contraseña de todas las cuentas: **`Serena#2026`** (se muestran en la pantalla 
 |---|---|---|---|
 | `admin` | Superadministrador | todas (global) | Todos los módulos, roles, auditoría y bandeja de correos |
 | `emunoz` | Coordinador | todas (global) | Mantiene catálogos de atención; consulta usuarios, roles y auditoría |
-| `arojas` | Delegado municipal | DEL06 Rural y DEL03 La Antena | **Selector de delegación**; administra funcionarios solo de sus delegaciones |
-| `bcastillo` | Funcionario | DEL06 Rural | **Contexto fijo**; registra atenciones de su delegación |
+| `arojas` | Delegado municipal | DEL06 Rural y DEL03 La Antena | **Selector de delegación**; valida, registra ausencias y felicitaciones, ve al equipo |
+| `bcastillo` | Funcionario | DEL06 Rural | **Contexto fijo**; registra actividades y atenciones de su delegación |
 | `lectura` | Consultor | todas (global) | Solo lectura |
 | `dfuentes` | Funcionario | DEL01 Centro | Cuenta **inactiva**: no puede ingresar |
 
@@ -112,10 +131,12 @@ La interfaz sigue las normas gráficas de la Municipalidad (color institucional 
 ## 5. Pruebas
 
 ```bash
-python manage.py test pruebas            # 125 pruebas funcionales automatizadas (≈ 5 s)
+python manage.py test pruebas            # 205 pruebas funcionales automatizadas (≈ 12 s)
 pip install -r requirements-dev.txt && playwright install chromium
-python manage.py test pruebas_ui         # 14 pruebas de interfaz en navegador real (SweetAlert2, doble envío…)
+python manage.py test pruebas_ui         # 17 pruebas de interfaz en navegador real (SweetAlert2, CSP, doble envío…)
 ```
+
+Plan de pruebas completo, trazabilidad con las reglas y comparación obtenido vs esperado: [`docs/pruebas/plan_de_pruebas_ev2.md`](docs/pruebas/plan_de_pruebas_ev2.md).
 
 | Grupo | Archivo | Qué cubre |
 |---|---|---|
@@ -124,10 +145,12 @@ python manage.py test pruebas_ui         # 14 pruebas de interfaz en navegador r
 | PC · PI · PL | `pruebas/test_mantenedores.py` | CRUD de los 6 mantenedores, integridad de relaciones, búsqueda, paginación, Excel |
 | PP · PD | `pruebas/test_permisos.py` | Menú por rol, 403 al alterar rutas, escalada de privilegios, contexto de delegación |
 | PT | `pruebas/test_atenciones.py` | Ingreso de atención, lista dependiente, doble envío, alcance por delegación |
-| PS · PU · PX | `pruebas/test_sistema.py` | Mensajes SweetAlert2, auditoría, salud, CSRF, módulos simulados |
+| PS · PU · PX | `pruebas/test_sistema.py` | Mensajes SweetAlert2, auditoría, salud, CSRF, módulos de la matriz operativos |
+| RG · PM · PV · PE · PO · PF | `pruebas/test_matriz.py` | Las 10 reglas con sus bordes, cálculo de la matriz, validación, acceso por objeto, evidencias, importación JJVV, consultas sin N+1 |
+| SG | `pruebas/test_seguridad.py` | CSP y cabeceras, `no-store`, límite de intentos por IP, `X-Forwarded-For` falso |
 | UI | `pruebas_ui/test_interfaz.py` | Diálogos y confirmaciones en el navegador, con capturas en `docs/pruebas/evidencias/` |
 
-Las pruebas también se ejecutaron contra **MySQL 8.0** (`SGR_DB_MOTOR=mysql`), con el mismo resultado.
+Las pruebas también se ejecutaron contra **MySQL 8.0** (`SGR_DB_MOTOR=mysql`), con el mismo resultado: [`docs/pruebas/ejecucion_mysql8.txt`](docs/pruebas/ejecucion_mysql8.txt).
 
 - Matriz de pruebas funcionales: [`docs/pruebas/matriz_pruebas_sgr_ev2.xlsx`](docs/pruebas/matriz_pruebas_sgr_ev2.xlsx)
 - Pruebas de estrés (Locust, carga progresiva 10 → 100 usuarios): [`pruebas_estres/`](pruebas_estres/) y resultados en [`docs/pruebas/estres/`](docs/pruebas/estres/)
@@ -199,12 +222,14 @@ sgr/            configuración de Django (settings por variables de entorno)
 cuentas/        usuario, roles, permisos, acceso, recuperación, contexto de delegación
 catalogos/      delegaciones, ítems, tipos y sub atenciones
 atenciones/     ingreso y listado de atenciones
-core/           motor de mantenedores (CRUD), Excel, auditoría y módulos simulados de la EV1
+core/           motor de mantenedores (CRUD), Excel, auditoría y cabeceras de seguridad
+gestion/        matriz SGR: períodos, metas, actividades, TUBO, evidencias, ausencias,
+                felicitaciones, organizaciones; reglas.py y calculos.py
 templates/      plantillas (layout institucional, parciales, pantallas)
 static/         CSS, JS, SweetAlert2 y Bootstrap Icons (servidos localmente)
 pruebas/        pruebas automatizadas · pruebas_ui/ navegador · pruebas_estres/ Locust
 deploy/         archivos de despliegue en AWS · scripts/ SQL de creación
-docs/           SQL del esquema, matriz de pruebas, evidencias y resultados de estrés
+docs/           modelo de datos, seguridad (OWASP), pruebas, manuales e instalación
 ```
 
 ## 8. Seguridad aplicada
@@ -214,4 +239,8 @@ docs/           SQL del esquema, matriz de pruebas, evidencias y resultados de e
 - Cada vista declara el módulo y la acción que exige; el servidor responde **403** y registra en auditoría cualquier intento fuera del perfil o de la delegación autorizada.
 - La delegación, el responsable y la fecha de una atención se asignan en el servidor, nunca desde el formulario.
 - Protección CSRF, cookies `HttpOnly`, `X-Frame-Options: DENY`, sin inyección de fórmulas en Excel, exportaciones sin contraseñas ni tokens.
+- **Content-Security-Policy** estricta (sin scripts ni estilos en línea), `Permissions-Policy` y `Cache-Control: no-store` con sesión.
+- **Límite de intentos por IP** en acceso y recuperación, además del bloqueo por cuenta.
+- **Acceso por objeto** en la matriz: un funcionario solo ve, edita o adjunta a sus actividades; las evidencias se entregan tras validar el alcance.
+- Detalle por riesgo en la [matriz OWASP Top 10](docs/seguridad/owasp_top10.md).
 - Secretos fuera del código (`.env` en `.gitignore`).

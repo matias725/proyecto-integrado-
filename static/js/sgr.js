@@ -491,3 +491,10 @@
         return String(texto).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 })();
+
+/* ---------- Medidores: anchos desde atributos data-* (la CSP no permite estilos en línea) ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+    const porcentaje = (v) => `${Math.max(0, Math.min(parseFloat(v) || 0, 100))}%`;
+    document.querySelectorAll('[data-ancho]').forEach(el => { el.style.width = porcentaje(el.dataset.ancho); });
+    document.querySelectorAll('[data-izquierda]').forEach(el => { el.style.left = porcentaje(el.dataset.izquierda); });
+});

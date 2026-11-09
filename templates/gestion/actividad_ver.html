@@ -1,0 +1,89 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}{{ a.folio }}{% endblock %}
+{% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / <a href="{% url 'actividades' %}">Actividades</a> / {{ a.folio }}{% endblock %}
+{% block titulo_pagina %}{{ a.folio }} · {{ a.titulo }}{% endblock %}
+{% block bajada %}{{ a.item.nombre }} · {{ a.funcionario.nombre }} · {{ a.delegacion.nombre_completo }}{% endblock %}
+{% block traza %}Matriz SGR · TUBO de trabajo{% endblock %}
+
+{% block contenido %}
+{% if a.puntua %}
+<div class="aviso exito"><i class="bi bi-check-circle" aria-hidden="true"></i><div>Esta actividad suma puntaje en «{{ a.item.nombre }}»{% if a.estado != 'REALIZADO' %} cuando quede realizada{% endif %}{% if a.validacion == 'RECHAZADA' %}, salvo que fue rechazada por el delegado{% endif %}.</div></div>
+{% else %}
+<div class="aviso alerta"><i class="bi bi-dash-circle" aria-hidden="true"></i><div><b>No suma puntaje.</b> {{ a.motivo_sin_puntaje }}</div></div>
+{% endif %}
+
+<div class="rejilla rejilla-2 alineado-arriba">
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Datos</h2></div>
+        <table class="tabla ficha">
+            <tr><th>Fecha</th><td>{{ a.fecha|date:"d-m-Y" }} <span class="ruta">· ingresada el {{ a.ingresada_el|date:"d-m-Y" }}</span></td></tr>
+            <tr><th>Naturaleza</th><td>{{ a.get_naturaleza_display }} · {{ a.get_origen_display }}</td></tr>
+            <tr><th>Detalle</th><td>{{ a.descripcion|linebreaksbr }}</td></tr>
+            <tr><th>Usuario</th><td>{{ a.solicitante_nombre|default:'—' }} {% if a.solicitante_telefono %}<span class="ruta">· {{ a.solicitante_telefono }}</span>{% endif %}</td></tr>
+            <tr><th>Organización</th><td>{% if a.organizacion %}{{ a.organizacion }}{% else %}—{% endif %}</td></tr>
+            <tr><th>Territorio</th><td>{{ a.territorio|default:'—' }}{% if a.area_apoyo %} · apoyo: {{ a.area_apoyo }}{% endif %}</td></tr>
+            <tr><th>Estado</th><td>{% estado a.estado %}{% if a.fecha_compromiso %} <span class="ruta">· compromiso {{ a.fecha_compromiso|date:"d-m-Y" }}{% if a.vencida %} (vencido){% endif %}</span>{% endif %}</td></tr>
+            <tr><th>Validación</th><td>{% if a.validacion == 'PENDIENTE' %}{% estado 'POR_VALIDAR' %}{% else %}{% estado a.validacion %} <span class="ruta">· {{ a.validada_por.nombre }} {{ a.validada_en|date:"d-m-Y H:i" }}</span>{% endif %}
+                {% if a.motivo_rechazo %}<div class="ruta">Motivo: {{ a.motivo_rechazo }}</div>{% endif %}</td></tr>
+        </table>
+        {% if puede_validar and a.validacion == 'PENDIENTE' %}
+        <div class="panel-pie">
+            <form method="post" action="{% url 'validar' a.pk %}" class="formulario-en-linea">{% csrf_token %}
+                <input type="hidden" name="decision" value="VALIDADA">
+                <button type="submit" class="boton principal pequeno"><i class="bi bi-patch-check" aria-hidden="true"></i>Validar</button>
+            </form>
+            <form method="post" action="{% url 'validar' a.pk %}" class="formulario-en-linea" data-confirmar="¿Rechazar {{ a.folio }}?" data-confirmar-detalle="La actividad dejará de sumar puntaje." data-confirmar-boton="Sí, rechazar">{% csrf_token %}
+                <input type="hidden" name="decision" value="RECHAZADA">
+                <div class="campo"><label for="motivo">Motivo del rechazo</label><input id="motivo" name="motivo" maxlength="300" minlength="5" required></div>
+                <button type="submit" class="boton peligro pequeno">Rechazar</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <div>
+        {% if form_estado %}
+        <div class="panel">
+            <div class="panel-cabecera"><h2>Actualizar seguimiento</h2></div>
+            <form method="post" action="{% url 'actividad_estado' a.pk %}" novalidate data-validar data-un-envio>
+                {% csrf_token %}
+                <div class="panel-cuerpo">
+                    {% include "parciales/_campo.html" with campo=form_estado.estado %}
+                    {% include "parciales/_campo.html" with campo=form_estado.observacion %}
+                </div>
+                <div class="panel-pie"><button type="submit" class="boton principal" data-texto-envio="Guardando…">Guardar avance</button></div>
+            </form>
+        </div>
+        {% endif %}
+        <div class="panel">
+            <div class="panel-cabecera"><h2>Evidencias</h2><span class="espacio"></span><span class="ruta">{{ evidencias|length }} archivo{{ evidencias|length|pluralize }}</span></div>
+            {% if evidencias %}
+            <table class="tabla">
+                {% for e in evidencias %}<tr><td><a href="{% url 'evidencia_descargar' e.pk %}"><i class="bi bi-paperclip" aria-hidden="true"></i> {{ e.nombre_original }}</a><div class="ruta">{{ e.descripcion }}</div></td><td class="num">{{ e.tamano|filesizeformat }}</td><td>{{ e.subida_en|date:"d-m-Y H:i" }}</td></tr>{% endfor %}
+            </table>
+            {% endif %}
+            {% if form_evidencia %}
+            <form method="post" action="{% url 'evidencia_subir' a.pk %}" enctype="multipart/form-data" data-un-envio>
+                {% csrf_token %}
+                <div class="panel-cuerpo">
+                    {% include "parciales/_campo.html" with campo=form_evidencia.archivo %}
+                    {% include "parciales/_campo.html" with campo=form_evidencia.descripcion %}
+                </div>
+                <div class="panel-pie"><button type="submit" class="boton" data-texto-envio="Subiendo…"><i class="bi bi-upload" aria-hidden="true"></i>Adjuntar</button></div>
+            </form>
+            {% elif not evidencias %}<div class="vacio"><p>Sin evidencias adjuntas.</p></div>{% endif %}
+        </div>
+        <div class="panel">
+            <div class="panel-cabecera"><h2>Historial</h2></div>
+            <ul class="historial">
+                {% for h in historial %}
+                <li><div class="historial-cambio">{% if h.estado_anterior %}{% estado h.estado_anterior %} <i class="bi bi-arrow-right" aria-hidden="true"></i>{% endif %} {% estado h.estado_nuevo %}</div>
+                    <p>{{ h.observacion }}</p><span class="ruta">{{ h.usuario.nombre }} · {{ h.fecha|date:"d-m-Y H:i" }}</span></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

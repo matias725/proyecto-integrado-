@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'cuentas',
     'catalogos',
     'atenciones',
+    'gestion',
 ]
 
 MIDDLEWARE = [
@@ -82,6 +83,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'cuentas.middleware.ContextoDelegacionMiddleware',
+    'core.seguridad.SeguridadMiddleware',
 ]
 
 ROOT_URLCONF = 'sgr.urls'
@@ -159,6 +161,17 @@ SGR_CODIGO_MAX_INTENTOS = int(env('SGR_CODIGO_MAX_INTENTOS', '5'))
 SGR_CODIGO_MAX_POR_HORA = int(env('SGR_CODIGO_MAX_POR_HORA', '5'))
 SGR_LOGIN_MAX_INTENTOS = int(env('SGR_LOGIN_MAX_INTENTOS', '5'))
 SGR_LOGIN_BLOQUEO_MIN = int(env('SGR_LOGIN_BLOQUEO_MIN', '10'))
+# Enlace del correo de bienvenida al crear una cuenta (horas de vigencia)
+PASSWORD_RESET_TIMEOUT = int(env('SGR_BIENVENIDA_HORAS', '72')) * 3600
+# Límite por dirección IP (acceso y recuperación): intentos por ventana de minutos
+SGR_IP_MAX_INTENTOS = int(env('SGR_IP_MAX_INTENTOS', '20'))
+SGR_IP_VENTANA_MIN = int(env('SGR_IP_VENTANA_MIN', '15'))
+# Caché compartida entre los procesos de Gunicorn (el conteo por IP debe verse en todos)
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}} if DEBUG else {
+    'default': {'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+                'LOCATION': env('SGR_CACHE_DIR', str(BASE_DIR / 'cache'))}}
+# En AWS el sistema queda detrás de Nginx: la IP real es la última de X-Forwarded-For
+SGR_DETRAS_DE_PROXY = env_bool('SGR_DETRAS_DE_PROXY', not DEBUG)
 
 # ---------------------------------------------------------------------------
 # Correo
@@ -216,15 +229,20 @@ LOGGING = {
 SGR_POR_PAGINA = 10
 # Muestra las cuentas de evaluación en la pantalla de acceso (apagar en producción real)
 SGR_CUENTAS_DEMO = env_bool('SGR_CUENTAS_DEMO', DEBUG)
-SGR_VERSION = env('SGR_VERSION', 'ev2-1.0.4')
+SGR_VERSION = env('SGR_VERSION', 'ev2-2.0.0')
 
-# Fecha fija para los módulos simulados heredados de la EV1, de modo que sus
-# cálculos coincidan con el script SQL (74 de 91 días, 81,32 % esperado).
-SGR_FECHA_REFERENCIA = date(2026, 9, 12)
+# Fecha de trabajo fija (AAAA-MM-DD) para demostraciones y pruebas. Vacía = fecha real.
+SGR_FECHA_HOY = date.fromisoformat(env('SGR_FECHA_HOY')) if env('SGR_FECHA_HOY') else None
+
+# Evidencias y respaldos: fuera de la carpeta pública; se descargan por una vista que valida el alcance
+MEDIA_ROOT = Path(env('SGR_ARCHIVOS_DIR', str(BASE_DIR / 'archivos')))
+MEDIA_URL = '/archivos-no-publicos/'
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
 SGR_EVIDENCIA_FORMATOS = {
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
     '.png': 'image/png',
     '.pdf': 'application/pdf',
 }
-SGR_EVIDENCIA_MAX_MB = 2
+SGR_EVIDENCIA_MAX_MB = int(env('SGR_EVIDENCIA_MAX_MB', '2'))

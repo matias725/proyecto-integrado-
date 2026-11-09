@@ -54,8 +54,12 @@ SGR_DB_USUARIO=sgr
 SGR_DB_CLAVE=${CLAVE_BD}
 SGR_DB_HOST=127.0.0.1
 SGR_GUNICORN_WORKERS=3
+SGR_ARCHIVOS_DIR=/opt/sgr/archivos
+SGR_CACHE_DIR=/opt/sgr/cache
 ENV
 chown sgr:sgr /opt/sgr/.env && chmod 600 /opt/sgr/.env
+# Evidencias y respaldos (fuera de la carpeta del código: rsync --delete no los borra) y caché compartida
+install -d -o sgr -g sgr -m 750 /opt/sgr/archivos /opt/sgr/cache
 ln -sf /opt/sgr/.env /opt/sgr/app/.env
 
 # --- Migraciones, datos iniciales y archivos estáticos ---------------------

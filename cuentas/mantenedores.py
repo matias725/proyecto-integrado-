@@ -47,19 +47,20 @@ class Usuarios(Mantenedor):
     descripcion = 'Cuentas de acceso. Un perfil por delegación solo administra usuarios de sus delegaciones.'
     traza = 'RF-002 · RNF-004 · CU-03 · HU-26'
     plantilla_formulario = 'cuentas/usuario_formulario.html'
-    columnas = [('nombre', 'Nombre'), ('correo', 'Correo'), ('rol.nombre', 'Rol'),
+    columnas = [('nombre', 'Nombre'), ('correo', 'Correo'), ('rol.nombre', 'Rol'), ('cargo.nombre', 'Cargo'),
                 ('lista_delegaciones', 'Delegación')]
     busqueda = ['nombre', 'nombre_usuario', 'correo', 'rol__nombre', 'delegaciones__nombre',
                 'delegaciones__codigo']
     # Sin contraseña, intentos ni bloqueos: solo datos autorizados
     exportar = [('nombre', 'Nombre'), ('nombre_usuario', 'Usuario'), ('correo', 'Correo'), ('rol.nombre', 'Rol'),
-                ('lista_delegaciones', 'Delegaciones'), ('estado', 'Estado'), ('last_login', 'Último acceso')]
+                ('cargo.nombre', 'Cargo'), ('lista_delegaciones', 'Delegaciones'), ('estado', 'Estado'),
+                ('last_login', 'Último acceso')]
     detalle = [('nombre', 'Nombre'), ('nombre_usuario', 'Usuario'), ('correo', 'Correo'), ('rol.nombre', 'Rol'),
-               ('rol.get_alcance_display', 'Alcance del rol'), ('lista_delegaciones', 'Delegaciones autorizadas'),
+               ('rol.get_alcance_display', 'Alcance del rol'), ('cargo.nombre', 'Cargo'), ('lista_delegaciones', 'Delegaciones autorizadas'),
                ('estado', 'Estado'), ('last_login', 'Último acceso'), ('creado', 'Creado')]
 
     def consulta(self, request):
-        consulta = Usuario.objects.select_related('rol').prefetch_related('delegaciones')
+        consulta = Usuario.objects.select_related('rol', 'cargo').prefetch_related('delegaciones')
         if not request.user.alcance_global:
             consulta = consulta.filter(delegaciones__in=request.delegaciones_autorizadas).distinct()
         return consulta
@@ -70,6 +71,17 @@ class Usuarios(Mantenedor):
 
     def kwargs_formulario(self, request):
         return {'actor': request.user}
+
+    def despues_de_crear(self, request, obj):
+        from django.contrib import messages
+
+        from .bienvenida import enviar_bienvenida
+        if enviar_bienvenida(request, obj):
+            messages.info(request, f'Se envió un correo de bienvenida a {obj.correo} con un enlace para que '
+                                   'cree su contraseña.')
+        else:
+            messages.warning(request, f'La cuenta quedó creada, pero no se pudo enviar el correo a {obj.correo}. '
+                                      'La persona puede usar «¿Olvidó su contraseña?» para crear la suya.')
 
 
 ROLES = Roles()

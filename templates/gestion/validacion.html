@@ -1,0 +1,33 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+{% block titulo %}Validación{% endblock %}
+{% block titulo_pagina %}Bandeja de validación{% endblock %}
+{% block bajada %}Actividades del período abierto pendientes de revisión del delegado. Una actividad rechazada deja de sumar puntaje. Nadie valida sus propias actividades.{% endblock %}
+{% block traza %}Matriz SGR · reglas 6 y 8 del nuevo requerimiento{% endblock %}
+{% block contenido %}
+<div class="panel">
+    {% if pagina.object_list %}
+    <div class="desplazable"><table class="tabla">
+        <thead><tr><th>Folio</th><th>Fecha</th><th>Actividad</th><th>Responsable</th><th>Puntaje</th><th class="num">Evidencias</th>{% if puede_validar %}<th class="acciones">Decisión</th>{% endif %}</tr></thead>
+        <tbody>{% for a in pagina.object_list %}
+            <tr><td><a href="{% url 'actividad_ver' a.pk %}" class="codigo">{{ a.folio }}</a></td><td>{{ a.fecha|date:"d-m-Y" }}</td>
+                <td>{{ a.titulo }}<div class="ruta">{{ a.item.nombre }} · {{ a.solicitante_nombre|default:'sin usuario' }}</div></td>
+                <td>{{ a.funcionario.nombre }}</td>
+                <td>{% if a.puntua %}{% insignia 'ok' 'Suma' %}{% else %}{% insignia 'neutro' 'No suma' %}{% endif %}</td>
+                <td class="num">{{ a.total_evidencias }}</td>
+                {% if puede_validar %}<td class="acciones">
+                    {% if a.funcionario != user %}
+                    <form method="post" action="{% url 'validar' a.pk %}" class="acciones-fila">{% csrf_token %}
+                        <input type="hidden" name="decision" value="VALIDADA"><input type="hidden" name="volver" value="bandeja">
+                        <button type="submit" class="enlace-accion">Validar</button></form>
+                    <a class="enlace-accion peligro" href="{% url 'actividad_ver' a.pk %}">Rechazar…</a>
+                    {% else %}<span class="ruta">Propia</span>{% endif %}
+                </td>{% endif %}</tr>
+        {% endfor %}</tbody>
+    </table></div>
+    {% else %}
+    <div class="vacio"><i class="bi bi-patch-check" aria-hidden="true"></i><h3>Bandeja al día</h3><p>No hay actividades pendientes de validación.</p></div>
+    {% endif %}
+    {% include "parciales/_paginador.html" %}
+</div>
+{% endblock %}

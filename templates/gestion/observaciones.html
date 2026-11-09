@@ -1,0 +1,31 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+{% block titulo %}Felicitaciones y reclamos{% endblock %}
+{% block titulo_pagina %}Felicitaciones y reclamos{% endblock %}
+{% block bajada %}Cada felicitación suma {{ periodo.bono_felicitacion }} % (máximo {{ periodo.max_felicitaciones }}) y cada reclamo descuenta {{ periodo.descuento_reclamo }} %. Solo valen las recibidas por el delegado con respaldo formal; las registra el delegado.{% endblock %}
+{% block traza %}Regla 8 del nuevo requerimiento · hoja RECLAMOS{% endblock %}
+{% block contenido %}
+{% if form %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>Registrar</h2></div>
+    <form method="post" enctype="multipart/form-data" novalidate data-validar data-un-envio>{% csrf_token %}
+        <div class="panel-cuerpo">
+            {% include "parciales/_errores_formulario.html" %}
+            <div class="rejilla rejilla-3">{% include "parciales/_campo.html" with campo=form.tipo %}{% include "parciales/_campo.html" with campo=form.funcionario %}{% include "parciales/_campo.html" with campo=form.fecha %}</div>
+            <div class="rejilla rejilla-2">{% include "parciales/_campo.html" with campo=form.medio %}{% include "parciales/_campo.html" with campo=form.remitente %}</div>
+            {% include "parciales/_campo.html" with campo=form.descripcion %}
+            {% include "parciales/_campo.html" with campo=form.respaldo %}
+        </div>
+        <div class="panel-pie"><button type="submit" class="boton principal" data-texto-envio="Guardando…">Registrar</button></div>
+    </form>
+</div>
+{% endif %}
+<div class="panel">
+    {% if registros %}
+    <div class="desplazable"><table class="tabla">
+        <thead><tr><th>Tipo</th><th>Funcionario</th><th>Fecha</th><th>Medio</th><th>Remitente</th><th>Detalle</th><th>Respaldo</th></tr></thead>
+        <tbody>{% for o in registros %}<tr><td>{% if o.tipo == 'FELICITACION' %}{% insignia 'ok' 'Felicitación' %}{% else %}{% insignia 'error' 'Reclamo' %}{% endif %}</td><td>{{ o.funcionario.nombre }}</td><td>{{ o.fecha|date:"d-m-Y" }}</td><td>{{ o.get_medio_display }}</td><td>{{ o.remitente }}</td><td>{{ o.descripcion }}<div class="ruta">Informada por {{ o.registrada_por.nombre }}</div></td><td><a href="{% url 'observacion_respaldo' o.pk %}"><i class="bi bi-paperclip" aria-hidden="true"></i> {{ o.respaldo_nombre }}</a></td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<div class="vacio"><i class="bi bi-award" aria-hidden="true"></i><p>Sin felicitaciones ni reclamos en {{ periodo.nombre }}.</p></div>{% endif %}
+</div>
+{% endblock %}

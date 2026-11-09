@@ -1,0 +1,40 @@
+# EXPLAIN ANALYZE · MySQL 8.0.46-0ubuntu0.24.04.4 · 60000 actividades
+
+## Regla 3 · ingresos del día de un funcionario (índice act_ingresos_diarios)
+
+Filas devueltas: 64 · tiempo: 0.7 ms
+
+-> Sort: gestion_actividad.fecha DESC, gestion_actividad.id DESC  (cost=22.4 rows=64) (actual time=0.112..0.114 rows=64 loops=1)
+    -> Index lookup on gestion_actividad using act_ingresos_diarios (funcionario_id=4, ingresada_el=DATE'2026-11-04')  (cost=22.4 rows=64) (actual time=0.0194..0.1 rows=64 loops=1)
+
+
+## Avance por funcionario e ítem del período (índice act_avance_item)
+
+Filas devueltas: 29 · tiempo: 13.7 ms
+
+-> Table scan on <temporary>  (actual time=8.39..8.39 rows=29 loops=1)
+    -> Aggregate using temporary table  (actual time=8.39..8.39 rows=29 loops=1)
+        -> Filter: ((gestion_actividad.puntua = 1) and (gestion_actividad.periodo_id = 1) and (gestion_actividad.estado = 'REALIZADO') and (gestion_actividad.validacion <> 'RECHAZADA'))  (cost=604 rows=36) (actual time=0.0985..7.99 rows=2736 loops=1)
+            -> Index lookup on gestion_actividad using act_ingresos_diarios (funcionario_id=4)  (cost=604 rows=4004) (actual time=0.0965..7.39 rows=4004 loops=1)
+
+
+## Listado de actividades de la delegación, más recientes primero (índice act_delegacion_fecha)
+
+Filas devueltas: 25 · tiempo: 0.7 ms
+
+-> Limit: 25 row(s)  (cost=3584 rows=25) (actual time=0.0312..0.0343 rows=25 loops=1)
+    -> Index lookup on gestion_actividad using act_delegacion_fecha (delegacion_id=6)  (cost=3584 rows=29830) (actual time=0.0307..0.0326 rows=25 loops=1)
+
+
+## Bandeja de validación del delegado (índice act_bandeja_validacion)
+
+Filas devueltas: 25 · tiempo: 13.0 ms
+
+-> Limit: 25 row(s)  (cost=2773 rows=25) (actual time=11.4..11.4 rows=25 loops=1)
+    -> Sort: gestion_actividad.fecha DESC, gestion_actividad.id DESC, limit input to 25 row(s) per chunk  (cost=2773 rows=21720) (actual time=11.4..11.4 rows=25 loops=1)
+        -> Index lookup on gestion_actividad using act_bandeja_validacion (delegacion_id=6, validacion='PENDIENTE')  (cost=2773 rows=21720) (actual time=0.0324..10.3 rows=12236 loops=1)
+
+
+## Cálculo completo de la matriz de la delegación Rural
+
+7 fichas calculadas en 158.2 ms (consultas agregadas, sin N+1).

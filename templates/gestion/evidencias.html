@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+{% block titulo %}Evidencias{% endblock %}
+{% block titulo_pagina %}Evidencias{% endblock %}
+{% block bajada %}Archivos de respaldo adjuntos a las actividades. Se descargan solo dentro del alcance de su perfil y no quedan en una carpeta pública.{% endblock %}
+{% block traza %}Matriz SGR · respaldo de actividades{% endblock %}
+{% block contenido %}
+<div class="panel">
+    {% if pagina.object_list %}
+    <div class="desplazable"><table class="tabla">
+        <thead><tr><th>Archivo</th><th>Actividad</th><th>Responsable</th><th class="num">Tamaño</th><th>Subida</th></tr></thead>
+        <tbody>{% for e in pagina.object_list %}
+            <tr><td><a href="{% url 'evidencia_descargar' e.pk %}"><i class="bi bi-paperclip" aria-hidden="true"></i> {{ e.nombre_original }}</a><div class="ruta">{{ e.descripcion }}</div></td>
+                <td><a href="{% url 'actividad_ver' e.actividad.pk %}" class="codigo">{{ e.actividad.folio }}</a><div class="ruta">{{ e.actividad.titulo }}</div></td>
+                <td>{{ e.actividad.funcionario.nombre }}</td><td class="num">{{ e.tamano|filesizeformat }}</td><td>{{ e.subida_en|date:"d-m-Y H:i" }}</td></tr>
+        {% endfor %}</tbody>
+    </table></div>
+    {% else %}
+    <div class="vacio"><i class="bi bi-paperclip" aria-hidden="true"></i><h3>Sin evidencias</h3><p>Adjunte respaldos desde la ficha de cada actividad.</p></div>
+    {% endif %}
+    {% include "parciales/_paginador.html" %}
+</div>
+{% endblock %}

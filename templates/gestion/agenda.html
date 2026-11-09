@@ -1,0 +1,24 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+{% block titulo %}Compromisos{% endblock %}
+{% block titulo_pagina %}Compromisos del TUBO de trabajo{% endblock %}
+{% block bajada %}Solicitudes con fecha de compromiso en {{ periodo.nombre }}. El porcentaje resuelto alimenta el ítem «Soluciones de ingresos al TUBO».{% endblock %}
+{% block traza %}Matriz SGR · hoja TUBO{% endblock %}
+{% block contenido %}
+<div class="rejilla rejilla-3">
+    <div class="panel dato{% if porcentaje >= 80 %} verde{% elif porcentaje >= 48 %} ambar{% else %} rojo{% endif %}"><span class="etiqueta">Resueltas</span><span class="valor">{{ porcentaje|cifra }} %</span><span class="apoyo">{{ resueltas }} de {{ total }} solicitudes · meta habitual 80 %</span></div>
+    <div class="panel dato{% if vencidas %} rojo{% endif %}"><span class="etiqueta">Vencidas</span><span class="valor">{{ vencidas }}</span><span class="apoyo">Con fecha de compromiso cumplida y sin realizar</span></div>
+    <div class="panel dato"><span class="etiqueta">Hoy</span><span class="valor valor-texto">{{ hoy|date:"l d-m-Y"|capfirst }}</span><span class="apoyo">Abra una solicitud para actualizar su avance</span></div>
+</div>
+<div class="columnas-tubo">
+    {% for c in columnas %}
+    <section class="columna-tubo" aria-labelledby="col-{{ c.codigo }}">
+        <h3 id="col-{{ c.codigo }}">{{ c.nombre }} <span class="ruta">{{ c.total }}</span></h3>
+        <ul>{% for a in c.filas %}
+            <li{% if a.vencida %} class="vencida"{% endif %}><a href="{% url 'actividad_ver' a.pk %}"><b>{{ a.titulo }}</b>
+                <div class="ruta">{{ a.funcionario.nombre }} · compromiso {{ a.fecha_compromiso|date:"d-m" }}{% if a.vencida %} · vencida{% endif %}</div></a></li>
+        {% empty %}<li class="ruta">Sin solicitudes</li>{% endfor %}</ul>
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}

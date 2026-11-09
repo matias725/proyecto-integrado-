@@ -1,14 +1,14 @@
 {% load sgr_tags %}
-{# Barra de avance. La línea vertical marca la meta esperada al día (RN-007). #}
+{# Barra de avance. La línea vertical marca lo esperado al día. Anchos aplicados por sgr.js (sin estilos en línea: CSP). #}
 <div class="medidor">
     <div class="medidor-titulo">
-        <span>{{ fila.item }} <span class="ruta">· meta {{ fila.objetivo }} · pondera {{ fila.ponderador }} %</span></span>
-        <span class="cifra">{{ fila.avance }} de {{ fila.objetivo }} · {{ fila.cumplimiento|cifra }} %</span>
+        <span>{{ fila.item }} <span class="ruta">· {% if fila.medicion == 'TUBO' %}meta {{ fila.meta }} % resuelto{% else %}meta {{ fila.meta_ajustada|cifra }}{% if fila.meta_ajustada != fila.meta %} (ajustada de {{ fila.meta }}){% endif %}{% endif %} · pondera {{ fila.ponderador|cifra:0 }} %</span></span>
+        <span class="cifra">{{ fila.detalle }} · {{ fila.cumplimiento|cifra }} %{% if fila.topado %} <span class="estado pendiente" title="Bruto {{ fila.bruto|cifra }} %">Tope {{ tope }} %</span>{% endif %}</span>
     </div>
     <div class="pista" role="img"
-         aria-label="{{ fila.item }}: avance {{ fila.cumplimiento|cifra }} % frente a {{ esperado|cifra }} % esperado">
-        <div class="relleno {{ fila.color }}" style="width: {{ fila.ancho|stringformat:'.2f' }}%"></div>
-        <div class="marca-esperada" style="left: {{ esperado|stringformat:'.2f' }}%"
+         aria-label="{{ fila.item }}: {{ fila.cumplimiento|cifra }} % de cumplimiento frente a {{ esperado|cifra }} % esperado al día">
+        <div class="relleno {{ fila.color }}" data-ancho="{{ fila.ancho|stringformat:'.2f' }}"></div>
+        <div class="marca-esperada" data-izquierda="{{ esperado|stringformat:'.2f' }}"
              data-etiqueta="esperado {{ esperado|cifra }} %"></div>
     </div>
 </div>

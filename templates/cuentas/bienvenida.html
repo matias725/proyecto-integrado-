@@ -1,0 +1,24 @@
+{% extends "layouts/acceso.html" %}
+{% block titulo %}Crear su contraseña{% endblock %}
+
+{% block tarjeta %}
+<h1>Bienvenida, {{ usuario.nombre }}</h1>
+<p class="bajada">Cree la contraseña con la que ingresará al sistema. Su usuario es <b>{{ usuario.nombre_usuario }}</b> y también puede ingresar con <b>{{ usuario.correo }}</b>.</p>
+<ul class="requisitos" data-requisitos-de="id_clave" aria-live="polite">
+    {% for patron, texto in requisitos %}
+    <li data-patron="{{ patron }}"><i class="bi bi-circle" aria-hidden="true"></i>{{ texto }}</li>
+    {% endfor %}
+    <li data-coincide="id_confirmacion"><i class="bi bi-circle" aria-hidden="true"></i>Ambas contraseñas coinciden</li>
+</ul>
+
+<form method="post" novalidate data-validar data-un-envio>
+    {% csrf_token %}
+    {% include "parciales/_errores_formulario.html" %}
+    {% include "parciales/_campo_clave.html" with campo=form.clave %}
+    {% include "parciales/_campo_clave.html" with campo=form.confirmacion %}
+    <button type="submit" class="boton principal ancho" data-texto-envio="Guardando…">
+        <i class="bi bi-check-lg" aria-hidden="true"></i>Crear contraseña
+    </button>
+</form>
+<p class="ruta nota-acceso">El enlace sirve una sola vez. Después ingrese desde la página de acceso.</p>
+{% endblock %}

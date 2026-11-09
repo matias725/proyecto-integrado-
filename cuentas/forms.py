@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, password_validation
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from catalogos.models import Delegacion
+from catalogos.models import Cargo, Delegacion
 from core.forms_base import FormularioCatalogo
 from core.reglas import motivo_no_desactivar
 
@@ -161,7 +161,7 @@ class UsuarioForm(forms.ModelForm):
 
     class Meta:
         model = Usuario
-        fields = ['nombre', 'nombre_usuario', 'correo', 'rol', 'delegaciones', 'is_active']
+        fields = ['nombre', 'nombre_usuario', 'correo', 'rol', 'cargo', 'delegaciones', 'is_active']
         widgets = {'delegaciones': forms.CheckboxSelectMultiple}
         labels = {'is_active': 'Cuenta activa'}
 
@@ -178,14 +178,17 @@ class UsuarioForm(forms.ModelForm):
             roles = roles | Rol.objects.filter(pk=self.instance.rol_id)
         self.fields['rol'].queryset = roles.distinct().order_by('codigo')
         self.fields['delegaciones'].queryset = delegaciones.order_by('codigo')
+        self.fields['cargo'].queryset = Cargo.objects.filter(activo=True)
+        self.fields['cargo'].empty_label = 'Sin cargo (no participa en la matriz SGR)'
         self.fields['delegaciones'].required = True
         self.fields['delegaciones'].help_text = 'Al menos una. La primera se usa como contexto inicial.'
         self.fields['nombre_usuario'].help_text = 'Minúsculas, sin espacios. Sirve para ingresar junto con el correo.'
         if self.instance.pk:
             self.fields['clave'].help_text = 'Déjela en blanco para conservar la contraseña actual.'
         else:
-            self.fields['clave'].required = True
-            self.fields['confirmacion'].required = True
+            self.fields['clave'].label = 'Contraseña inicial (opcional)'
+            self.fields['clave'].help_text = ('Recomendado: déjela en blanco. La persona recibirá un correo de '
+                                              'bienvenida con un enlace para crear su propia contraseña.')
         if self.instance.pk and actor and self.instance.pk == actor.pk:
             self.fields['is_active'].disabled = True
             self.fields['is_active'].help_text = 'No puede desactivar su propia cuenta.'
@@ -236,6 +239,10 @@ class UsuarioForm(forms.ModelForm):
         usuario = super().save(commit=False)
         if self.cleaned_data.get('clave'):
             usuario.set_password(self.cleaned_data['clave'])
+        elif not usuario.pk:
+            # Sin contraseña inicial nadie puede ingresar con esta cuenta hasta que la persona
+            # defina la suya con el enlace del correo de bienvenida.
+            usuario.set_unusable_password()
         if commit:
             usuario.save()
             self.save_m2m()

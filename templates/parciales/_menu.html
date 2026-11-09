@@ -9,7 +9,6 @@
             {% for enlace in grupo.enlaces %}
                 <a href="{% url enlace.url %}"{% if enlace.activo %} class="activo" aria-current="page"{% endif %}>
                     <i class="bi {{ enlace.icono }}" aria-hidden="true"></i>{{ enlace.texto }}
-                    {% if enlace.simulado %}<span class="marca-simulado">Simulado</span>{% endif %}
                 </a>
             {% endfor %}
         {% endfor %}

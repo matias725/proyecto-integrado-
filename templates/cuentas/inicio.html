@@ -13,15 +13,15 @@
         <span class="valor">{{ delegacion_activa.codigo|default:'—' }}</span>
         <span class="apoyo">{% if delegacion_activa %}Delegación {{ delegacion_activa.nombre }} · {{ delegaciones_autorizadas|length }} autorizada{{ delegaciones_autorizadas|length|pluralize }}{% else %}Sin delegación asignada{% endif %}</span>
     </div>
-    <div class="panel dato">
-        <span class="etiqueta">Módulos operativos</span>
-        <span class="valor">{{ operativos }}</span>
-        <span class="apoyo">Con persistencia en la base de datos</span>
+    <div class="panel dato{% if ingresos_hoy is not None and ingresos_hoy >= max_diario %} ambar{% endif %}">
+        <span class="etiqueta">Ingresos de hoy</span>
+        <span class="valor">{% if ingresos_hoy is not None %}{{ ingresos_hoy }} de {{ max_diario }}{% else %}—{% endif %}</span>
+        <span class="apoyo">Máximo diario de la matriz SGR (regla 3)</span>
     </div>
     <div class="panel dato">
-        <span class="etiqueta">Módulos simulados</span>
-        <span class="valor">{{ simulados }}</span>
-        <span class="apoyo">Navegables con datos de demostración</span>
+        <span class="etiqueta">Cargo</span>
+        <span class="valor valor-texto">{{ user.cargo.nombre|default:'Sin cargo' }}</span>
+        <span class="apoyo">{{ operativos }} módulo{{ operativos|pluralize }} autorizado{{ operativos|pluralize }} para su rol</span>
     </div>
 </div>
 
@@ -61,12 +61,11 @@
         <h3 class="subtitulo">{{ g.grouper }}</h3>
         <div class="tarjetas-modulo">
             {% for mod in g.list %}
-            <a class="tarjeta-modulo" href="{% if mod.operativo and mod.codigo != 'auditoria' and mod.codigo != 'correos' %}{% url mod.codigo|add:'_lista' %}{% else %}{% url mod.codigo %}{% endif %}">
+            <a class="tarjeta-modulo" href="{% url mod.url %}">
                 <i class="bi {{ mod.icono }}" aria-hidden="true"></i>
                 <span>
                     <b>{{ mod.nombre }}</b>
-                    <small>{{ mod.acciones|join:", "|capfirst }}</small><br>
-                    {% if mod.operativo %}<span class="estado ok">Operativo</span>{% else %}<span class="estado pendiente">Simulado</span>{% endif %}
+                    <small>{{ mod.acciones|join:", "|capfirst }}</small>
                 </span>
             </a>
             {% endfor %}

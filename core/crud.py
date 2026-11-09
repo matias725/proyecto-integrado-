@@ -71,6 +71,9 @@ class Mantenedor:
     def puede_modificar(self, request, obj):
         return True
 
+    def despues_de_crear(self, request, obj):
+        """Se llama una vez guardado un registro nuevo (fuera de la transacción)."""
+
     def kwargs_formulario(self, request):
         return {}
 
@@ -200,6 +203,8 @@ class Mantenedor:
                     accion = 'cread' if obj is None else 'actualizad'
                     messages.success(request, f'{capfirst(self.singular)} «{guardado}» {accion}{self.participio} '
                                               'correctamente.')
+                    if obj is None:
+                        self.despues_de_crear(request, guardado)
                     return redirect(self.url('ver', pk=guardado.pk))
             messages.error(request, 'No se guardó. Revise los campos marcados en el formulario.')
         return render(request, self.plantilla_formulario, self.contexto(request, form=form, obj=obj))

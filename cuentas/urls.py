@@ -10,6 +10,7 @@ urlpatterns = [
     path('recuperar/validar/', views.validar_codigo, name='recuperar_validar'),
     path('recuperar/reenviar/', views.reenviar_codigo, name='recuperar_reenviar'),
     path('recuperar/nueva/', views.nueva_clave, name='recuperar_nueva'),
+    path('bienvenida/<uidb64>/<token>/', views.bienvenida, name='bienvenida'),
     path('inicio/', views.inicio, name='inicio'),
     path('contexto/delegacion/', views.cambiar_delegacion, name='cambiar_delegacion'),
     path('correos/', views.bandeja, name='correos'),

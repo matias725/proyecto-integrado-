@@ -1,0 +1,123 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Tablero{% endblock %}
+{% block titulo_pagina %}Tablero y semáforo{% endblock %}
+{% block bajada %}Cumplimiento de la matriz SGR en {{ delegacion_activa.nombre_completo|default:'su delegación' }}. Reemplaza las hojas por cargo, SEMÁFORO y RESUMEN del Excel trimestral.{% endblock %}
+{% block traza %}Matriz SGR · reglas 7, 9 y 10 del nuevo requerimiento{% endblock %}
+{% block accion %}{% include "gestion/_selector_periodo.html" %}{% endblock %}
+
+{% block contenido %}
+{% if not periodo.abierto %}
+<div class="aviso info"><i class="bi bi-lock" aria-hidden="true"></i>
+    <div>{{ periodo.nombre }} está cerrado: sus resultados quedaron congelados y se muestran solo para consulta.</div></div>
+{% endif %}
+
+<div class="rejilla rejilla-4">
+    <div class="panel dato {{ equipo.color|default:'' }}">
+        <span class="etiqueta">Resultado del equipo</span>
+        <span class="valor">{% if equipo %}{{ equipo.promedio|cifra }} %{% else %}—{% endif %}</span>
+        <span class="apoyo">Esperado al día: {{ esperado|cifra }} % · día {{ dias_transcurridos }} de {{ periodo.dias }}</span>
+    </div>
+    <div class="panel dato {{ ficha.color|default:'' }}">
+        <span class="etiqueta">{% if ficha and ficha.funcionario == user %}Mi cumplimiento{% else %}Cumplimiento de la ficha{% endif %}</span>
+        <span class="valor">{% if ficha and not ficha.sin_metas %}{{ ficha.total|cifra }} %{% else %}—{% endif %}</span>
+        <span class="apoyo">Mínimo exigido {{ periodo.cumplimiento_minimo }} % · tope {{ periodo.tope_total }} %</span>
+    </div>
+    <div class="panel dato{% if ingresos_hoy >= max_diario %} rojo{% endif %}">
+        <span class="etiqueta">Mis ingresos de hoy</span>
+        <span class="valor">{{ ingresos_hoy }} / {{ max_diario }}</span>
+        <span class="apoyo">Ingrese a diario: la semana se cierra el lunes</span>
+    </div>
+    <div class="panel dato{% if vencidas %} rojo{% elif por_validar %} ambar{% endif %}">
+        <span class="etiqueta">{% if ve_equipo %}Por validar{% else %}Mis compromisos vencidos{% endif %}</span>
+        <span class="valor">{% if ve_equipo %}{{ por_validar }}{% else %}{{ vencidas }}{% endif %}</span>
+        <span class="apoyo">{{ total_actividades }} actividades · {{ sin_puntaje }} sin puntaje · {{ vencidas }} vencidas</span>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <div>
+            <h2>Avance por ítem</h2>
+            {% if ficha %}<span class="ruta">{{ ficha.funcionario.nombre }} · {{ ficha.cargo.nombre }}{% if ficha.dias_ausencia %} · {{ ficha.dias_ausencia }} días de ausencia descontados de la meta{% endif %}</span>{% endif %}
+        </div>
+        <span class="espacio"></span>
+        {% if ve_equipo and fichas|length > 1 %}
+        <form method="get" class="selector-periodo">
+            <input type="hidden" name="periodo" value="{{ periodo.pk }}">
+            <label for="funcionario">Ver ficha de</label>
+            <select name="funcionario" id="funcionario" data-enviar-al-cambiar>
+                {% for f in fichas %}<option value="{{ f.funcionario.pk }}"{% if f.funcionario == ficha.funcionario %} selected{% endif %}>{{ f.funcionario.nombre }}</option>{% endfor %}
+            </select>
+            <noscript><button type="submit" class="boton pequeno">Ver</button></noscript>
+        </form>
+        {% endif %}
+    </div>
+    <div class="panel-cuerpo">
+        {% if ficha and ficha.filas %}
+            {% for fila in ficha.filas %}{% medidor fila esperado periodo.tope_item %}{% endfor %}
+            <div class="leyenda-semaforo">
+                <span><i class="punto verde"></i> Verde: igual o sobre lo esperado al día</span>
+                <span><i class="punto ambar"></i> Naranjo: entre el {{ periodo.umbral_naranjo }} % de lo esperado y lo esperado</span>
+                <span><i class="punto rojo"></i> Rojo: bajo el {{ periodo.umbral_naranjo }} % de lo esperado</span>
+                <span>Cada ítem suma como máximo {{ periodo.tope_item }} % (regla 7)</span>
+            </div>
+        {% else %}
+            <div class="vacio"><i class="bi bi-bullseye" aria-hidden="true"></i><h3>Sin metas para esta ficha</h3>
+                <p>{% if ficha %}El cargo {{ ficha.cargo.nombre }} no tiene ítems configurados en {{ periodo.nombre }}.{% else %}Su cuenta no tiene cargo asignado en la matriz SGR.{% endif %}</p></div>
+        {% endif %}
+    </div>
+    {% if ficha and ficha.filas %}
+    <div class="ficha-total">
+        <span>Gestión ponderada <b>{{ ficha.gestion|cifra }} %</b></span>
+        <span>Felicitaciones <b>{{ ficha.felicitaciones_validas }}</b>{% if ficha.felicitaciones > ficha.felicitaciones_validas %} (de {{ ficha.felicitaciones }}, máx. {{ periodo.max_felicitaciones }}){% endif %} · +{{ periodo.bono_felicitacion }} % c/u</span>
+        <span>Reclamos <b>{{ ficha.reclamos }}</b> · −{{ periodo.descuento_reclamo }} % c/u</span>
+        <span>Total <b>{{ ficha.total|cifra }} %</b> {% semaforo ficha.color %}</span>
+    </div>
+    {% endif %}
+</div>
+
+<div class="panel">
+    <div class="panel-cabecera">
+        <h2>Semáforo del equipo</h2>
+        <span class="espacio"></span>
+        {% if equipo %}<span class="ruta">{{ equipo.integrantes }} integrantes · {{ equipo.bajo_minimo }} bajo el mínimo · diferencia entre el mayor y el menor {{ equipo.dispersion|cifra }} puntos</span>{% endif %}
+        {% if user|tiene_permiso:'informes.ver' %}<a href="{% url 'informes' %}?periodo={{ periodo.pk }}" class="boton pequeno"><i class="bi bi-file-earmark-bar-graph" aria-hidden="true"></i>Informe</a>{% endif %}
+    </div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr><th>Funcionario</th><th>Cargo</th><th class="num">Días efectivos</th><th class="num">Gestión</th><th class="num">Ajuste</th><th class="num">Total</th><th>Semáforo</th></tr></thead>
+            <tbody>
+            {% for f in fichas %}
+                <tr{% if f.funcionario == user %} class="destacado"{% endif %}>
+                    <td>{% if ve_equipo %}<a href="?periodo={{ periodo.pk }}&funcionario={{ f.funcionario.pk }}">{{ f.funcionario.nombre }}</a>{% else %}{{ f.funcionario.nombre }}{% endif %}</td>
+                    <td>{{ f.cargo.nombre }}</td>
+                    <td class="num">{{ f.dias_efectivos }}</td>
+                    <td class="num">{% if f.sin_metas %}—{% else %}{{ f.gestion|cifra }} %{% endif %}</td>
+                    <td class="num">{% if f.ajuste %}{{ f.ajuste|cifra:0 }} %{% else %}0{% endif %}</td>
+                    <td class="num"><strong>{% if f.sin_metas %}—{% else %}{{ f.total|cifra }} %{% endif %}</strong></td>
+                    <td>{% semaforo f.color %}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="7"><div class="vacio"><p>No hay funcionarios con cargo en esta delegación.</p></div></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if ve_equipo %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>Alertas de calidad del registro</h2><span class="espacio"></span><span class="ruta">Regla 6: los ingresos deben reflejar lo que se hace, no solo generar puntaje</span></div>
+    {% if alertas %}
+    <div class="desplazable"><table class="tabla">
+        <thead><tr><th>Alerta</th><th>Funcionario</th><th>Detalle</th></tr></thead>
+        <tbody>{% for a in alertas %}<tr><td>{% insignia 'pendiente' a.tipo %}</td><td>{{ a.funcionario }}</td><td>{{ a.detalle }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}
+    <div class="vacio"><i class="bi bi-check2-circle" aria-hidden="true"></i><p>Sin alertas en este período.</p></div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+
+{% block titulo %}Actividades{% endblock %}
+{% block titulo_pagina %}Actividades y TUBO de trabajo{% endblock %}
+{% block bajada %}{% if integrantes %}Actividades del equipo de {{ delegacion_activa.nombre_completo }}{% else %}Sus actividades en {{ delegacion_activa.nombre_completo }}{% endif %} en {{ periodo.nombre }}. Solo suman puntaje las acciones realizadas con nombre y teléfono del usuario.{% endblock %}
+{% block traza %}Matriz SGR · reglas 1 a 5 del nuevo requerimiento{% endblock %}
+
+{% block accion %}
+{% if puede_crear %}
+<span class="contador-diario{% if ingresos_hoy >= max_diario %} lleno{% endif %}" title="Máximo diario de ingresos (regla 3)"><i class="bi bi-calendar-check" aria-hidden="true"></i>Hoy <b>{{ ingresos_hoy }}/{{ max_diario }}</b></span>
+<a href="{% url 'actividad_nueva' %}" class="boton principal"{% if ingresos_hoy >= max_diario %} aria-disabled="true"{% endif %}><i class="bi bi-plus-lg" aria-hidden="true"></i>Registrar actividad</a>
+{% endif %}
+{% endblock %}
+
+{% block contenido %}
+<form method="get" class="herramientas" role="search">
+    <div class="buscador-campo">
+        <label for="busqueda">Búsqueda</label>
+        <div class="buscador"><i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" id="busqueda" name="q" value="{{ texto }}" maxlength="80" placeholder="Folio, actividad, usuario, organización…" data-busqueda-viva></div>
+    </div>
+    <div><label for="periodo">Período</label>
+        <select id="periodo" name="periodo" data-enviar-al-cambiar>{% for p in periodos %}<option value="{{ p.pk }}"{% if p.pk == periodo.pk %} selected{% endif %}>{{ p.nombre }}</option>{% endfor %}</select></div>
+    <div><label for="estado">Estado</label>
+        <select id="estado" name="estado" data-enviar-al-cambiar><option value="">Todos</option>
+            {% for codigo, nombre in estados %}<option value="{{ codigo }}"{% if estado == codigo %} selected{% endif %}>{{ nombre }}</option>{% endfor %}</select></div>
+    <div><label for="puntaje">Suma puntaje</label>
+        <select id="puntaje" name="puntaje" data-enviar-al-cambiar><option value="">Todas</option>
+            <option value="si"{% if puntaje == 'si' %} selected{% endif %}>Sí</option><option value="no"{% if puntaje == 'no' %} selected{% endif %}>No</option></select></div>
+    {% if integrantes %}
+    <div><label for="funcionario">Responsable</label>
+        <select id="funcionario" name="funcionario" data-enviar-al-cambiar><option value="">Todo el equipo</option>
+            {% for u in integrantes %}<option value="{{ u.pk }}"{% if funcionario == u.pk|stringformat:'s' %} selected{% endif %}>{{ u.nombre }}</option>{% endfor %}</select></div>
+    {% endif %}
+    <div><button type="submit" class="boton"><i class="bi bi-funnel" aria-hidden="true"></i>Filtrar</button></div>
+    <div><a href="{% url 'actividades_exportar' %}{% querystring pagina=None %}" class="boton secundario" data-exportar{% if not pagina.paginator.count %} aria-disabled="true" tabindex="-1"{% endif %}><i class="bi bi-file-earmark-excel" aria-hidden="true"></i>Exportar a Excel</a></div>
+</form>
+
+<div class="panel">
+    {% if pagina.object_list %}
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr><th>Folio</th><th>Fecha</th><th>Actividad</th>{% if integrantes %}<th>Responsable</th>{% endif %}<th>Ítem</th><th>Estado</th><th>Validación</th><th class="acciones">Acciones</th></tr></thead>
+            <tbody>
+            {% for a in pagina.object_list %}
+                <tr>
+                    <td class="destacado"><span class="codigo">{{ a.folio }}</span></td>
+                    <td>{{ a.fecha|date:"d-m-Y" }}{% if a.ingresada_el != a.fecha %}<div class="ruta">ingresada {{ a.ingresada_el|date:"d-m" }}</div>{% endif %}</td>
+                    <td>{{ a.titulo }}<div class="ruta">{{ a.solicitante_nombre|default:'Sin usuario' }}{% if a.organizacion %} · {{ a.organizacion }}{% endif %}</div>
+                        {% if not a.puntua %}<div class="sin-puntaje"><i class="bi bi-dash-circle" aria-hidden="true"></i> No suma puntaje</div>{% endif %}</td>
+                    {% if integrantes %}<td>{{ a.funcionario.nombre }}</td>{% endif %}
+                    <td>{{ a.item.nombre }}</td>
+                    <td>{% estado a.estado %}{% if a.vencida %}<div class="ruta">Vencida {{ a.fecha_compromiso|date:"d-m" }}</div>{% endif %}</td>
+                    <td>{% if a.validacion == 'PENDIENTE' %}{% estado 'POR_VALIDAR' %}{% else %}{% estado a.validacion %}{% endif %}</td>
+                    <td class="acciones"><a class="enlace-accion" href="{% url 'actividad_ver' a.pk %}">Ver</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio"><i class="bi bi-journal" aria-hidden="true"></i><h3>Sin actividades</h3>
+        <p>{% if texto or estado or puntaje %}Ninguna actividad coincide con los filtros.{% elif puede_crear %}Registre su primera actividad del día con «Registrar actividad».{% else %}Aún no hay actividades en este período.{% endif %}</p></div>
+    {% endif %}
+    {% include "parciales/_paginador.html" %}
+</div>
+{% endblock %}

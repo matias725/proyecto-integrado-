@@ -14,19 +14,22 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
 from django.utils import timezone
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_decode
 from django.views.decorators.http import require_POST
 
+from core.context_processors import url_de
 from core.models import registrar
+from gestion.reglas import MAX_INGRESOS_DIARIOS, ingresos_del_dia
 
 from .forms import AccesoForm, NuevaClaveForm, SolicitudCodigoForm, ValidarCodigoForm
 from .middleware import CLAVE_SESION
 from .models import CodigoRecuperacion, CorreoSaliente, Usuario, enmascarar_correo
-from .modulos import MODULOS, OPERATIVO
+from .modulos import MODULOS
 from .permisos import denegar, permiso_requerido, sesion_requerida
 from .validadores import REQUISITOS
 
@@ -248,6 +251,36 @@ def nueva_clave(request):
 
 
 # ---------------------------------------------------------------------------
+# Bienvenida: la persona crea su contraseña con el enlace del correo
+# ---------------------------------------------------------------------------
+def bienvenida(request, uidb64, token):
+    try:
+        usuario = Usuario.objects.get(pk=urlsafe_base64_decode(uidb64).decode(), is_active=True)
+    except (Usuario.DoesNotExist, ValueError, TypeError, OverflowError):
+        usuario = None
+    if usuario is None or not default_token_generator.check_token(usuario, token):
+        messages.warning(request, 'El enlace de bienvenida no es válido, ya se usó o venció. Puede crear su '
+                                  'contraseña con «¿Olvidó su contraseña?».')
+        return redirect('recuperar')
+    if request.user.is_authenticated and request.user.pk != usuario.pk:
+        logout(request)
+
+    form = NuevaClaveForm(usuario, request.POST if request.method == 'POST' else None)
+    if request.method == 'POST':
+        if form.is_valid():
+            usuario.set_password(form.cleaned_data['clave'])
+            usuario.intentos_fallidos = 0
+            usuario.bloqueado_hasta = None
+            usuario.save(update_fields=['password', 'intentos_fallidos', 'bloqueado_hasta'])
+            registrar(request, 'CAMBIO_CLAVE', 'cuenta', usuario.pk, 'Contraseña creada desde la bienvenida',
+                      usuario=usuario)
+            messages.success(request, 'Contraseña creada. Ya puede ingresar con su usuario o correo.')
+            return redirect('acceso')
+        messages.error(request, 'La contraseña no se guardó. Revise los requisitos indicados.')
+    return render(request, 'cuentas/bienvenida.html', {'form': form, 'requisitos': REQUISITOS, 'usuario': usuario})
+
+
+# ---------------------------------------------------------------------------
 # Contexto de delegación
 # ---------------------------------------------------------------------------
 @require_POST
@@ -280,7 +313,7 @@ def inicio(request):
         permitidas = [a for a in acciones if usuario.tiene_permiso(codigo, a)]
         if permitidas:
             modulos.append({'codigo': codigo, 'nombre': nombre, 'icono': icono, 'grupo': grupo,
-                            'operativo': estado == OPERATIVO, 'acciones': permitidas})
+                            'url': url_de(codigo), 'acciones': permitidas})
     from atenciones.models import Atencion
     resumen = None
     if usuario.tiene_permiso('atenciones', 'ver') and request.delegacion_activa:
@@ -294,8 +327,9 @@ def inicio(request):
         }
     return render(request, 'cuentas/inicio.html', {
         'modulos': modulos, 'resumen': resumen,
-        'operativos': sum(m['operativo'] for m in modulos),
-        'simulados': sum(not m['operativo'] for m in modulos),
+        'operativos': len(modulos),
+        'ingresos_hoy': ingresos_del_dia(usuario) if usuario.tiene_permiso('actividades', 'crear') else None,
+        'max_diario': MAX_INGRESOS_DIARIOS,
     })
 
 

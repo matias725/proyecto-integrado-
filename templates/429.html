@@ -1,0 +1,12 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demasiados intentos · SGR La Serena</title>
+<link rel="stylesheet" href="{% static 'css/sgr.css' %}"></head>
+<body>
+<header class="acceso-cabecera"><b>Municipalidad de La Serena</b><span>/ Sistema de Gestión de Resultados</span></header>
+<main class="pagina-error"><div class="panel"><div class="vacio">
+    <h3>Demasiados intentos desde este equipo</h3>
+    <p>Por seguridad, se pausaron los intentos de acceso y recuperación de clave desde esta conexión. Espere {{ minutos }} minutos y vuelva a intentarlo. Si olvidó su clave, pida ayuda al administrador del sistema.</p>
+    <a href="{% url 'acceso' %}" class="boton principal">Volver al acceso</a>
+</div></div></main>
+</body></html>

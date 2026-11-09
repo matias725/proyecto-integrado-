@@ -105,15 +105,16 @@ class SistemaTests(PruebaSGR):
         self.assertEqual(r['X-Frame-Options'], 'DENY')
         self.assertEqual(r['X-Content-Type-Options'], 'nosniff')
 
-    def test_modulos_simulados_navegables(self):
-        """PX-05 · Los módulos en desarrollo son navegables y se identifican como simulados"""
+    def test_modulos_matriz_operativos(self):
+        """PX-05 · Los módulos de la matriz SGR son operativos: sin datos en memoria ni marca «simulado»"""
         self.entrar('admin')
         for ruta in ['tablero', 'actividades', 'evidencias', 'validacion', 'agenda', 'atencion_social',
-                     'periodos', 'metas', 'informes']:
+                     'periodos', 'metas', 'informes', 'ausencias', 'observaciones', 'organizaciones_lista',
+                     'cargos_lista']:
             with self.subTest(ruta=ruta):
                 r = self.client.get(reverse(ruta))
                 self.assertEqual(r.status_code, 200)
-                self.assertContains(r, 'Módulo simulado')
+                self.assertNotContains(r, 'imulado')
 
     def test_formulario_sin_token_csrf(self):
         """PX-06 · Un envío sin token CSRF se rechaza con una pantalla clara y sin guardar"""

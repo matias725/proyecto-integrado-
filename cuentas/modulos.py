@@ -16,30 +16,44 @@ ACCIONES = [
 ]
 
 # (código, nombre, estado, acciones disponibles, ícono, grupo del menú)
+MATRIZ = 'Matriz SGR'
+GESTION = 'Gestión municipal'
+CONFIG = 'Configuración'
+CONTROL = 'Control'
+CRUD = ['ver', 'crear', 'editar', 'eliminar']
+
 MODULOS = [
-    ('atenciones', 'Atenciones', OPERATIVO, ['ver', 'crear'], 'bi-person-lines-fill', 'Gestión municipal'),
-    ('delegaciones', 'Delegaciones', OPERATIVO, ['ver', 'crear', 'editar', 'eliminar'], 'bi-geo-alt', 'Gestión municipal'),
-    ('roles', 'Roles', OPERATIVO, ['ver', 'crear', 'editar', 'eliminar'], 'bi-shield-lock', 'Gestión municipal'),
-    ('usuarios', 'Usuarios', OPERATIVO, ['ver', 'crear', 'editar', 'eliminar'], 'bi-people', 'Gestión municipal'),
-    ('items', 'Ítems y metas', OPERATIVO, ['ver', 'crear', 'editar', 'eliminar'], 'bi-bullseye', 'Gestión municipal'),
-    ('tipos_atencion', 'Tipo de Atención', OPERATIVO, ['ver', 'crear', 'editar', 'eliminar'], 'bi-tags', 'Gestión municipal'),
-    ('sub_atenciones', 'Sub Atención', OPERATIVO, ['ver', 'crear', 'editar', 'eliminar'], 'bi-diagram-2', 'Gestión municipal'),
-    ('auditoria', 'Auditoría', OPERATIVO, ['ver'], 'bi-clock-history', 'Control'),
-    ('correos', 'Correos de prueba', OPERATIVO, ['ver'], 'bi-envelope', 'Control'),
-    ('tablero', 'Tablero de indicadores', SIMULADO, ['ver'], 'bi-speedometer2', 'Módulos en desarrollo'),
-    ('actividades', 'Actividades', SIMULADO, ['ver', 'crear'], 'bi-journal-text', 'Módulos en desarrollo'),
-    ('evidencias', 'Evidencias', SIMULADO, ['ver', 'crear'], 'bi-paperclip', 'Módulos en desarrollo'),
-    ('validacion', 'Validación', SIMULADO, ['ver', 'editar'], 'bi-patch-check', 'Módulos en desarrollo'),
-    ('agenda', 'Agenda colectiva', SIMULADO, ['ver', 'crear', 'editar'], 'bi-calendar-week', 'Módulos en desarrollo'),
-    ('atencion_social', 'Atención social', SIMULADO, ['ver', 'crear'], 'bi-heart', 'Módulos en desarrollo'),
-    ('periodos', 'Períodos', SIMULADO, ['ver', 'crear', 'editar'], 'bi-calendar3', 'Módulos en desarrollo'),
-    ('metas', 'Metas y ponderaciones', SIMULADO, ['ver', 'editar'], 'bi-sliders', 'Módulos en desarrollo'),
-    ('informes', 'Informes', SIMULADO, ['ver'], 'bi-file-earmark-bar-graph', 'Módulos en desarrollo'),
+    ('tablero', 'Tablero y semáforo', OPERATIVO, ['ver'], 'bi-speedometer2', MATRIZ),
+    ('actividades', 'Actividades y TUBO', OPERATIVO, ['ver', 'crear'], 'bi-journal-text', MATRIZ),
+    ('agenda', 'Compromisos (TUBO)', OPERATIVO, ['ver'], 'bi-calendar-week', MATRIZ),
+    ('evidencias', 'Evidencias', OPERATIVO, ['ver', 'crear'], 'bi-paperclip', MATRIZ),
+    ('validacion', 'Validación', OPERATIVO, ['ver', 'editar'], 'bi-patch-check', MATRIZ),
+    ('ausencias', 'Ausencias del equipo', OPERATIVO, ['ver', 'crear', 'eliminar'], 'bi-calendar-x', MATRIZ),
+    ('observaciones', 'Felicitaciones y reclamos', OPERATIVO, ['ver', 'crear'], 'bi-award', MATRIZ),
+    ('informes', 'Informes', OPERATIVO, ['ver'], 'bi-file-earmark-bar-graph', MATRIZ),
+    ('atenciones', 'Atenciones', OPERATIVO, ['ver', 'crear'], 'bi-person-lines-fill', GESTION),
+    ('atencion_social', 'Historial por vecino', OPERATIVO, ['ver'], 'bi-heart', GESTION),
+    ('organizaciones', 'Organizaciones', OPERATIVO, CRUD, 'bi-people-fill', GESTION),
+    ('periodos', 'Períodos', OPERATIVO, ['ver', 'crear', 'editar'], 'bi-calendar3', CONFIG),
+    ('metas', 'Metas y ponderaciones', OPERATIVO, ['ver', 'editar'], 'bi-sliders', CONFIG),
+    ('cargos', 'Cargos', OPERATIVO, CRUD, 'bi-person-badge', CONFIG),
+    ('items', 'Ítems de medición', OPERATIVO, CRUD, 'bi-bullseye', CONFIG),
+    ('delegaciones', 'Delegaciones', OPERATIVO, CRUD, 'bi-geo-alt', CONFIG),
+    ('tipos_atencion', 'Tipo de Atención', OPERATIVO, CRUD, 'bi-tags', CONFIG),
+    ('sub_atenciones', 'Sub Atención', OPERATIVO, CRUD, 'bi-diagram-2', CONFIG),
+    ('usuarios', 'Usuarios', OPERATIVO, CRUD, 'bi-people', CONFIG),
+    ('roles', 'Roles', OPERATIVO, CRUD, 'bi-shield-lock', CONFIG),
+    ('auditoria', 'Auditoría', OPERATIVO, ['ver'], 'bi-clock-history', CONTROL),
+    ('correos', 'Correos de prueba', OPERATIVO, ['ver'], 'bi-envelope', CONTROL),
 ]
+
+# Módulos servidos por el motor de mantenedores (su listado se llama <código>_lista)
+MANTENEDORES = {'atenciones', 'delegaciones', 'roles', 'usuarios', 'items', 'tipos_atencion', 'sub_atenciones',
+                'cargos', 'organizaciones'}
 
 NOMBRES = {m[0]: m[1] for m in MODULOS}
 ESTADOS = {m[0]: m[2] for m in MODULOS}
-ORDEN_GRUPOS = ['Gestión municipal', 'Control', 'Módulos en desarrollo']
+ORDEN_GRUPOS = [MATRIZ, GESTION, CONFIG, CONTROL]
 
 
 def todas_las_combinaciones():

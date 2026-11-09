@@ -1,0 +1,7 @@
+<form method="get" class="selector-periodo">
+    <label for="periodo">Período</label>
+    <select name="periodo" id="periodo" data-enviar-al-cambiar>
+        {% for p in periodos %}<option value="{{ p.pk }}"{% if p.pk == periodo.pk %} selected{% endif %}>{{ p.nombre }}{% if p.estado == 'CERRADO' %} (cerrado){% endif %}</option>{% endfor %}
+    </select>
+    <noscript><button type="submit" class="boton pequeno">Ver</button></noscript>
+</form>
