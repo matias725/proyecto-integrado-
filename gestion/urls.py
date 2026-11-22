@@ -17,6 +17,7 @@ urlpatterns = [
     path('validacion/', views.validacion, name='validacion'),
     path('agenda/', views.agenda, name='agenda'),
     path('agenda/exportar/', views.agenda_exportar, name='agenda_exportar'),
+    path('atenciones/<int:pk>/enviar-a-compromiso/', views.atencion_a_compromiso, name='atencion_a_compromiso'),
     path('atencion-social/', views.atencion_social, name='atencion_social'),
     path('semaforo/', views.ausencias, name='ausencias'),
     path('semaforo/<int:pk>/eliminar/', views.ausencia_eliminar, name='ausencia_eliminar'),

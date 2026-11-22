@@ -43,12 +43,19 @@ def logo_institucional():
     return LOGO if finders.find(LOGO) else ''
 
 
+def trimestre_actual():
+    """Trimestre en curso para la cabecera: el período abierto o, si no hay, el más reciente (siempre visible)."""
+    from gestion.models import Periodo
+    return Periodo.objects.filter(estado=Periodo.ABIERTO).first() or Periodo.objects.first()
+
+
 def sgr(request):
     contexto = {'sgr_version': settings.SGR_VERSION, 'mostrar_cuentas_demo': settings.SGR_CUENTAS_DEMO,
                 'logo_institucional': logo_institucional()}
     if not request.user.is_authenticated:
         return contexto
     contexto.update({
+        'trimestre_actual': trimestre_actual(),
         'menu': menu_para(request.user, getattr(request.resolver_match, 'url_name', '') or ''),
         'delegacion_activa': getattr(request, 'delegacion_activa', None),
         'delegaciones_autorizadas': getattr(request, 'delegaciones_autorizadas', []),

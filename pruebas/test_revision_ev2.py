@@ -92,12 +92,12 @@ class PeriodosTests(BaseMatriz):
 class CompromisosTests(BaseMatriz):
 
     def compromisos(self, **filtros):
-        r = self.client.get(reverse('agenda'), filtros)
+        r = self.client.get(reverse('agenda'), {'vista': 'tabla', **filtros})
         self.assertEqual(r.status_code, 200)
         return r, list(r.context['pagina'].paginator.object_list)
 
-    def test_tabla_por_defecto_ordenada_por_urgencia(self):
-        """PK-01 · Por defecto se ve la tabla: solo compromisos, primero lo pendiente por fecha y al final lo realizado"""
+    def test_tabla_ordenada_por_urgencia(self):
+        """PK-01 · La tabla muestra solo compromisos, primero lo pendiente por fecha y al final lo realizado"""
         self.entrar('arojas')
         r, filas = self.compromisos()
         self.assertEqual(r.context['vista'], 'tabla')

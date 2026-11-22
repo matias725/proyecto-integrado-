@@ -1,8 +1,8 @@
 {% extends "layouts/app.html" %}
 {% load sgr_tags %}
 {% block titulo %}Compromisos{% endblock %}
-{% block titulo_pagina %}Compromisos del TUBO de trabajo{% endblock %}
-{% block bajada %}Solicitudes con fecha de compromiso de {{ delegacion_activa.nombre_completo }} en {{ periodo.nombre }}. Filtre por estado, responsable, sector o plazo; el porcentaje resuelto alimenta el ítem «Soluciones de ingresos al TUBO».{% endblock %}
+{% block titulo_pagina %}Compromisos · TUBO de trabajo{% endblock %}
+{% block bajada %}Todo el TUBO en un solo lugar: solicitudes con fecha de compromiso (incluidas las atenciones enviadas a compromiso) de {{ delegacion_activa.nombre_completo }} en {{ periodo.nombre }}. Filtre por estado, responsable, sector o plazo; el porcentaje resuelto alimenta el ítem «Soluciones de ingresos al TUBO».{% endblock %}
 {% block traza %}Matriz SGR · hoja TUBO · corrección EV2: tabla con filtros{% endblock %}
 
 {% block accion %}
@@ -58,8 +58,8 @@
 </div>
 
 <nav class="vistas-compromisos" aria-label="Forma de ver los compromisos">
+    <a href="{% querystring vista='tubo' pagina=None %}"{% if vista == 'tubo' %} aria-current="page"{% endif %}><i class="bi bi-kanban" aria-hidden="true"></i>TUBO en tarjetas</a>
     <a href="{% querystring vista='tabla' pagina=None %}"{% if vista == 'tabla' %} aria-current="page"{% endif %}><i class="bi bi-table" aria-hidden="true"></i>Tabla</a>
-    <a href="{% querystring vista='tablero' pagina=None %}"{% if vista == 'tablero' %} aria-current="page"{% endif %}><i class="bi bi-kanban" aria-hidden="true"></i>Tablero por estado</a>
 </nav>
 
 {% if vista == 'tabla' %}

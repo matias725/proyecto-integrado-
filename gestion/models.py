@@ -18,6 +18,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Lower
 
+from atenciones.models import Atencion, Solicitante
 from catalogos.models import Cargo, Catalogo, Delegacion, ItemMedicion, Sector, texto_territorio
 
 
@@ -231,6 +232,37 @@ class Organizacion(models.Model):
         """Los 3 puestos, con el funcionario asignado o None."""
         return [(orden, self.encargado(orden)) for orden in range(1, self.MAXIMO_ENCARGADOS + 1)]
 
+    # ----- directiva vecinal: presidente, tesorero y encargado, elegidos entre los vecinos -----
+    def _directiva(self):
+        return {d.cargo: d.vecino for d in self.directiva.all()}
+
+    def dirigente(self, cargo):
+        return self._directiva().get(cargo)
+
+    @property
+    def tarjetas_directiva(self):
+        """Los 3 cargos de la directiva, con el vecino asignado o None."""
+        actual = self._directiva()
+        return [(codigo, nombre, actual.get(codigo)) for codigo, nombre in DirigenteOrganizacion.CARGOS]
+
+    @property
+    def directiva_texto(self):
+        actual = self._directiva()
+        return ' · '.join(f'{nombre}: {actual[codigo].nombre}' for codigo, nombre in DirigenteOrganizacion.CARGOS
+                          if codigo in actual) or 'Sin directiva registrada'
+
+    @property
+    def presidente(self):
+        return getattr(self.dirigente(DirigenteOrganizacion.PRESIDENTE), 'nombre', '')
+
+    @property
+    def tesorero(self):
+        return getattr(self.dirigente(DirigenteOrganizacion.TESORERO), 'nombre', '')
+
+    @property
+    def encargado_vecinal(self):
+        return getattr(self.dirigente(DirigenteOrganizacion.ENCARGADO), 'nombre', '')
+
 
 class EncargadoOrganizacion(models.Model):
     """
@@ -259,6 +291,38 @@ class EncargadoOrganizacion(models.Model):
 
     def __str__(self):
         return f'{self.usuario} · {self.organizacion}'
+
+
+class DirigenteOrganizacion(models.Model):
+    """
+    Directiva de la organización (revisión EV2): presidente, tesorero y encargado. Cada cargo lo ocupa un vecino
+    registrado en el sistema (el mismo registro de vecinos de las atenciones, identificado por RUT). Un cargo
+    tiene una sola persona y un vecino no ocupa dos cargos en la misma organización.
+    """
+
+    PRESIDENTE = 'PRESIDENTE'
+    TESORERO = 'TESORERO'
+    ENCARGADO = 'ENCARGADO'
+    CARGOS = [(PRESIDENTE, 'Presidente'), (TESORERO, 'Tesorero'), (ENCARGADO, 'Encargado')]
+
+    organizacion = models.ForeignKey(Organizacion, on_delete=models.CASCADE, related_name='directiva',
+                                     verbose_name='organización')
+    cargo = models.CharField('cargo en la directiva', max_length=10, choices=CARGOS)
+    vecino = models.ForeignKey(Solicitante, on_delete=models.PROTECT, related_name='cargos_directiva',
+                               verbose_name='vecino')
+    asignado_el = models.DateTimeField('asignado el', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'integrante de la directiva'
+        verbose_name_plural = 'directivas de organizaciones'
+        ordering = ['organizacion', 'cargo']
+        constraints = [
+            models.UniqueConstraint(fields=['organizacion', 'cargo'], name='directiva_cargo_unico'),
+            models.UniqueConstraint(fields=['organizacion', 'vecino'], name='directiva_vecino_sin_repetir'),
+        ]
+
+    def __str__(self):
+        return f'{self.get_cargo_display()} · {self.vecino.nombre} · {self.organizacion}'
 
 
 # ---------------------------------------------------------------------------
@@ -314,6 +378,9 @@ class Actividad(models.Model):
     territorio = models.CharField('referencia del lugar', max_length=80, blank=True,
                                   help_text='Calle, pasaje, villa o punto de referencia dentro del sector.')
     area_apoyo = models.CharField('área o persona de apoyo', max_length=120, blank=True)
+    # Atención ciudadana que originó el compromiso («Enviar a compromiso» desde la atención)
+    atencion = models.OneToOneField(Atencion, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='compromiso', verbose_name='atención de origen')
     estado = models.CharField('estado en el TUBO', max_length=10, choices=ESTADOS, default=INGRESADO)
     fecha_compromiso = models.DateField('fecha de compromiso', null=True, blank=True)
     fecha_cierre = models.DateField('fecha de cierre', null=True, blank=True)

@@ -24,7 +24,7 @@ CRUD = ['ver', 'crear', 'editar', 'eliminar']
 
 MODULOS = [
     ('tablero', 'Tablero y semáforo', OPERATIVO, ['ver'], 'bi-speedometer2', MATRIZ),
-    ('actividades', 'Actividades y TUBO', OPERATIVO, ['ver', 'crear'], 'bi-journal-text', MATRIZ),
+    ('actividades', 'Actividades', OPERATIVO, ['ver', 'crear'], 'bi-journal-text', MATRIZ),
     ('agenda', 'Compromisos (TUBO)', OPERATIVO, ['ver'], 'bi-calendar-week', MATRIZ),
     ('evidencias', 'Evidencias', OPERATIVO, ['ver', 'crear'], 'bi-paperclip', MATRIZ),
     ('validacion', 'Validación', OPERATIVO, ['ver', 'editar'], 'bi-patch-check', MATRIZ),

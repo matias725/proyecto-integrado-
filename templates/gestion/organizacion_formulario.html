@@ -1,5 +1,5 @@
 {% extends "crud/formulario.html" %}
-{% comment %}Organización: datos, territorio con su sector y hasta 3 funcionarios encargados.{% endcomment %}
+{% comment %}Organización: datos, territorio con su sector, directiva vecinal y hasta 3 funcionarios encargados.{% endcomment %}
 
 {% block campos %}
 <h3 class="subtitulo-seccion"><i class="bi bi-building" aria-hidden="true"></i>Identificación</h3>
@@ -14,6 +14,21 @@
     {% include "parciales/_campo.html" with campo=form.sector %}
     {% include "parciales/_campo.html" with campo=form.domicilio %}
 </div>
+
+<h3 class="subtitulo-seccion"><i class="bi bi-people" aria-hidden="true"></i>Directiva vecinal <span class="ruta">· presidente, tesorero y encargado, vinculados a los vecinos registrados</span></h3>
+<div class="directiva-formulario">
+    {% for cargo, rut, nombre, telefono in form.campos_directiva %}
+    <fieldset class="cargo-directiva">
+        <legend>{{ cargo }}</legend>
+        <div class="rejilla rejilla-3">
+            {% include "parciales/_campo.html" with campo=rut %}
+            {% include "parciales/_campo.html" with campo=nombre %}
+            {% include "parciales/_campo.html" with campo=telefono %}
+        </div>
+    </fieldset>
+    {% endfor %}
+</div>
+<p class="ruta">Cada cargo se vincula con un vecino por su RUT. Si el RUT no está registrado, escriba su nombre y quedará registrado como vecino al guardar. Deje el RUT vacío para quitar a la persona del cargo.</p>
 
 <h3 class="subtitulo-seccion"><i class="bi bi-person-badge" aria-hidden="true"></i>Encargados municipales <span class="ruta">· hasta 3 funcionarios a cargo de la organización</span></h3>
 <div class="rejilla rejilla-3 encargados-formulario">

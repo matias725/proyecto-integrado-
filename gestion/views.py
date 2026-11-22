@@ -21,7 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from atenciones.models import Atencion, Solicitante
+from atenciones.models import Atencion, SeguimientoAtencion, Solicitante
 from catalogos.models import Cargo, Delegacion, ItemMedicion, Sector
 from core.excel import respuesta_excel
 from core.models import registrar
@@ -29,8 +29,8 @@ from cuentas.models import Usuario
 from cuentas.permisos import denegar, permiso_requerido
 
 from . import calculos
-from .forms import (ActividadForm, AusenciaForm, EstadoActividadForm, EvidenciaForm, MetaForm, ObservacionForm,
-                    PeriodoForm, ValidacionForm)
+from .forms import (ActividadForm, AusenciaForm, EnviarCompromisoForm, EstadoActividadForm, EvidenciaForm, MetaForm,
+                    ObservacionForm, PeriodoForm, ValidacionForm, item_tubo)
 from .models import (Actividad, Ausencia, Evidencia, HistorialActividad, MetaCargo, Observacion, Periodo)
 from .reglas import (MAX_INGRESOS_DIARIOS, aplicar_reglas_de_puntaje, fecha_minima_de_ingreso, hoy,
                      ingresos_del_dia, validar_cupo_diario, validar_fecha_actividad)
@@ -384,7 +384,8 @@ def validar(request, pk):
 # ---------------------------------------------------------------------------
 PLAZOS = [('vencidas', 'Vencidas'), ('semana', 'Vencen en 7 días'), ('al_dia', 'Al día (más de 7 días)'),
           ('realizadas', 'Realizadas')]
-VISTAS_AGENDA = ('tabla', 'tablero')
+# El TUBO completo vive en Compromisos: por defecto en tarjetas por estado; «tablero» queda como alias
+VISTAS_AGENDA = ('tubo', 'tabla')
 
 
 def _fecha_get(request, clave):
@@ -460,8 +461,9 @@ def _filtrar_compromisos(request):
 @permiso_requerido('agenda', 'ver')
 def agenda(request):
     consulta, periodo, texto, elegidos, desde, hasta, _filtros = _filtrar_compromisos(request)
-    vista = request.GET.get('vista', 'tabla')
-    vista = vista if vista in VISTAS_AGENDA else 'tabla'
+    vista = request.GET.get('vista', 'tubo')
+    vista = 'tubo' if vista == 'tablero' else vista
+    vista = vista if vista in VISTAS_AGENDA else 'tubo'
     por_estado = dict(consulta.order_by().values_list('estado').annotate(n=Count('id')))
     total = sum(por_estado.values())
     resueltas = por_estado.get(Actividad.REALIZADO, 0)
@@ -478,7 +480,7 @@ def agenda(request):
         'en_proceso': por_estado.get(Actividad.EN_PROCESO, 0),
         'por_iniciar': por_estado.get(Actividad.INGRESADO, 0) + por_estado.get(Actividad.PENDIENTE, 0),
     }
-    if vista == 'tablero':
+    if vista == 'tubo':
         contexto['columnas'] = [{'codigo': codigo, 'nombre': nombre, 'total': por_estado.get(codigo, 0),
                                  'filas': list(consulta.filter(estado=codigo)[:30])}
                                 for codigo, nombre in Actividad.ESTADOS]
@@ -507,6 +509,72 @@ def agenda_exportar(request):
 
 
 # ---------------------------------------------------------------------------
+# «Enviar a compromiso»: una atención ciudadana pasa al TUBO de Compromisos
+# ---------------------------------------------------------------------------
+@require_POST
+@permiso_requerido('actividades', 'crear')
+def atencion_a_compromiso(request, pk):
+    atencion = get_object_or_404(Atencion.objects.select_related('solicitante', 'tipo', 'subatencion',
+                                                                 'delegacion'), pk=pk)
+    volver = reverse('atenciones_ver', args=[pk]) + '#enviar-compromiso'
+    if atencion.delegacion not in request.delegaciones_autorizadas:
+        return denegar(request, f'atención {pk} de otra delegación')
+    previa = Actividad.objects.filter(atencion=atencion).first()
+    if previa:
+        messages.info(request, f'La atención {atencion.folio} ya está en Compromisos como {previa.folio}.')
+        return redirect(volver)
+    if not atencion.abierta:
+        messages.error(request, 'La atención está cerrada: reábrala para enviarla a compromiso.')
+        return redirect(volver)
+    periodo = Periodo.objects.filter(estado=Periodo.ABIERTO).first()
+    if periodo is None or not periodo.contiene(hoy()):
+        messages.error(request, 'No hay un trimestre abierto que incluya el día de hoy.')
+        return redirect(volver)
+    item = item_tubo(request.user, periodo)
+    if item is None:
+        messages.error(request, 'No hay un ítem de tipo TUBO activo en la matriz. Pida a la coordinación que lo cree.')
+        return redirect(volver)
+    form = EnviarCompromisoForm(request.POST, delegacion=atencion.delegacion)
+    if not form.is_valid():
+        for errores in form.errors.values():
+            for mensaje in errores:
+                messages.error(request, mensaje)
+        return redirect(volver)
+    d = form.cleaned_data
+    solicitante = atencion.solicitante
+    try:
+        with transaction.atomic():
+            Usuario.objects.select_for_update().filter(pk=request.user.pk).first()
+            validar_cupo_diario(request.user)
+            actividad = Actividad(
+                periodo=periodo, delegacion=atencion.delegacion, funcionario=request.user, item=item,
+                naturaleza=Actividad.ACCION, fecha=hoy(), ingresada_el=hoy(), atencion=atencion,
+                titulo=f'{atencion.tipo.nombre} · {atencion.subatencion.nombre}'[:200],
+                descripcion=f'{atencion.descripcion}\n\nOrigen: atención {atencion.folio}.'[:1500],
+                solicitante_nombre=solicitante.nombre, solicitante_telefono=solicitante.telefono,
+                organizacion=d['organizacion'], sector=d['sector'], area_apoyo=d['area_apoyo'],
+                estado=Actividad.INGRESADO, fecha_compromiso=d['fecha_compromiso'])
+            aplicar_reglas_de_puntaje(actividad)
+            actividad.save()
+            HistorialActividad.objects.create(actividad=actividad, usuario=request.user,
+                                              estado_nuevo=actividad.estado,
+                                              observacion=f'Ingreso desde la atención {atencion.folio}')
+            SeguimientoAtencion.objects.create(
+                atencion=atencion, usuario=request.user,
+                comentario=f'Enviada a compromiso ({actividad.folio}) con fecha {actividad.fecha_compromiso:%d-%m-%Y}.')
+    except ValidationError as error:
+        messages.error(request, ' '.join(error.messages))
+        return redirect(volver)
+    except IntegrityError:
+        messages.info(request, f'La atención {atencion.folio} ya estaba en Compromisos.')
+        return redirect(volver)
+    registrar(request, 'ALTA', 'actividades', actividad.pk, f'{actividad.folio} · compromiso desde {atencion.folio}')
+    messages.success(request, f'Atención enviada a Compromisos como {actividad.folio}, '
+                              f'con compromiso al {actividad.fecha_compromiso:%d-%m-%Y}.')
+    return redirect(volver)
+
+
+# ---------------------------------------------------------------------------
 # Atención social: historial por vecino a partir de las atenciones reales
 # ---------------------------------------------------------------------------
 @permiso_requerido('atencion_social', 'ver')
@@ -521,10 +589,14 @@ def atencion_social(request):
     elegido = request.GET.get('rut', '')
     caso = None
     if elegido:
-        solicitante = Solicitante.objects.filter(rut=elegido, atenciones__delegacion=delegacion).first()
+        # El vecino puede venir de sus atenciones o de la directiva de una organización de la delegación
+        solicitante = Solicitante.objects.filter(
+            Q(atenciones__delegacion=delegacion) | Q(cargos_directiva__organizacion__delegacion=delegacion),
+            rut=elegido).first()
         if solicitante:
             caso = {'solicitante': solicitante, 'atenciones': Atencion.objects.filter(
-                solicitante=solicitante, delegacion=delegacion).select_related('tipo', 'subatencion', 'responsable')}
+                solicitante=solicitante, delegacion=delegacion).select_related('tipo', 'subatencion', 'responsable'),
+                'cargos': solicitante.cargos_directiva.select_related('organizacion').order_by('organizacion__nombre')}
     return render(request, 'gestion/atencion_social.html', {'pagina': pagina, 'texto': texto, 'caso': caso})
 
 
