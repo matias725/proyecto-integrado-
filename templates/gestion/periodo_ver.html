@@ -1,0 +1,102 @@
+{% extends "layouts/app.html" %}
+{% load sgr_tags %}
+{% block titulo %}{{ periodo.nombre }} · Períodos{% endblock %}
+{% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / <a href="{% url 'periodos' %}">Períodos</a> / {{ periodo.nombre }}{% endblock %}
+{% block titulo_pagina %}{{ periodo.nombre }}{% endblock %}
+{% block bajada %}Del {{ periodo.inicio|date:"d-m-Y" }} al {{ periodo.termino|date:"d-m-Y" }} · {{ periodo.dias }} días · {{ periodo.get_estado_display|lower }} · {{ periodo.fase }}. {% if alcance_global %}Datos de todas las delegaciones.{% else %}Datos de sus delegaciones.{% endif %}{% endblock %}
+{% block traza %}Matriz SGR · hojas RESUMEN, SEMAFORO y SALON{% endblock %}
+
+{% block accion %}
+<a href="{% url 'periodos' %}" class="boton"><i class="bi bi-arrow-left" aria-hidden="true"></i>Volver</a>
+{% if puede_metas %}<a href="{% url 'metas' %}?periodo={{ periodo.pk }}" class="boton"><i class="bi bi-sliders" aria-hidden="true"></i>Metas</a>{% endif %}
+{% if puede_editar %}
+{% if periodo.estado == 'ABIERTO' %}<form method="post" action="{% url 'periodo_estado' periodo.pk 'cerrar' %}" data-confirmar="¿Cerrar {{ periodo.nombre }}?" data-confirmar-detalle="Ya no se podrán ingresar ni validar actividades del período.">{% csrf_token %}<input type="hidden" name="volver" value="detalle"><button class="boton peligro"><i class="bi bi-lock" aria-hidden="true"></i>Cerrar período</button></form>
+{% elif not otro_abierto %}<form method="post" action="{% url 'periodo_estado' periodo.pk 'abrir' %}" data-confirmar="¿Abrir {{ periodo.nombre }}?">{% csrf_token %}<input type="hidden" name="volver" value="detalle"><button class="boton principal"><i class="bi bi-unlock" aria-hidden="true"></i>Abrir período</button></form>{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block contenido %}
+<section class="panel periodo-actual">
+    <div class="periodo-actual-cabecera">
+        <div><span class="sobretitulo"><i class="bi bi-calendar-range" aria-hidden="true"></i>Línea de tiempo</span>
+            <h2>Día {{ periodo.dias_transcurridos }} de {{ periodo.dias }}</h2></div>
+        <div class="periodo-actual-estado">{% estado periodo.estado %} <span class="fase fase-{{ periodo.fase|slugify }}">{{ periodo.fase|capfirst }}</span></div>
+    </div>
+    <div class="linea-tiempo" role="img" aria-label="{{ periodo.avance_tiempo|cifra }} % del período transcurrido">
+        <div class="linea-tiempo-etiquetas"><span>{{ periodo.inicio|date:"d-m-Y" }}</span><strong>{{ periodo.avance_tiempo|cifra }} % transcurrido · {{ periodo.dias_restantes }} día{{ periodo.dias_restantes|pluralize }} restante{{ periodo.dias_restantes|pluralize }}</strong><span>{{ periodo.termino|date:"d-m-Y" }}</span></div>
+        <div class="pista pista-tiempo"><div class="relleno {% if periodo.abierto %}inst{% else %}gris{% endif %}" data-ancho="{{ periodo.avance_tiempo|stringformat:'.2f' }}"></div></div>
+        <p class="ruta">Avance esperado hoy en cada ítem: <strong>{{ esperado|cifra }} %</strong>. Es la línea que usa el semáforo del tablero.</p>
+    </div>
+    <div class="tarjetas-resumen">
+        <div class="mini-dato"><i class="bi bi-journal-text" aria-hidden="true"></i><span class="valor">{{ total }}</span><span class="etiqueta">actividades</span></div>
+        <div class="mini-dato"><i class="bi bi-check2-all" aria-hidden="true"></i><span class="valor">{{ totales.realizadas }}</span><span class="etiqueta">realizadas</span></div>
+        <div class="mini-dato"><i class="bi bi-star" aria-hidden="true"></i><span class="valor">{{ totales.suman }}</span><span class="etiqueta">suman puntaje</span></div>
+        <div class="mini-dato"><i class="bi bi-patch-check" aria-hidden="true"></i><span class="valor">{{ totales.validadas }}</span><span class="etiqueta">validadas{% if totales.rechazadas %} · {{ totales.rechazadas }} rechazada{{ totales.rechazadas|pluralize }}{% endif %}</span></div>
+        <div class="mini-dato{% if totales.por_validar %} atencion{% endif %}"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span class="valor">{{ totales.por_validar }}</span><span class="etiqueta">por validar</span></div>
+        <div class="mini-dato{% if totales.vencidas %} alerta{% endif %}"><i class="bi bi-calendar-check" aria-hidden="true"></i><span class="valor">{{ totales.compromisos }}</span><span class="etiqueta">compromisos · {{ totales.vencidas }} vencido{{ totales.vencidas|pluralize }}</span></div>
+        <div class="mini-dato"><i class="bi bi-calendar-x" aria-hidden="true"></i><span class="valor">{{ dias_ausencia }}</span><span class="etiqueta">días de ausencia ({{ ausencias }} registro{{ ausencias|pluralize }})</span></div>
+        <div class="mini-dato"><i class="bi bi-award" aria-hidden="true"></i><span class="valor">{{ felicitaciones }} / {{ reclamos }}</span><span class="etiqueta">felicitaciones / reclamos</span></div>
+    </div>
+</section>
+
+<div class="rejilla rejilla-2 alineado-arriba">
+    <section class="panel" aria-labelledby="titulo-estados">
+        <div class="panel-cabecera"><h2 id="titulo-estados">Actividades por estado del TUBO</h2></div>
+        <div class="panel-cuerpo barras">
+            {% for e in por_estado %}
+            <div class="barra-fila"><span class="barra-nombre">{% estado e.codigo %}</span>
+                <div class="pista pista-delgada"><div class="relleno estado-{{ e.codigo|lower }}" data-ancho="{{ e.ancho|stringformat:'.2f' }}"></div></div>
+                <span class="barra-valor">{{ e.total }}</span></div>
+            {% endfor %}
+        </div>
+    </section>
+    <section class="panel" aria-labelledby="titulo-meses">
+        <div class="panel-cabecera"><h2 id="titulo-meses">Actividades por mes</h2></div>
+        <div class="panel-cuerpo barras">
+            {% for m in por_mes %}
+            <div class="barra-fila"><span class="barra-nombre">{{ m.mes|date:"F"|capfirst }}</span>
+                <div class="pista pista-delgada"><div class="relleno inst" data-ancho="{{ m.ancho|stringformat:'.2f' }}"></div></div>
+                <span class="barra-valor">{{ m.total }} <span class="ruta">· {{ m.realizadas }} realizadas</span></span></div>
+            {% empty %}<p class="ruta">Aún no hay actividades en este período.</p>{% endfor %}
+        </div>
+    </section>
+</div>
+
+<section class="panel" aria-labelledby="titulo-delegaciones">
+    <div class="panel-cabecera"><h2 id="titulo-delegaciones">Resultado por delegación</h2><span class="espacio"></span><span class="ruta">Promedio del equipo (regla 10) frente a lo esperado al día</span></div>
+    <div class="desplazable">
+        <table class="tabla">
+            <thead><tr><th>Delegación</th><th class="num">Actividades</th><th class="num">Realizadas</th><th class="num">Suman puntaje</th><th class="num">Integrantes con metas</th><th class="col-avance">Promedio del equipo</th><th>Semáforo</th></tr></thead>
+            <tbody>{% for d in por_delegacion %}<tr>
+                <td><strong>{{ d.delegacion.nombre }}</strong><div class="ruta">{{ d.delegacion.codigo }}</div></td>
+                <td class="num">{{ d.total }}</td><td class="num">{{ d.realizadas }}</td><td class="num">{{ d.suman }}</td>
+                <td class="num">{{ d.equipo.integrantes|default:0 }}</td>
+                <td class="col-avance">{% if d.equipo %}<div class="avance-celda"><div class="pista pista-delgada"><div class="relleno {{ d.equipo.color }}" data-ancho="{{ d.ancho|stringformat:'.2f' }}"></div><div class="marca-esperada" data-izquierda="{{ esperado|stringformat:'.2f' }}"></div></div><span>{{ d.equipo.promedio|cifra }} %</span></div>{% else %}<span class="ruta">Sin integrantes con metas</span>{% endif %}</td>
+                <td>{% if d.equipo %}{% semaforo d.equipo.color %}{% else %}{% insignia 'neutro' 'Sin metas' %}{% endif %}</td>
+            </tr>{% endfor %}</tbody>
+        </table>
+    </div>
+</section>
+
+<div class="rejilla rejilla-2 alineado-arriba">
+    <section class="panel" aria-labelledby="titulo-cargos">
+        <div class="panel-cabecera"><h2 id="titulo-cargos">Metas por cargo</h2>{% if puede_metas %}<span class="espacio"></span><a class="boton pequeno" href="{% url 'metas' %}?periodo={{ periodo.pk }}">Ver metas</a>{% endif %}</div>
+        {% if metas_cargo %}
+        <table class="tabla">
+            <thead><tr><th>Cargo</th><th class="num">Ítems</th><th class="num">Ponderación</th></tr></thead>
+            <tbody>{% for m in metas_cargo %}<tr><td>{{ m.cargo__nombre }}<div class="ruta">{{ m.cargo__codigo }}</div></td><td class="num">{{ m.items }}</td>
+                <td class="num">{% if m.completa %}{% insignia 'ok' '100 %' %}{% else %}<span class="estado pendiente" title="Los ponderadores deberían sumar 100 %">{{ m.ponderacion|cifra }} %</span>{% endif %}</td></tr>{% endfor %}</tbody>
+        </table>
+        {% else %}<div class="vacio"><p>Sin metas. {% if puede_editar %}Use «Copiar metas» en la lista de períodos.{% endif %}</p></div>{% endif %}
+    </section>
+    <section class="panel" aria-labelledby="titulo-parametros">
+        <div class="panel-cabecera"><h2 id="titulo-parametros">Parámetros de cálculo</h2></div>
+        <div class="tarjetas-parametros compactas">
+            {% for icono, etiqueta, valor, explicacion in parametros %}
+            <div class="tarjeta-parametro"><i class="bi {{ icono }}" aria-hidden="true"></i>
+                <div><span class="etiqueta">{{ etiqueta }}</span><span class="valor">{{ valor }}</span><span class="apoyo">{{ explicacion }}</span></div></div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}

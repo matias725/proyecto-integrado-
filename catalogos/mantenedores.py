@@ -4,8 +4,8 @@ from django.db.models import Count, Q
 
 from core.crud import Mantenedor
 
-from .forms import DelegacionForm, ItemForm, SubAtencionForm, TipoAtencionForm
-from .models import Delegacion, ItemMedicion, SubAtencion, TipoAtencion
+from .forms import DelegacionForm, ItemForm, SectorForm, SubAtencionForm, TipoAtencionForm
+from .models import Delegacion, ItemMedicion, Sector, SubAtencion, TipoAtencion
 
 
 class Delegaciones(Mantenedor):
@@ -23,7 +23,9 @@ class Delegaciones(Mantenedor):
     detalle = [('codigo', 'Código'), ('nombre', 'Nombre'), ('direccion', 'Dirección'), ('comuna', 'Comuna'),
                ('estado', 'Estado'), ('creado', 'Creada'), ('actualizado', 'Última modificación')]
     relacionados = [('usuarios', 'Usuarios asignados', [('nombre', 'Nombre'), ('rol.nombre', 'Rol'),
-                                                         ('estado', 'Estado')])]
+                                                         ('estado', 'Estado')]),
+                    ('sectores', 'Sectores del territorio', [('codigo', 'Código'), ('nombre', 'Sector'),
+                                                             ('estado', 'Estado')])]
 
     def consulta(self, request):
         consulta = Delegacion.objects.annotate(
@@ -96,7 +98,50 @@ class SubAtenciones(Mantenedor):
         return consulta
 
 
+class Sectores(Mantenedor):
+    modulo = 'sectores'
+    modelo = Sector
+    formulario = SectorForm
+    titulo = 'Sectores del territorio'
+    singular = 'sector'
+    femenino = False
+    descripcion = ('Partes del territorio de cada delegación (barrios, poblaciones o localidades). Se eligen al '
+                   'registrar organizaciones y actividades del TUBO.')
+    traza = 'Corrección EV2 · columna TERRITORIO del TUBO de la matriz SGR'
+    orden = ['delegacion__codigo', 'nombre']
+    columnas = [('codigo', 'Código'), ('nombre', 'Sector'), ('delegacion.nombre', 'Delegación'),
+                ('total_organizaciones', 'Organizaciones'), ('total_actividades', 'Actividades')]
+    busqueda = ['codigo', 'nombre', 'delegacion__nombre', 'descripcion']
+    exportar = [('codigo', 'Código'), ('nombre', 'Sector'), ('delegacion.codigo', 'Código delegación'),
+                ('delegacion.nombre', 'Delegación'), ('descripcion', 'Referencia'),
+                ('total_organizaciones', 'Organizaciones'), ('total_actividades', 'Actividades'), ('estado', 'Estado')]
+    detalle = [('codigo', 'Código'), ('nombre', 'Sector'), ('delegacion', 'Delegación'),
+               ('descripcion', 'Referencia'), ('estado', 'Estado'), ('creado', 'Creado'),
+               ('actualizado', 'Última modificación')]
+    relacionados = [('organizaciones', 'Organizaciones del sector', [('nombre', 'Organización'),
+                                                                     ('tipo.nombre', 'Subfamilia'),
+                                                                     ('estado', 'Vigencia')])]
+
+    def consulta(self, request):
+        consulta = Sector.objects.select_related('delegacion').annotate(
+            total_organizaciones=Count('organizaciones', distinct=True),
+            total_actividades=Count('actividades', distinct=True))
+        if not request.user.alcance_global:
+            consulta = consulta.filter(delegacion__in=request.delegaciones_autorizadas)
+        delegacion = request.GET.get('delegacion', '')
+        if delegacion.isdigit():
+            consulta = consulta.filter(delegacion_id=int(delegacion))
+        return consulta
+
+    def puede_modificar(self, request, obj):
+        return request.user.alcance_global or obj.delegacion in request.delegaciones_autorizadas
+
+    def kwargs_formulario(self, request):
+        return {'actor': request.user}
+
+
 DELEGACIONES = Delegaciones()
+SECTORES = Sectores()
 ITEMS = Items()
 TIPOS_ATENCION = TiposAtencion()
 SUB_ATENCIONES = SubAtenciones()

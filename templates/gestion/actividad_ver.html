@@ -23,7 +23,7 @@
             <tr><th>Detalle</th><td>{{ a.descripcion|linebreaksbr }}</td></tr>
             <tr><th>Usuario</th><td>{{ a.solicitante_nombre|default:'—' }} {% if a.solicitante_telefono %}<span class="ruta">· {{ a.solicitante_telefono }}</span>{% endif %}</td></tr>
             <tr><th>Organización</th><td>{% if a.organizacion %}{{ a.organizacion }}{% else %}—{% endif %}</td></tr>
-            <tr><th>Territorio</th><td>{{ a.territorio|default:'—' }}{% if a.area_apoyo %} · apoyo: {{ a.area_apoyo }}{% endif %}</td></tr>
+            <tr><th>Territorio</th><td>{{ a.lugar }}{% if a.area_apoyo %} <span class="ruta">· apoyo: {{ a.area_apoyo }}</span>{% endif %}</td></tr>
             <tr><th>Estado</th><td>{% estado a.estado %}{% if a.fecha_compromiso %} <span class="ruta">· compromiso {{ a.fecha_compromiso|date:"d-m-Y" }}{% if a.vencida %} (vencido){% endif %}</span>{% endif %}</td></tr>
             <tr><th>Validación</th><td>{% if a.validacion == 'PENDIENTE' %}{% estado 'POR_VALIDAR' %}{% else %}{% estado a.validacion %} <span class="ruta">· {{ a.validada_por.nombre }} {{ a.validada_en|date:"d-m-Y H:i" }}</span>{% endif %}
                 {% if a.motivo_rechazo %}<div class="ruta">Motivo: {{ a.motivo_rechazo }}</div>{% endif %}</td></tr>

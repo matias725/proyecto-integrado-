@@ -2,23 +2,112 @@
 {% load sgr_tags %}
 {% block titulo %}Compromisos{% endblock %}
 {% block titulo_pagina %}Compromisos del TUBO de trabajo{% endblock %}
-{% block bajada %}Solicitudes con fecha de compromiso en {{ periodo.nombre }}. El porcentaje resuelto alimenta el ítem «Soluciones de ingresos al TUBO».{% endblock %}
-{% block traza %}Matriz SGR · hoja TUBO{% endblock %}
+{% block bajada %}Solicitudes con fecha de compromiso de {{ delegacion_activa.nombre_completo }} en {{ periodo.nombre }}. Filtre por estado, responsable, sector o plazo; el porcentaje resuelto alimenta el ítem «Soluciones de ingresos al TUBO».{% endblock %}
+{% block traza %}Matriz SGR · hoja TUBO · corrección EV2: tabla con filtros{% endblock %}
+
+{% block accion %}
+<a href="{% url 'agenda_exportar' %}{% querystring pagina=None vista=None %}" class="boton secundario" data-exportar{% if not total %} aria-disabled="true" tabindex="-1"{% endif %}><i class="bi bi-file-earmark-excel" aria-hidden="true"></i>Exportar a Excel</a>
+{% endblock %}
+
 {% block contenido %}
-<div class="rejilla rejilla-3">
-    <div class="panel dato{% if porcentaje >= 80 %} verde{% elif porcentaje >= 48 %} ambar{% else %} rojo{% endif %}"><span class="etiqueta">Resueltas</span><span class="valor">{{ porcentaje|cifra }} %</span><span class="apoyo">{{ resueltas }} de {{ total }} solicitudes · meta habitual 80 %</span></div>
-    <div class="panel dato{% if vencidas %} rojo{% endif %}"><span class="etiqueta">Vencidas</span><span class="valor">{{ vencidas }}</span><span class="apoyo">Con fecha de compromiso cumplida y sin realizar</span></div>
-    <div class="panel dato"><span class="etiqueta">Hoy</span><span class="valor valor-texto">{{ hoy|date:"l d-m-Y"|capfirst }}</span><span class="apoyo">Abra una solicitud para actualizar su avance</span></div>
+<form method="get" class="filtros-compromisos panel" role="search" aria-label="Filtros de compromisos">
+    <input type="hidden" name="vista" value="{{ vista }}">
+    <div class="panel-cuerpo">
+        <div class="filtros filtros-amplios">
+            <div class="campo buscador-campo">
+                <label for="busqueda">Búsqueda</label>
+                <div class="buscador"><i class="bi bi-search" aria-hidden="true"></i>
+                    <input type="search" id="busqueda" name="q" value="{{ texto }}" maxlength="80" placeholder="Folio, actividad, solicitante, apoyo…"></div>
+            </div>
+            <div class="campo"><label for="periodo">Período</label>
+                <select id="periodo" name="periodo" data-enviar-al-cambiar>{% for p in periodos %}<option value="{{ p.pk }}"{% if p.pk == periodo.pk %} selected{% endif %}>{{ p.nombre }}</option>{% endfor %}</select></div>
+            <div class="campo"><label for="estado">Estado</label>
+                <select id="estado" name="estado" data-enviar-al-cambiar><option value="">Todos</option>
+                    {% for codigo, nombre in estados %}<option value="{{ codigo }}"{% if estado == codigo %} selected{% endif %}>{{ nombre }}</option>{% endfor %}</select></div>
+            <div class="campo"><label for="plazo">Plazo</label>
+                <select id="plazo" name="plazo" data-enviar-al-cambiar><option value="">Todos</option>
+                    {% for codigo, nombre in plazos %}<option value="{{ codigo }}"{% if plazo == codigo %} selected{% endif %}>{{ nombre }}</option>{% endfor %}</select></div>
+            <div class="campo"><label for="sector">Sector</label>
+                <select id="sector" name="sector" data-enviar-al-cambiar><option value="">Todo el territorio</option>
+                    {% for s in sectores %}<option value="{{ s.pk }}"{% if sector == s.pk|stringformat:'s' %} selected{% endif %}>{{ s.nombre }}</option>{% endfor %}
+                    <option value="ninguno"{% if sector == 'ninguno' %} selected{% endif %}>Sin sector</option></select></div>
+            {% if integrantes %}
+            <div class="campo"><label for="funcionario">Responsable</label>
+                <select id="funcionario" name="funcionario" data-enviar-al-cambiar><option value="">Todo el equipo</option>
+                    {% for u in integrantes %}<option value="{{ u.pk }}"{% if funcionario == u.pk|stringformat:'s' %} selected{% endif %}>{{ u.nombre }}</option>{% endfor %}</select></div>
+            {% endif %}
+            <div class="campo"><label for="desde">Compromiso desde</label>
+                <input type="date" id="desde" name="desde" value="{{ desde|date:'Y-m-d' }}"></div>
+            <div class="campo"><label for="hasta">Compromiso hasta</label>
+                <input type="date" id="hasta" name="hasta" value="{{ hasta|date:'Y-m-d' }}"></div>
+        </div>
+    </div>
+    <div class="panel-pie">
+        <button type="submit" class="boton principal"><i class="bi bi-funnel" aria-hidden="true"></i>Filtrar</button>
+        {% if hay_filtros %}<a href="{% url 'agenda' %}?vista={{ vista }}" class="boton"><i class="bi bi-x-lg" aria-hidden="true"></i>Limpiar filtros</a>{% endif %}
+        <span class="espacio"></span>
+        <span class="ruta">Hoy {{ hoy|date:"l d-m-Y"|capfirst }}</span>
+    </div>
+</form>
+
+<div class="resumen-tubo">
+    <div class="panel dato tubo-total"><span class="etiqueta">En el TUBO</span><span class="valor">{{ total }}</span><span class="apoyo">Solicitudes con compromiso{% if hay_filtros %} (filtradas){% endif %}</span></div>
+    <div class="panel dato tubo-realizadas{% if porcentaje >= 80 %} verde{% elif porcentaje >= 48 %} ambar{% else %} rojo{% endif %}"><span class="etiqueta">Realizadas</span><span class="valor">{{ resueltas }}</span><span class="apoyo">Tasa de resolución {{ porcentaje|cifra }} % · meta habitual 80 %</span></div>
+    <div class="panel dato tubo-proceso"><span class="etiqueta">En proceso</span><span class="valor">{{ en_proceso }}</span><span class="apoyo">Con área de apoyo o en terreno</span></div>
+    <div class="panel dato tubo-pendientes{% if vencidas %} rojo{% endif %}"><span class="etiqueta">Ingresadas y pendientes</span><span class="valor">{{ por_iniciar }}</span><span class="apoyo">{% if vencidas %}{{ vencidas }} vencida{{ vencidas|pluralize }} sin realizar{% else %}Sin compromisos vencidos{% endif %}</span></div>
 </div>
+
+<nav class="vistas-compromisos" aria-label="Forma de ver los compromisos">
+    <a href="{% querystring vista='tabla' pagina=None %}"{% if vista == 'tabla' %} aria-current="page"{% endif %}><i class="bi bi-table" aria-hidden="true"></i>Tabla</a>
+    <a href="{% querystring vista='tablero' pagina=None %}"{% if vista == 'tablero' %} aria-current="page"{% endif %}><i class="bi bi-kanban" aria-hidden="true"></i>Tablero por estado</a>
+</nav>
+
+{% if vista == 'tabla' %}
+<div class="panel">
+    {% if pagina.object_list %}
+    <div class="desplazable">
+        <table class="tabla tabla-compromisos">
+            <caption class="solo-lectores">Compromisos del TUBO filtrados</caption>
+            <thead><tr><th>Folio</th><th>Compromiso</th><th>Actividad y solicitante</th><th>Territorio</th>{% if integrantes %}<th>Responsable</th>{% endif %}<th>Apoyo</th><th>Estado</th><th class="acciones">Acciones</th></tr></thead>
+            <tbody>
+            {% for a in pagina.object_list %}
+                <tr{% if a.estado == 'REALIZADO' %} class="compromiso-realizado"{% elif a.vencida %} class="compromiso-vencido"{% endif %}>
+                    <td><span class="codigo">{{ a.folio }}</span><div class="ruta">solicitud {{ a.fecha|date:"d-m" }}</div></td>
+                    <td class="sin-quiebre">{{ a.fecha_compromiso|date:"d-m-Y" }}
+                        {% with d=a.dias_compromiso %}{% if d is None %}<div class="ruta">cerrada {{ a.fecha_cierre|date:"d-m"|default:'' }}</div>{% elif d < 0 %}<div class="plazo vencido">{{ a.dias_atraso }} día{{ a.dias_atraso|pluralize }} de atraso</div>{% elif d == 0 %}<div class="plazo hoy">vence hoy</div>{% elif d <= 7 %}<div class="plazo proximo">faltan {{ d }} día{{ d|pluralize }}</div>{% else %}<div class="ruta">faltan {{ d }} días</div>{% endif %}{% endwith %}</td>
+                    <td><span class="titulo-compromiso">{{ a.titulo }}</span><div class="ruta">{{ a.solicitante_nombre|default:'Sin solicitante' }}{% if a.organizacion %} · {{ a.organizacion }}{% endif %}</div></td>
+                    <td>{% if a.sector %}{{ a.sector.nombre }}{% else %}<span class="ruta">Sin sector</span>{% endif %}{% if a.territorio %}<div class="ruta">{{ a.territorio }}</div>{% endif %}</td>
+                    {% if integrantes %}<td>{{ a.funcionario.nombre }}</td>{% endif %}
+                    <td>{{ a.area_apoyo|default:'—' }}</td>
+                    <td>{% estado a.estado %}</td>
+                    <td class="acciones"><a class="enlace-accion" href="{% url 'actividad_ver' a.pk %}">Ver</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="vacio"><i class="bi bi-inbox" aria-hidden="true"></i><h3>Sin compromisos</h3>
+        <p>{% if hay_filtros %}Ningún compromiso coincide con los filtros. Pruebe con «Limpiar filtros».{% else %}No hay solicitudes con fecha de compromiso en este período.{% endif %}</p></div>
+    {% endif %}
+    {% include "parciales/_paginador.html" %}
+</div>
+{% else %}
 <div class="columnas-tubo">
     {% for c in columnas %}
-    <section class="columna-tubo" aria-labelledby="col-{{ c.codigo }}">
-        <h3 id="col-{{ c.codigo }}">{{ c.nombre }} <span class="ruta">{{ c.total }}</span></h3>
+    <section class="columna-tubo estado-{{ c.codigo|lower }}" aria-labelledby="col-{{ c.codigo }}">
+        <h3 id="col-{{ c.codigo }}">{{ forloop.counter }}. {{ c.nombre }} <span class="contador-columna">{{ c.total }}</span></h3>
         <ul>{% for a in c.filas %}
-            <li{% if a.vencida %} class="vencida"{% endif %}><a href="{% url 'actividad_ver' a.pk %}"><b>{{ a.titulo }}</b>
-                <div class="ruta">{{ a.funcionario.nombre }} · compromiso {{ a.fecha_compromiso|date:"d-m" }}{% if a.vencida %} · vencida{% endif %}</div></a></li>
+            <li class="{% if a.vencida %}vencida{% endif %}{% if a.estado == 'REALIZADO' %} realizada{% endif %}"><a href="{% url 'actividad_ver' a.pk %}">
+                <span class="codigo">{{ a.folio }}</span>
+                <b>{{ a.titulo }}</b>
+                <div class="ruta">Solicitante: {{ a.solicitante_nombre|default:'—' }}</div>
+                {% if a.area_apoyo %}<div class="ruta">Apoyo: {{ a.area_apoyo }}</div>{% endif %}
+                <div class="ruta">{{ a.funcionario.nombre }} · {% if a.sector %}{{ a.sector.nombre }} · {% endif %}compromiso {{ a.fecha_compromiso|date:"d-m" }}{% if a.vencida %} · vencida{% endif %}</div></a></li>
         {% empty %}<li class="ruta">Sin solicitudes</li>{% endfor %}</ul>
+        {% if c.total > 30 %}<p class="ruta mas-en-tabla">Se muestran 30 de {{ c.total }}. <a href="{% querystring vista='tabla' estado=c.codigo pagina=None %}">Ver todos en la tabla</a></p>{% endif %}
     </section>
     {% endfor %}
 </div>
+{% endif %}
 {% endblock %}

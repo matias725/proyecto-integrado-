@@ -21,7 +21,8 @@ class Command(BaseCommand):
             raise CommandError(f'No se encontró el archivo {archivo}.') from error
         self.stdout.write(self.style.SUCCESS(
             f'{"Simulación: " if simular else ""}{r.leidas} filas leídas · {r.creadas} creadas · '
-            f'{r.actualizadas} actualizadas · {r.omitidas} omitidas · {r.con_observacion} con observación'))
+            f'{r.actualizadas} actualizadas · {r.omitidas} omitidas · {r.con_observacion} con observación · '
+            f'{r.con_sector} con sector'))
         self.stdout.write('Por territorio: ' + ', '.join(f'{k} {v}' for k, v in sorted(r.por_territorio.items())))
         self.stdout.write('Por subfamilia: ' + ', '.join(
             f'{k} {v}' for k, v in sorted(r.por_subfamilia.items(), key=lambda x: -x[1])))

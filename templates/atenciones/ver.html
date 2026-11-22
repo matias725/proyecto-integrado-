@@ -5,7 +5,7 @@
 {% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / <a href="{% url 'atenciones_lista' %}">Atenciones</a> / {{ atencion.folio }}{% endblock %}
 {% block titulo_pagina %}Atención {{ atencion.folio }}{% endblock %}
 {% block bajada %}Registrada el {{ atencion.creada|date:"d-m-Y \a \l\a\s H:i" }} por {{ atencion.responsable.nombre }}.{% endblock %}
-{% block traza %}RF-009 · RF-036{% endblock %}
+{% block traza %}RF-009 · RF-036 · seguimiento de la atención{% endblock %}
 
 {% block accion %}
 <a href="{% url 'atenciones_lista' %}" class="boton"><i class="bi bi-arrow-left" aria-hidden="true"></i>Volver al listado</a>
@@ -19,9 +19,12 @@
 <div class="aviso alerta"><i class="bi bi-info-circle" aria-hidden="true"></i>
     <div>Esta atención pertenece a {{ atencion.delegacion }}, que no es su delegación activa.</div></div>
 {% endif %}
+<div class="rejilla rejilla-2 alineado-arriba">
 <div class="panel">
+    <div class="panel-cabecera"><h2>Datos</h2></div>
     <table class="tabla ficha">
         <tr><th scope="row">Folio</th><td><span class="codigo">{{ atencion.folio }}</span></td></tr>
+        <tr><th scope="row">Estado</th><td>{% if atencion.abierta %}{% insignia 'pendiente' 'Abierta' %}{% else %}{% insignia 'ok' 'Cerrada' %} <span class="ruta">· {{ atencion.cerrada_por.nombre }} {{ atencion.cerrada|date:"d-m-Y H:i" }}</span>{% endif %}</td></tr>
         <tr><th scope="row">Solicitante</th><td>{{ atencion.solicitante.nombre }} <span class="ruta">{{ atencion.solicitante.rut }}{% if atencion.solicitante.telefono %} · {{ atencion.solicitante.telefono }}{% endif %}</span></td></tr>
         <tr><th scope="row">Tipo de Atención</th><td>{{ atencion.tipo }}</td></tr>
         <tr><th scope="row">Sub Atención</th><td>{{ atencion.subatencion }}</td></tr>
@@ -30,5 +33,34 @@
         <tr><th scope="row">Responsable</th><td>{{ atencion.responsable.nombre }}</td></tr>
         <tr><th scope="row">Fecha de registro</th><td>{{ atencion.creada|date:"d-m-Y H:i" }}</td></tr>
     </table>
+</div>
+<div id="seguimiento">
+    {% if form %}
+    <div class="panel">
+        <div class="panel-cabecera"><h2>{% if atencion.abierta %}Registrar seguimiento{% else %}Reabrir atención{% endif %}</h2></div>
+        <form method="post" action="{% url 'atenciones_seguimiento' atencion.pk %}" novalidate data-validar data-un-envio>
+            {% csrf_token %}
+            <div class="panel-cuerpo">
+                {% include "parciales/_campo.html" with campo=form.accion %}
+                {% include "parciales/_campo.html" with campo=form.comentario %}
+            </div>
+            <div class="panel-pie"><button type="submit" class="boton principal" data-texto-envio="Guardando…"><i class="bi bi-check-lg" aria-hidden="true"></i>Guardar</button></div>
+        </form>
+    </div>
+    {% endif %}
+    <div class="panel">
+        <div class="panel-cabecera"><h2>Seguimiento</h2><span class="espacio"></span><span class="ruta">{{ seguimientos|length }} registro{{ seguimientos|length|pluralize }}</span></div>
+        <ul class="historial">
+            <li><div class="historial-cambio">{% insignia 'neutro' 'Ingreso' %}</div>
+                <p>Atención registrada{% if atencion.abierta and not seguimientos %}; queda abierta hasta que se registre su cierre{% endif %}.</p>
+                <span class="ruta">{{ atencion.responsable.nombre }} · {{ atencion.creada|date:"d-m-Y H:i" }}</span></li>
+            {% for s in seguimientos %}
+            <li><div class="historial-cambio">{% if s.tipo == 'CIERRE' %}{% insignia 'ok' 'Cierre' %}{% elif s.tipo == 'REAPERTURA' %}{% insignia 'pendiente' 'Reapertura' %}{% else %}{% insignia 'neutro' 'Seguimiento' %}{% endif %}</div>
+                <p>{{ s.comentario|linebreaksbr }}</p>
+                <span class="ruta">{{ s.usuario.nombre }} · {{ s.creado|date:"d-m-Y H:i" }}</span></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
 </div>
 {% endblock %}

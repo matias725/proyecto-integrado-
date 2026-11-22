@@ -1,8 +1,10 @@
 -- =====================================================================
--- SGR La Serena · EV2 · esquema MySQL 8 generado desde las migraciones de Django
+-- SGR La Serena · EV2 (ev2-2.2.0) · esquema MySQL 8 generado desde las migraciones de Django
 -- Generado con: python manage.py migrate (MySQL 8.0) + mysqldump --no-data
 -- Incluye la matriz SGR (app gestion: períodos, metas por cargo, actividades,
--- evidencias, ausencias, felicitaciones/reclamos y organizaciones).
+-- evidencias, ausencias, felicitaciones/reclamos y organizaciones) y el
+-- seguimiento de atenciones (estado abierta/cerrada y atenciones_seguimientoatencion),
+-- sectores del territorio (catalogos_sector) y encargados municipales de organizaciones (gestion_encargadoorganizacion).
 -- Para crear la base desde cero se recomienda: python manage.py migrate
 -- Los datos iniciales se cargan con: python manage.py sgr_inicializar [--demo]
 -- Modelo, normalización e índices: docs/bd/modelo_de_datos.md
@@ -14,7 +16,6 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 CREATE TABLE `atenciones_atencion` (
-CREATE TABLE `atenciones_atencion` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `descripcion` longtext NOT NULL,
   `creada` datetime(6) NOT NULL,
@@ -24,6 +25,9 @@ CREATE TABLE `atenciones_atencion` (
   `subatencion_id` bigint NOT NULL,
   `tipo_id` bigint NOT NULL,
   `solicitante_id` bigint NOT NULL,
+  `cerrada` datetime(6) DEFAULT NULL,
+  `cerrada_por_id` bigint DEFAULT NULL,
+  `estado` varchar(8) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `token_envio` (`token_envio`),
   KEY `atenciones_atencion_responsable_id_6175a950_fk_cuentas_u` (`responsable_id`),
@@ -31,11 +35,27 @@ CREATE TABLE `atenciones_atencion` (
   KEY `atenciones_atencion_tipo_id_02b07ba8_fk_catalogos` (`tipo_id`),
   KEY `atenciones_atencion_solicitante_id_1ebdac0a_fk_atencione` (`solicitante_id`),
   KEY `atenciones__delegac_fa319a_idx` (`delegacion_id`,`creada` DESC),
+  KEY `atenciones_atencion_cerrada_por_id_5a7b542a_fk_cuentas_u` (`cerrada_por_id`),
+  KEY `atencion_deleg_estado` (`delegacion_id`,`estado`,`creada` DESC),
+  CONSTRAINT `atenciones_atencion_cerrada_por_id_5a7b542a_fk_cuentas_u` FOREIGN KEY (`cerrada_por_id`) REFERENCES `cuentas_usuario` (`id`),
   CONSTRAINT `atenciones_atencion_delegacion_id_58e20d54_fk_catalogos` FOREIGN KEY (`delegacion_id`) REFERENCES `catalogos_delegacion` (`id`),
   CONSTRAINT `atenciones_atencion_responsable_id_6175a950_fk_cuentas_u` FOREIGN KEY (`responsable_id`) REFERENCES `cuentas_usuario` (`id`),
   CONSTRAINT `atenciones_atencion_solicitante_id_1ebdac0a_fk_atencione` FOREIGN KEY (`solicitante_id`) REFERENCES `atenciones_solicitante` (`id`),
   CONSTRAINT `atenciones_atencion_subatencion_id_65e29858_fk_catalogos` FOREIGN KEY (`subatencion_id`) REFERENCES `catalogos_subatencion` (`id`),
   CONSTRAINT `atenciones_atencion_tipo_id_02b07ba8_fk_catalogos` FOREIGN KEY (`tipo_id`) REFERENCES `catalogos_tipoatencion` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `atenciones_seguimientoatencion` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `tipo` varchar(10) NOT NULL,
+  `comentario` longtext NOT NULL,
+  `creado` datetime(6) NOT NULL,
+  `atencion_id` bigint NOT NULL,
+  `usuario_id` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `atenciones_seguimien_atencion_id_edd85d39_fk_atencione` (`atencion_id`),
+  KEY `atenciones_seguimien_usuario_id_9f22ddc8_fk_cuentas_u` (`usuario_id`),
+  CONSTRAINT `atenciones_seguimien_atencion_id_edd85d39_fk_atencione` FOREIGN KEY (`atencion_id`) REFERENCES `atenciones_atencion` (`id`),
+  CONSTRAINT `atenciones_seguimien_usuario_id_9f22ddc8_fk_cuentas_u` FOREIGN KEY (`usuario_id`) REFERENCES `cuentas_usuario` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `atenciones_solicitante` (
   `id` bigint NOT NULL AUTO_INCREMENT,
@@ -112,6 +132,21 @@ CREATE TABLE `catalogos_itemmedicion` (
   UNIQUE KEY `codigo` (`codigo`),
   UNIQUE KEY `nombre` (`nombre`),
   UNIQUE KEY `item_nombre_unico_ci` ((lower(`nombre`)))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `catalogos_sector` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `activo` tinyint(1) NOT NULL,
+  `creado` datetime(6) NOT NULL,
+  `actualizado` datetime(6) NOT NULL,
+  `codigo` varchar(6) NOT NULL,
+  `nombre` varchar(80) NOT NULL,
+  `descripcion` varchar(200) NOT NULL,
+  `delegacion_id` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `codigo` (`codigo`),
+  UNIQUE KEY `sector_nombre_por_delegacion_ci` ((lower(`nombre`)),`delegacion_id`),
+  KEY `catalogos_sector_delegacion_id_dd9f1fe4_fk_catalogos` (`delegacion_id`),
+  CONSTRAINT `catalogos_sector_delegacion_id_dd9f1fe4_fk_catalogos` FOREIGN KEY (`delegacion_id`) REFERENCES `catalogos_delegacion` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `catalogos_subatencion` (
   `id` bigint NOT NULL AUTO_INCREMENT,
@@ -295,6 +330,7 @@ CREATE TABLE `gestion_actividad` (
   `validada_por_id` bigint DEFAULT NULL,
   `organizacion_id` bigint DEFAULT NULL,
   `periodo_id` bigint NOT NULL,
+  `sector_id` bigint DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `token_envio` (`token_envio`),
   KEY `gestion_actividad_organizacion_id_2e06eb96_fk_gestion_o` (`organizacion_id`),
@@ -305,11 +341,13 @@ CREATE TABLE `gestion_actividad` (
   KEY `act_bandeja_validacion` (`delegacion_id`,`validacion`,`fecha` DESC,`id` DESC),
   KEY `gestion_actividad_item_id_5fb24d1c_fk_catalogos_itemmedicion_id` (`item_id`),
   KEY `gestion_actividad_validada_por_id_a1024ef8_fk_cuentas_usuario_id` (`validada_por_id`),
+  KEY `gestion_actividad_sector_id_30a01104_fk_catalogos_sector_id` (`sector_id`),
   CONSTRAINT `gestion_actividad_delegacion_id_cc54793c_fk_catalogos` FOREIGN KEY (`delegacion_id`) REFERENCES `catalogos_delegacion` (`id`),
   CONSTRAINT `gestion_actividad_funcionario_id_f28aa9a1_fk_cuentas_usuario_id` FOREIGN KEY (`funcionario_id`) REFERENCES `cuentas_usuario` (`id`),
   CONSTRAINT `gestion_actividad_item_id_5fb24d1c_fk_catalogos_itemmedicion_id` FOREIGN KEY (`item_id`) REFERENCES `catalogos_itemmedicion` (`id`),
   CONSTRAINT `gestion_actividad_organizacion_id_2e06eb96_fk_gestion_o` FOREIGN KEY (`organizacion_id`) REFERENCES `gestion_organizacion` (`id`),
   CONSTRAINT `gestion_actividad_periodo_id_9ff80ccb_fk_gestion_periodo_id` FOREIGN KEY (`periodo_id`) REFERENCES `gestion_periodo` (`id`),
+  CONSTRAINT `gestion_actividad_sector_id_30a01104_fk_catalogos_sector_id` FOREIGN KEY (`sector_id`) REFERENCES `catalogos_sector` (`id`),
   CONSTRAINT `gestion_actividad_validada_por_id_a1024ef8_fk_cuentas_usuario_id` FOREIGN KEY (`validada_por_id`) REFERENCES `cuentas_usuario` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `gestion_ausencia` (
@@ -330,6 +368,21 @@ CREATE TABLE `gestion_ausencia` (
   CONSTRAINT `gestion_ausencia_periodo_id_84b14f08_fk_gestion_periodo_id` FOREIGN KEY (`periodo_id`) REFERENCES `gestion_periodo` (`id`),
   CONSTRAINT `gestion_ausencia_registrada_por_id_208e361c_fk_cuentas_u` FOREIGN KEY (`registrada_por_id`) REFERENCES `cuentas_usuario` (`id`),
   CONSTRAINT `ausencia_fechas_validas` CHECK ((`hasta` >= `desde`))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `gestion_encargadoorganizacion` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `orden` smallint unsigned NOT NULL,
+  `asignado_el` datetime(6) NOT NULL,
+  `organizacion_id` bigint NOT NULL,
+  `usuario_id` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `encargado_puesto_unico` (`organizacion_id`,`orden`),
+  UNIQUE KEY `encargado_sin_repetir` (`organizacion_id`,`usuario_id`),
+  KEY `gestion_encargadoorg_usuario_id_65eef8e7_fk_cuentas_u` (`usuario_id`),
+  CONSTRAINT `gestion_encargadoorg_organizacion_id_c73e7fc4_fk_gestion_o` FOREIGN KEY (`organizacion_id`) REFERENCES `gestion_organizacion` (`id`),
+  CONSTRAINT `gestion_encargadoorg_usuario_id_65eef8e7_fk_cuentas_u` FOREIGN KEY (`usuario_id`) REFERENCES `cuentas_usuario` (`id`),
+  CONSTRAINT `encargado_maximo_tres` CHECK (((`orden` >= 1) and (`orden` <= 3))),
+  CONSTRAINT `gestion_encargadoorganizacion_chk_1` CHECK ((`orden` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE `gestion_evidencia` (
   `id` bigint NOT NULL AUTO_INCREMENT,
@@ -414,12 +467,15 @@ CREATE TABLE `gestion_organizacion` (
   `actualizado` datetime(6) NOT NULL,
   `delegacion_id` bigint DEFAULT NULL,
   `tipo_id` bigint NOT NULL,
+  `sector_id` bigint DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `registro_pj` (`registro_pj`),
   KEY `gestion_organizacion_tipo_id_42b637ec_fk_gestion_t` (`tipo_id`),
   KEY `org_delegacion_tipo` (`delegacion_id`,`tipo_id`),
+  KEY `gestion_organizacion_sector_id_48a321f6_fk_catalogos_sector_id` (`sector_id`),
   KEY `org_nombre_ci` ((lower(`nombre`))),
   CONSTRAINT `gestion_organizacion_delegacion_id_7f7c90bb_fk_catalogos` FOREIGN KEY (`delegacion_id`) REFERENCES `catalogos_delegacion` (`id`),
+  CONSTRAINT `gestion_organizacion_sector_id_48a321f6_fk_catalogos_sector_id` FOREIGN KEY (`sector_id`) REFERENCES `catalogos_sector` (`id`),
   CONSTRAINT `gestion_organizacion_tipo_id_42b637ec_fk_gestion_t` FOREIGN KEY (`tipo_id`) REFERENCES `gestion_tipoorganizacion` (`id`),
   CONSTRAINT `gestion_organizacion_chk_1` CHECK ((`socios` >= 0)),
   CONSTRAINT `gestion_organizacion_chk_2` CHECK ((`registro_pj` >= 0)),

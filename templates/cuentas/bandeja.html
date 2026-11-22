@@ -6,8 +6,13 @@
 {% block traza %}Entorno de evaluación · motor de correo: {{ backend }}{% endblock %}
 
 {% block contenido %}
+{% if oculta %}
+<div class="aviso info"><i class="bi bi-shield-lock" aria-hidden="true"></i>
+    <div>Los correos se envían de verdad a cada persona. Esta copia oculta los códigos de recuperación y los enlaces para crear contraseña: nadie más que la persona puede usarlos.</div></div>
+{% else %}
 <div class="aviso alerta"><i class="bi bi-shield-exclamation" aria-hidden="true"></i>
-    <div>Solo para el entorno de evaluación. En producción se configura SMTP y esta bandeja queda vacía.</div></div>
+    <div>Solo para el entorno de evaluación, sin servidor de correo: aquí se ven los códigos completos. Con el correo real activado (deploy/configurar_correo.sh) los códigos y enlaces quedan ocultos.</div></div>
+{% endif %}
 <div class="panel">
     {% if pagina.object_list %}
     <div class="desplazable">

@@ -91,10 +91,11 @@ class BienvenidaTests(PruebaSGR):
         self.assertEqual(r.status_code, 200)
         self.assertFalse(Usuario.objects.get(nombre_usuario='privera').has_usable_password())
 
-    def test_con_clave_inicial_tambien_envia_bienvenida(self):
-        """PB-07 · Si el administrador pone una contraseña inicial, igual llega el correo para cambiarla"""
+    def test_contrasena_enviada_por_el_administrador_se_ignora(self):
+        """PB-07 · Aunque la solicitud traiga una contraseña, se ignora: la persona crea la suya con el enlace"""
         self.crear(clave=CLAVE, confirmacion=CLAVE)
-        self.assertTrue(Usuario.objects.get(nombre_usuario='privera').check_password(CLAVE))
+        usuario = Usuario.objects.get(nombre_usuario='privera')
+        self.assertFalse(usuario.has_usable_password())
         self.assertEqual(len(mail.outbox), 1)
 
     def test_falla_del_correo_no_impide_crear(self):
@@ -113,3 +114,53 @@ class BienvenidaTests(PruebaSGR):
             'delegaciones': list(usuario.delegaciones.values_list('pk', flat=True)), 'is_active': 'on'})
         self.assertEqual(len(mail.outbox), 0)
         self.assertTrue(Usuario.objects.get(pk=usuario.pk).check_password(self.clave))
+
+
+class ContrasenaPrivadaTests(PruebaSGR):
+    """Corrección EV2: el superadministrador no puede ver ni cambiar contraseñas ajenas."""
+
+    def setUp(self):
+        self.entrar('admin')
+
+    def datos_edicion(self, usuario, **extra):
+        datos = {'nombre': usuario.nombre, 'nombre_usuario': usuario.nombre_usuario, 'correo': usuario.correo,
+                 'rol': usuario.rol_id, 'cargo': usuario.cargo_id or '',
+                 'delegaciones': list(usuario.delegaciones.values_list('pk', flat=True)), 'is_active': 'on'}
+        datos.update(extra)
+        return datos
+
+    def test_editar_no_muestra_campo_contrasena(self):
+        """PB-10 · La edición de una cuenta no tiene campos de contraseña"""
+        usuario = self.usuario('bcastillo')
+        r = self.client.get(reverse('usuarios_editar', args=[usuario.pk]))
+        self.assertNotIn('clave', r.context['form'].fields)
+        self.assertNotContains(r, 'type="password"')
+        self.assertContains(r, 'nadie más puede verla ni cambiarla')
+
+    def test_superadmin_no_puede_cambiar_contrasena_ajena(self):
+        """PB-11 · Una contraseña enviada al editar se ignora y la de la persona no cambia"""
+        usuario = self.usuario('bcastillo')
+        r = self.client.post(reverse('usuarios_editar', args=[usuario.pk]),
+                             self.datos_edicion(usuario, clave=CLAVE, confirmacion=CLAVE))
+        self.assertEqual(r.status_code, 302)
+        usuario.refresh_from_db()
+        self.assertTrue(usuario.check_password(self.clave))
+        self.assertFalse(usuario.check_password(CLAVE))
+
+    def test_detalle_y_exportacion_sin_contrasena(self):
+        """PB-12 · Ni el detalle ni la exportación muestran la contraseña ni su resumen cifrado"""
+        usuario = self.usuario('bcastillo')
+        r = self.client.get(reverse('usuarios_ver', args=[usuario.pk]))
+        self.assertNotContains(r, usuario.password)
+        self.assertNotContains(r, 'Contraseña')
+
+    def test_editar_conserva_el_cargo(self):
+        """PB-13 · El formulario de edición muestra el cargo y guardarlo no lo borra"""
+        usuario = self.usuario('bcastillo')
+        cargo = usuario.cargo
+        self.assertIsNotNone(cargo)
+        r = self.client.get(reverse('usuarios_editar', args=[usuario.pk]))
+        self.assertContains(r, 'id="id_cargo"')
+        self.client.post(reverse('usuarios_editar', args=[usuario.pk]), self.datos_edicion(usuario))
+        usuario.refresh_from_db()
+        self.assertEqual(usuario.cargo, cargo)

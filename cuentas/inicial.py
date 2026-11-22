@@ -11,7 +11,7 @@ from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
 
-from catalogos.models import Cargo, Delegacion, ItemMedicion, SubAtencion, TipoAtencion
+from catalogos.models import Cargo, Delegacion, ItemMedicion, Sector, SubAtencion, TipoAtencion
 from core.validadores import digito_verificador
 
 from .models import Permiso, Rol, Usuario
@@ -42,7 +42,7 @@ ROLES = [
         'codigo': 'ROL02', 'nombre': 'Coordinador', 'alcance': Rol.GLOBAL,
         'descripcion': 'Coordinación de Delegaciones: configura períodos, metas y catálogos, y supervisa la matriz '
                        'SGR de todas las delegaciones.',
-        'permisos': _crud('items', 'tipos_atencion', 'sub_atenciones', 'cargos', 'organizaciones')
+        'permisos': _crud('items', 'tipos_atencion', 'sub_atenciones', 'cargos', 'organizaciones', 'sectores')
         | _ver('delegaciones', 'roles', 'usuarios', 'atenciones', 'auditoria', 'tablero', 'actividades',
                'agenda', 'evidencias', 'informes', 'ausencias', 'observaciones', 'atencion_social')
         | {'validacion.ver', 'periodos.ver', 'periodos.crear', 'periodos.editar', 'metas.ver', 'metas.editar'},
@@ -51,10 +51,12 @@ ROLES = [
         'codigo': 'ROL03', 'nombre': 'Delegado municipal', 'alcance': Rol.DELEGACION,
         'descripcion': 'Dirige una o más delegaciones: valida actividades, registra ausencias, felicitaciones y '
                        'reclamos de su equipo y administra a sus funcionarios.',
-        'permisos': {'atenciones.ver', 'atenciones.crear', 'usuarios.ver', 'usuarios.crear', 'usuarios.editar',
+        'permisos': {'atenciones.ver', 'atenciones.crear', 'atenciones.editar', 'usuarios.ver', 'usuarios.crear',
+                     'usuarios.editar',
                      'actividades.ver', 'actividades.crear', 'evidencias.ver', 'evidencias.crear',
                      'validacion.ver', 'validacion.editar', 'observaciones.ver', 'observaciones.crear',
-                     'organizaciones.ver', 'organizaciones.crear', 'organizaciones.editar'}
+                     'organizaciones.ver', 'organizaciones.crear', 'organizaciones.editar',
+                     'sectores.ver', 'sectores.crear', 'sectores.editar'}
         | _crud('ausencias')
         | _ver('delegaciones', 'items', 'tipos_atencion', 'sub_atenciones', 'cargos', 'tablero', 'agenda',
                'informes', 'atencion_social', 'metas', 'periodos'),
@@ -62,7 +64,8 @@ ROLES = [
     {
         'codigo': 'ROL04', 'nombre': 'Funcionario', 'alcance': Rol.DELEGACION,
         'descripcion': 'Atiende a vecinos y vecinas de su delegación y registra su gestión diaria en la matriz SGR.',
-        'permisos': {'atenciones.ver', 'atenciones.crear', 'actividades.ver', 'actividades.crear',
+        'permisos': {'atenciones.ver', 'atenciones.crear', 'atenciones.editar', 'actividades.ver',
+                     'actividades.crear',
                      'evidencias.ver', 'evidencias.crear'}
         | _ver('tablero', 'agenda', 'ausencias', 'observaciones', 'organizaciones', 'atencion_social', 'metas'),
     },
@@ -70,7 +73,7 @@ ROLES = [
         'codigo': 'ROL05', 'nombre': 'Consultor', 'alcance': Rol.GLOBAL,
         'descripcion': 'Acceso de solo lectura a catálogos, atenciones, indicadores e informes.',
         'permisos': _ver('delegaciones', 'items', 'tipos_atencion', 'sub_atenciones', 'atenciones', 'tablero',
-                         'informes', 'organizaciones', 'cargos'),
+                         'informes', 'organizaciones', 'cargos', 'sectores'),
     },
 ]
 
@@ -81,6 +84,33 @@ DELEGACIONES = [
     ('DEL04', 'Las Compañías', 'Esmeralda 2422'),
     ('DEL05', 'La Pampa', 'Larraín Alcalde 3505'),
     ('DEL06', 'Rural', "O'Higgins 154"),
+]
+
+# Sectores de cada territorio (código, nombre, delegación, referencia). Las Compañías y La Antena usan la lista
+# desplegable «TERRITORIO» de sus hojas TUBO en la matriz Excel; el resto son localidades de referencia que cada
+# delegación confirma o corrige en Configuración → Sectores del territorio.
+FUENTE_MATRIZ = 'Lista TERRITORIO del TUBO (matriz SGR)'
+REFERENCIAL = 'Referencial: confirmar con la delegación'
+SECTORES = [
+    ('SEC001', 'Latorre', 'DEL04', FUENTE_MATRIZ),
+    ('SEC002', 'Rukalaf', 'DEL04', FUENTE_MATRIZ),
+    ('SEC003', 'Toqui', 'DEL04', FUENTE_MATRIZ),
+    ('SEC004', 'Zorrilla', 'DEL04', FUENTE_MATRIZ),
+    ('SEC005', 'Alfalfares', 'DEL03', FUENTE_MATRIZ),
+    ('SEC006', 'Antena', 'DEL03', FUENTE_MATRIZ),
+    ('SEC007', 'Ceres', 'DEL03', FUENTE_MATRIZ),
+    ('SEC008', 'La Florida', 'DEL03', FUENTE_MATRIZ),
+    ('SEC009', 'Casco Histórico', 'DEL01', REFERENCIAL),
+    ('SEC010', 'Caleta San Pedro', 'DEL02', REFERENCIAL),
+    ('SEC011', 'El Faro', 'DEL02', REFERENCIAL),
+    ('SEC012', 'San Joaquín', 'DEL05', REFERENCIAL),
+    ('SEC013', 'Cuatro Esquinas', 'DEL05', REFERENCIAL),
+    ('SEC014', 'El Milagro', 'DEL05', REFERENCIAL),
+    ('SEC015', 'Algarrobito', 'DEL06', REFERENCIAL),
+    ('SEC016', 'El Romero', 'DEL06', REFERENCIAL),
+    ('SEC017', 'Islón', 'DEL06', REFERENCIAL),
+    ('SEC018', 'Lambert', 'DEL06', REFERENCIAL),
+    ('SEC019', 'Las Rojas', 'DEL06', REFERENCIAL),
 ]
 
 # Ítems de la matriz SGR trimestral (hojas por cargo). (código, nombre, descripción, medición)
@@ -261,6 +291,13 @@ def cargar_base():
     for codigo, nombre, direccion in DELEGACIONES:
         Delegacion.objects.update_or_create(codigo=codigo, defaults={
             'nombre': nombre, 'direccion': direccion, 'comuna': 'La Serena'})
+    delegaciones = {d.codigo: d for d in Delegacion.objects.all()}
+    for codigo, nombre, delegacion, referencia in SECTORES:
+        # Solo se crea si falta: los cambios hechos en el mantenedor no se pisan al reinicializar
+        if not Sector.objects.filter(delegacion=delegaciones[delegacion], nombre__iexact=nombre).exists() \
+                and not Sector.objects.filter(codigo=codigo).exists():
+            Sector.objects.create(codigo=codigo, nombre=nombre, delegacion=delegaciones[delegacion],
+                                  descripcion=referencia)
     for codigo, nombre, descripcion, medicion in ITEMS:
         ItemMedicion.objects.update_or_create(codigo=codigo, defaults={
             'nombre': nombre, 'descripcion': descripcion, 'medicion': medicion})
@@ -308,12 +345,7 @@ def cargar_demo(clave=CLAVE_DEMO):
             ('bcastillo', 'DEL06'), ('cvega', 'DEL06'), ('arojas', 'DEL03'), ('jalvarez', 'DEL01'),
             ('pcontreras', 'DEL02'), ('lgonzalez', 'DEL04'), ('fortiz', 'DEL05'), ('rsilva', 'DEL03'),
         ]
-        descripciones = [
-            'Vecina solicita orientación para postular al beneficio y se agenda seguimiento.',
-            'Se recibe la solicitud y se deriva a la unidad municipal correspondiente.',
-            'Vecino informa el problema en su pasaje; se registra para coordinar la visita técnica.',
-            'Se entrega información sobre requisitos y plazos del trámite.',
-        ]
+        descripciones = DESCRIPCIONES_DEMO
         for n in range(30):
             usuario, delegacion = funcionarios[n % len(funcionarios)]
             sub = subs[(n * 7) % len(subs)]
@@ -325,5 +357,42 @@ def cargar_demo(clave=CLAVE_DEMO):
             hace = timedelta(days=(30 - n) * 2, hours=(n * 5) % 9, minutes=(n * 17) % 60)
             Atencion.objects.filter(pk=atencion.pk).update(creada=timezone.now().replace(hour=9, minute=0) - hace)
 
+    _demo_seguimiento_atenciones()
+
     from gestion.inicial import cargar_demo_matriz
     cargar_demo_matriz()
+
+
+DESCRIPCIONES_DEMO = [
+    'Vecina solicita orientación para postular al beneficio y se agenda seguimiento.',
+    'Se recibe la solicitud y se deriva a la unidad municipal correspondiente.',
+    'Vecino informa el problema en su pasaje; se registra para coordinar la visita técnica.',
+    'Se entrega información sobre requisitos y plazos del trámite.',
+]
+
+
+def _demo_seguimiento_atenciones():
+    """Deja cerradas las atenciones de demostración más antiguas y con notas a algunas abiertas.
+    Solo toca atenciones de demostración y solo si aún no hay seguimientos (idempotente)."""
+    from atenciones.models import Atencion, SeguimientoAtencion
+
+    if SeguimientoAtencion.objects.exists():
+        return
+    demo = list(Atencion.objects.filter(descripcion__in=DESCRIPCIONES_DEMO).order_by('creada')[:30])
+    for n, atencion in enumerate(demo):
+        if n < 18:            # las más antiguas ya se resolvieron
+            SeguimientoAtencion.objects.create(
+                atencion=atencion, tipo=SeguimientoAtencion.NOTA, usuario=atencion.responsable,
+                comentario='Se contacta al vecino por teléfono para informar el avance de su solicitud.')
+            SeguimientoAtencion.objects.create(
+                atencion=atencion, tipo=SeguimientoAtencion.CIERRE, usuario=atencion.responsable,
+                comentario='Solicitud resuelta: se entregó la respuesta al vecino y no quedan gestiones pendientes.')
+            cierre = atencion.creada + timedelta(days=3)
+            Atencion.objects.filter(pk=atencion.pk).update(estado=Atencion.CERRADA, cerrada=cierre,
+                                                          cerrada_por=atencion.responsable)
+            atencion.seguimientos.filter(tipo=SeguimientoAtencion.NOTA).update(creado=atencion.creada + timedelta(days=1))
+            atencion.seguimientos.filter(tipo=SeguimientoAtencion.CIERRE).update(creado=cierre)
+        elif n < 24:          # abiertas, con una gestión en curso
+            SeguimientoAtencion.objects.create(
+                atencion=atencion, tipo=SeguimientoAtencion.NOTA, usuario=atencion.responsable,
+                comentario='Derivada a la unidad correspondiente; se espera respuesta para informar al vecino.')

@@ -1,0 +1,39 @@
+{% extends "crud/formulario.html" %}
+{% comment %}Organización: datos, territorio con su sector y hasta 3 funcionarios encargados.{% endcomment %}
+
+{% block campos %}
+<h3 class="subtitulo-seccion"><i class="bi bi-building" aria-hidden="true"></i>Identificación</h3>
+<div class="rejilla rejilla-2">
+    {% include "parciales/_campo.html" with campo=form.nombre %}
+    {% include "parciales/_campo.html" with campo=form.tipo %}
+</div>
+
+<h3 class="subtitulo-seccion"><i class="bi bi-geo-alt" aria-hidden="true"></i>Territorio y sector</h3>
+<div class="rejilla rejilla-3">
+    {% include "parciales/_campo.html" with campo=form.delegacion %}
+    {% include "parciales/_campo.html" with campo=form.sector %}
+    {% include "parciales/_campo.html" with campo=form.domicilio %}
+</div>
+
+<h3 class="subtitulo-seccion"><i class="bi bi-person-badge" aria-hidden="true"></i>Encargados municipales <span class="ruta">· hasta 3 funcionarios a cargo de la organización</span></h3>
+<div class="rejilla rejilla-3 encargados-formulario">
+    {% for campo in form.campos_encargados %}
+    <div class="puesto-encargado"><span class="numero-persona" aria-hidden="true">{{ forloop.counter }}</span>{% include "parciales/_campo.html" %}</div>
+    {% endfor %}
+</div>
+<p class="ruta">La lista muestra los funcionarios de la delegación elegida. Puede dejar puestos sin asignar; un funcionario no se repite.</p>
+
+<h3 class="subtitulo-seccion"><i class="bi bi-journal-bookmark" aria-hidden="true"></i>Registro municipal</h3>
+<div class="rejilla rejilla-3">
+    {% include "parciales/_campo.html" with campo=form.registro_pj %}
+    {% include "parciales/_campo.html" with campo=form.fecha_constitucion %}
+    {% include "parciales/_campo.html" with campo=form.fecha_inscripcion %}
+</div>
+<div class="rejilla rejilla-3">
+    {% include "parciales/_campo.html" with campo=form.registro_directiva %}
+    {% include "parciales/_campo.html" with campo=form.socios %}
+    {% include "parciales/_campo.html" with campo=form.observacion %}
+</div>
+{% include "parciales/_campo.html" with campo=form.verificada %}
+{% include "parciales/_campo.html" with campo=form.activo %}
+{% endblock %}

@@ -31,7 +31,7 @@ MODULOS = [
     ('ausencias', 'Ausencias del equipo', OPERATIVO, ['ver', 'crear', 'eliminar'], 'bi-calendar-x', MATRIZ),
     ('observaciones', 'Felicitaciones y reclamos', OPERATIVO, ['ver', 'crear'], 'bi-award', MATRIZ),
     ('informes', 'Informes', OPERATIVO, ['ver'], 'bi-file-earmark-bar-graph', MATRIZ),
-    ('atenciones', 'Atenciones', OPERATIVO, ['ver', 'crear'], 'bi-person-lines-fill', GESTION),
+    ('atenciones', 'Atenciones', OPERATIVO, ['ver', 'crear', 'editar'], 'bi-person-lines-fill', GESTION),
     ('atencion_social', 'Historial por vecino', OPERATIVO, ['ver'], 'bi-heart', GESTION),
     ('organizaciones', 'Organizaciones', OPERATIVO, CRUD, 'bi-people-fill', GESTION),
     ('periodos', 'Períodos', OPERATIVO, ['ver', 'crear', 'editar'], 'bi-calendar3', CONFIG),
@@ -39,6 +39,7 @@ MODULOS = [
     ('cargos', 'Cargos', OPERATIVO, CRUD, 'bi-person-badge', CONFIG),
     ('items', 'Ítems de medición', OPERATIVO, CRUD, 'bi-bullseye', CONFIG),
     ('delegaciones', 'Delegaciones', OPERATIVO, CRUD, 'bi-geo-alt', CONFIG),
+    ('sectores', 'Sectores del territorio', OPERATIVO, CRUD, 'bi-pin-map', CONFIG),
     ('tipos_atencion', 'Tipo de Atención', OPERATIVO, CRUD, 'bi-tags', CONFIG),
     ('sub_atenciones', 'Sub Atención', OPERATIVO, CRUD, 'bi-diagram-2', CONFIG),
     ('usuarios', 'Usuarios', OPERATIVO, CRUD, 'bi-people', CONFIG),
@@ -49,7 +50,7 @@ MODULOS = [
 
 # Módulos servidos por el motor de mantenedores (su listado se llama <código>_lista)
 MANTENEDORES = {'atenciones', 'delegaciones', 'roles', 'usuarios', 'items', 'tipos_atencion', 'sub_atenciones',
-                'cargos', 'organizaciones'}
+                'cargos', 'organizaciones', 'sectores'}
 
 NOMBRES = {m[0]: m[1] for m in MODULOS}
 ESTADOS = {m[0]: m[2] for m in MODULOS}

@@ -9,11 +9,9 @@
     {% include "parciales/_campo.html" with campo=form.nombre_usuario %}
     {% include "parciales/_campo.html" with campo=form.rol %}
 </div>
+{% include "parciales/_campo.html" with campo=form.cargo %}
 {% include "parciales/_campo.html" with campo=form.delegaciones %}
-<div class="rejilla rejilla-2">
-    {% include "parciales/_campo_clave.html" with campo=form.clave %}
-    {% include "parciales/_campo_clave.html" with campo=form.confirmacion %}
-</div>
-<p class="ruta">La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial.</p>
+<div class="aviso info"><i class="bi bi-shield-lock" aria-hidden="true"></i>
+    <div>{% if obj %}La contraseña es privada de cada persona: nadie más puede verla ni cambiarla. Si la olvidó, la recupera con «¿Olvidó su contraseña?» en la página de acceso.{% else %}La persona recibirá un correo de bienvenida con un enlace para crear su propia contraseña. El administrador no la conoce ni la define.{% endif %}</div></div>
 {% include "parciales/_campo.html" with campo=form.is_active %}
 {% endblock %}

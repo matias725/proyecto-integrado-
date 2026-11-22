@@ -246,13 +246,11 @@ class IntegridadTests(PruebaSGR):
         self.assertIn('nombre_usuario', r.context['form'].errors)
         self.assertIn('correo', r.context['form'].errors)
 
-    def test_usuario_clave_debil(self):
-        """PI-14 · Al crear un usuario la contraseña debe cumplir los requisitos"""
-        r = self.client.post(reverse('usuarios_crear'), {
-            'nombre': 'Nuevo', 'nombre_usuario': 'nuevo1', 'correo': 'nuevo1@example.test',
-            'rol': Rol.objects.get(codigo='ROL04').pk, 'delegaciones': [Delegacion.objects.first().pk],
-            'is_active': 'on', 'clave': 'abc', 'confirmacion': 'abc'})
-        self.assertIn('clave', r.context['form'].errors)
+    def test_formulario_usuario_sin_contrasena(self):
+        """PI-14 · El formulario de usuarios no pide ni muestra contraseña (corrección EV2)"""
+        r = self.client.get(reverse('usuarios_crear'))
+        self.assertNotIn('clave', r.context['form'].fields)
+        self.assertNotContains(r, 'type="password"')
 
     def test_rol_desactivado_no_puede_asignarse(self):
         """PI-15 · No se ofrece un rol inactivo al crear usuarios"""
@@ -362,3 +360,28 @@ class ListadosTests(PruebaSGR):
         r = self.client.get(reverse('items_exportar'), {'q': 'IT098'})
         hoja, _, _ = leer_excel(r)
         self.assertEqual(hoja['B7'].data_type, 's')
+
+
+class ComunaDelegacionTests(PruebaSGR):
+    """Corrección EV2: selector de comuna con La Serena por defecto."""
+
+    def setUp(self):
+        self.entrar('admin')
+
+    def test_comuna_por_defecto_la_serena(self):
+        """PI-30 · Al crear una delegación, el selector de comuna viene en La Serena"""
+        r = self.client.get(reverse('delegaciones_crear'))
+        campo = r.context['form']['comuna']
+        self.assertEqual(campo.value(), 'La Serena')
+        self.assertContains(r, '<select name="comuna"')
+        self.assertContains(r, '<option value="La Serena" selected>')
+
+    def test_comuna_se_puede_cambiar(self):
+        """PI-31 · Se puede elegir otra comuna de la lista; un valor fuera de la lista se rechaza"""
+        datos = {'codigo': 'DEL07', 'nombre': 'Serena Oriente', 'direccion': 'Calle Prueba 123',
+                 'comuna': 'Coquimbo', 'activo': 'on'}
+        self.client.post(reverse('delegaciones_crear'), datos)
+        self.assertEqual(Delegacion.objects.get(codigo='DEL07').comuna, 'Coquimbo')
+        datos.update(codigo='DEL08', nombre='Otra', comuna='Santiago')
+        r = self.client.post(reverse('delegaciones_crear'), datos)
+        self.assertIn('comuna', r.context['form'].errors)

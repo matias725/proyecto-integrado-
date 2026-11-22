@@ -31,11 +31,22 @@ def validador_codigo(prefijo, digitos):
         f'Use el formato {prefijo} seguido de {digitos} dígitos, por ejemplo {prefijo}{"1".zfill(digitos)}.')
 
 
+# Comunas de la Región de Coquimbo. La Serena va primero porque es la comuna del municipio
+# y queda seleccionada por defecto; se puede elegir otra.
+COMUNA_POR_DEFECTO = 'La Serena'
+COMUNAS = [
+    'La Serena', 'Coquimbo', 'Andacollo', 'La Higuera', 'Paihuano', 'Vicuña',
+    'Illapel', 'Canela', 'Los Vilos', 'Salamanca',
+    'Ovalle', 'Combarbalá', 'Monte Patria', 'Punitaqui', 'Río Hurtado',
+]
+
+
 class Delegacion(Catalogo):
     codigo = models.CharField('código', max_length=6, unique=True, validators=[validador_codigo('DEL', 2)])
     nombre = models.CharField('nombre', max_length=80, unique=True)
     direccion = models.CharField('dirección', max_length=150)
-    comuna = models.CharField('comuna', max_length=60, default='La Serena')
+    comuna = models.CharField('comuna', max_length=60, default=COMUNA_POR_DEFECTO,
+                              choices=[(c, c) for c in COMUNAS])
 
     class Meta:
         verbose_name = 'delegación'
@@ -49,6 +60,46 @@ class Delegacion(Catalogo):
     @property
     def nombre_completo(self):
         return f'Delegación {self.nombre}'
+
+
+class Sector(Catalogo):
+    """
+    Parte del territorio de una delegación (barrio, población o localidad), como la columna
+    «TERRITORIO» del TUBO de la matriz: Latorre, Toqui... en Las Compañías; La Florida, Ceres... en La Antena.
+    """
+
+    codigo = models.CharField('código', max_length=6, unique=True, validators=[validador_codigo('SEC', 3)])
+    nombre = models.CharField('nombre del sector', max_length=80)
+    delegacion = models.ForeignKey(Delegacion, on_delete=models.PROTECT, related_name='sectores',
+                                   verbose_name='delegación')
+    descripcion = models.CharField('referencia', max_length=200, blank=True,
+                                   help_text='Villas, poblaciones o límites que abarca (opcional).')
+
+    class Meta:
+        verbose_name = 'sector'
+        verbose_name_plural = 'sectores'
+        ordering = ['delegacion__codigo', 'nombre']
+        constraints = [
+            # El mismo nombre puede repetirse en delegaciones distintas, no dentro de una misma
+            models.UniqueConstraint(Lower('nombre'), 'delegacion', name='sector_nombre_por_delegacion_ci'),
+        ]
+
+    def __str__(self):
+        return self.nombre
+
+    @property
+    def territorio(self):
+        return f'{self.delegacion.nombre} · {self.nombre}'
+
+
+def texto_territorio(delegacion, sector=None, referencia=''):
+    """«Las Compañías · sector Toqui · Pasaje 3»: delegación, sector y referencia, lo que exista."""
+    partes = [delegacion.nombre if delegacion else 'Sin delegación']
+    if sector:
+        partes.append(f'sector {sector.nombre}')
+    if referencia:
+        partes.append(referencia)
+    return ' · '.join(partes)
 
 
 class ItemMedicion(Catalogo):

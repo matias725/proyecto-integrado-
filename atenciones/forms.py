@@ -3,6 +3,8 @@
 from django import forms
 
 from catalogos.models import SubAtencion, TipoAtencion
+
+from .models import Atencion, SeguimientoAtencion
 from core.validadores import formatear_rut, validar_rut, validar_telefono
 
 
@@ -48,3 +50,31 @@ class AtencionForm(forms.Form):
             self.add_error('subatencion', f'«{sub}» no pertenece al tipo «{tipo}». Elija una sub atención del tipo.')
         return limpio
 
+
+
+class SeguimientoForm(forms.Form):
+    """Agrega una nota de seguimiento, cierra la atención o la reabre. Siempre con comentario."""
+
+    accion = forms.ChoiceField(label='Acción', widget=forms.RadioSelect)
+    comentario = forms.CharField(
+        label='Comentario', min_length=5, max_length=1000,
+        widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'Qué se hizo, qué se respondió o qué queda pendiente.'}))
+
+    def __init__(self, atencion, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.atencion = atencion
+        if atencion.estado == Atencion.ABIERTA:
+            self.fields['accion'].choices = [
+                (SeguimientoAtencion.NOTA, 'Registrar seguimiento (sigue abierta)'),
+                (SeguimientoAtencion.CIERRE, 'Cerrar la atención'),
+            ]
+            self.fields['accion'].initial = SeguimientoAtencion.NOTA
+            self.fields['comentario'].help_text = 'Al cerrar, escriba la resolución o respuesta entregada al vecino.'
+        else:
+            self.fields['accion'].choices = [(SeguimientoAtencion.REAPERTURA, 'Reabrir la atención')]
+            self.fields['accion'].initial = SeguimientoAtencion.REAPERTURA
+            self.fields['comentario'].label = 'Motivo de la reapertura'
+            self.fields['comentario'].widget.attrs['placeholder'] = 'Por qué se reabre: qué volvió a pedir el vecino o qué quedó pendiente.'
+
+    def clean_comentario(self):
+        return self.cleaned_data['comentario'].strip()

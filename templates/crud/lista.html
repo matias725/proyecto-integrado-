@@ -6,7 +6,7 @@
 {% endcomment %}
 
 {% block titulo %}{{ m.titulo }}{% endblock %}
-{% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / Gestión municipal / {{ m.titulo }}{% endblock %}
+{% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / {{ m.grupo|default:'Gestión municipal' }} / {{ m.titulo }}{% endblock %}
 {% block titulo_pagina %}{{ m.titulo }}{% endblock %}
 {% block bajada %}{{ m.descripcion }}{% endblock %}
 {% block traza %}{{ m.traza }}{% endblock %}

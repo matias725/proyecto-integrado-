@@ -58,6 +58,9 @@ class Usuarios(Mantenedor):
     detalle = [('nombre', 'Nombre'), ('nombre_usuario', 'Usuario'), ('correo', 'Correo'), ('rol.nombre', 'Rol'),
                ('rol.get_alcance_display', 'Alcance del rol'), ('cargo.nombre', 'Cargo'), ('lista_delegaciones', 'Delegaciones autorizadas'),
                ('estado', 'Estado'), ('last_login', 'Último acceso'), ('creado', 'Creado')]
+    relacionados = [('encargos_organizacion', 'Organizaciones a cargo', [
+        ('organizacion.nombre', 'Organización'), ('get_orden_display', 'Puesto'),
+        ('organizacion.territorio', 'Territorio y sector')])]
 
     def consulta(self, request):
         consulta = Usuario.objects.select_related('rol', 'cargo').prefetch_related('delegaciones')

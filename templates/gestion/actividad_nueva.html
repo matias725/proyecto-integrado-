@@ -45,17 +45,20 @@
         </div>
     </div>
     <div class="panel">
-        <div class="panel-cabecera"><h2>Usuario atendido</h2></div>
+        <div class="panel-cabecera"><h2>Usuario atendido y territorio</h2></div>
         <div class="panel-cuerpo">
             <div class="rejilla rejilla-2">
                 {% include "parciales/_campo.html" with campo=form.solicitante_nombre %}
                 {% include "parciales/_campo.html" with campo=form.solicitante_telefono %}
             </div>
             {% include "parciales/_campo.html" with campo=form.solicitante_es_delegado %}
-            <div class="rejilla rejilla-3">
+            <div class="rejilla rejilla-2">
                 {% include "parciales/_campo.html" with campo=form.organizacion %}
-                {% include "parciales/_campo.html" with campo=form.territorio %}
                 {% include "parciales/_campo.html" with campo=form.area_apoyo %}
+            </div>
+            <div class="rejilla rejilla-2">
+                {% include "parciales/_campo.html" with campo=form.sector %}
+                {% include "parciales/_campo.html" with campo=form.territorio %}
             </div>
         </div>
     </div>

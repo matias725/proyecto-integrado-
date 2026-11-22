@@ -10,9 +10,10 @@ from datetime import date, timedelta
 from django.core.files.base import ContentFile
 from django.db import transaction
 
-from catalogos.models import Cargo, Delegacion, ItemMedicion
+from catalogos.models import Cargo, Delegacion, ItemMedicion, Sector
 
-from .models import Actividad, Ausencia, HistorialActividad, MetaCargo, Observacion, Organizacion, Periodo, TipoOrganizacion
+from .models import (Actividad, Ausencia, EncargadoOrganizacion, HistorialActividad, MetaCargo, Observacion,
+                     Organizacion, Periodo, TipoOrganizacion)
 from .reglas import MAX_INGRESOS_DIARIOS, aplicar_reglas_de_puntaje, hoy, ultimo_dia_de_ingreso
 
 PDF_DEMO = b'%PDF-1.4\n% Respaldo de demostracion SGR\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'
@@ -57,6 +58,56 @@ ORGANIZACIONES = [
     ('JUNTA DE VECINOS LA ANTENA NORTE', 'TO01', 'DEL03', 'AVENIDA 18 DE SEPTIEMBRE 1500', 98, 1211),
     ('CLUB DE ADULTO MAYOR LAS COMPAÑÍAS', 'TO02', 'DEL04', 'ESMERALDA 2400', 44, 1212),
 ]
+
+# Sector de cada organización de demostración (por N.º de registro PJ). La 1204 queda sin sector a propósito.
+SECTOR_DEMO = {1201: 'Las Rojas', 1202: 'El Romero', 1203: 'Algarrobito', 1205: 'Islón', 1206: 'El Romero',
+               1207: 'Las Rojas', 1208: 'Lambert', 1209: 'Casco Histórico', 1210: 'Casco Histórico',
+               1211: 'Antena', 1212: 'Latorre'}
+
+AREAS_APOYO = ['Dirección de Obras', 'Parques y Jardines', 'Dirección de Tránsito', 'DIDECO', 'Aseo y Ornato',
+               'Seguridad Ciudadana']
+
+
+def _cargar_demo_territorio_y_encargados():
+    """Sector y encargados municipales de las organizaciones de demostración, y sector de las actividades
+    de demostración. Idempotente: solo completa lo que falta, también en bases ya cargadas."""
+    for registro, nombre_sector in SECTOR_DEMO.items():
+        org = Organizacion.objects.filter(registro_pj=registro, sector__isnull=True).first()
+        if org and org.delegacion_id:
+            sector = Sector.objects.filter(delegacion_id=org.delegacion_id, nombre=nombre_sector).first()
+            if sector:
+                Organizacion.objects.filter(pk=org.pk).update(sector=sector)
+    # Encargados municipales: entre 1 y 3 funcionarios de la delegación de cada organización
+    from cuentas.models import Usuario
+    registros = [o[5] for o in ORGANIZACIONES]
+    for org in Organizacion.objects.filter(registro_pj__in=registros, encargos__isnull=True, delegacion__isnull=False):
+        candidatos = list(Usuario.objects.filter(delegaciones=org.delegacion_id, is_active=True, cargo__isnull=False)
+                          .order_by('cargo__es_delegado', 'nombre_usuario'))
+        cantidad = min(len(candidatos), org.registro_pj % 3 + 1)
+        inicio = org.registro_pj % len(candidatos) if candidatos else 0
+        elegidos = (candidatos[inicio:] + candidatos[:inicio])[:cantidad]
+        EncargadoOrganizacion.objects.bulk_create([
+            EncargadoOrganizacion(organizacion=org, usuario=u, orden=n) for n, u in enumerate(elegidos, start=1)])
+    # Actividades de demostración: tenían como «territorio» el nombre de la delegación; se les asigna un sector
+    # (el de su organización o uno del territorio, de forma determinista) y la referencia queda libre.
+    if Actividad.objects.filter(sector__isnull=False).exists():
+        return
+    sectores = {}
+    for sector in Sector.objects.filter(activo=True).order_by('codigo'):
+        sectores.setdefault(sector.delegacion_id, []).append(sector)
+    cambios = []
+    for a in Actividad.objects.select_related('delegacion', 'organizacion').filter(sector__isnull=True):
+        if a.territorio and a.territorio != a.delegacion.nombre:
+            continue                      # referencia escrita por una persona: no se toca
+        lista = sectores.get(a.delegacion_id, [])
+        a.sector = (a.organizacion.sector if a.organizacion and a.organizacion.sector_id
+                    else (lista[a.pk % len(lista)] if lista and a.pk % 5 else None))
+        a.territorio = ''
+        if a.fecha_compromiso and not a.area_apoyo and a.pk % 3:
+            a.area_apoyo = AREAS_APOYO[a.pk % len(AREAS_APOYO)]
+        cambios.append(a)
+    Actividad.objects.bulk_update(cambios, ['sector', 'territorio', 'area_apoyo'], batch_size=500)
+
 
 # (usuario, ítem, título, interna/externa, organización opcional)
 PLANTILLAS = {
@@ -106,6 +157,8 @@ def cargar_demo_matriz():
             'nombre': nombre, 'tipo': tipos[tipo], 'delegacion': delegaciones[delegacion], 'domicilio': domicilio,
             'socios': socios, 'fecha_constitucion': date(2015, 3, 10), 'verificada': True,
             'observacion': 'Organización ficticia de demostración'})
+
+    _cargar_demo_territorio_y_encargados()
 
     periodo = Periodo.objects.filter(estado=Periodo.ABIERTO).first()
     if periodo is None or Actividad.objects.filter(periodo=periodo).exists():
@@ -167,6 +220,7 @@ def cargar_demo_matriz():
             cupo[clave] = cupo.get(clave, 0) + 1
             validas.append(a)
     Actividad.objects.bulk_create(validas, batch_size=500)
+    _cargar_demo_territorio_y_encargados()
     HistorialActividad.objects.bulk_create([
         HistorialActividad(actividad=a, usuario=a.funcionario, estado_nuevo=a.estado, observacion='Ingreso')
         for a in Actividad.objects.filter(periodo=periodo)], batch_size=500)

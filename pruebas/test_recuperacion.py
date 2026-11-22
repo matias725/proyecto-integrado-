@@ -1,5 +1,6 @@
 """Pruebas de recuperación de contraseña en tres pasos."""
 
+import re
 from datetime import timedelta
 
 from django.core import mail
@@ -224,9 +225,35 @@ class RecuperacionTests(PruebaSGR):
     @override_settings(EMAIL_BACKEND='cuentas.correo.BandejaBackend', SGR_BANDEJA_REENVIAR_SMTP=True,
                        EMAIL_HOST='127.0.0.1', EMAIL_PORT=1, EMAIL_TIMEOUT=2)
     def test_falla_smtp_no_interrumpe_recuperacion(self):
-        """PR-22 · Si el servidor SMTP falla, la solicitud continúa y el código queda en la bandeja"""
+        """PR-22 · Si el servidor SMTP falla, la solicitud continúa y la copia queda en la bandeja"""
         from cuentas.models import CorreoSaliente
         with self.assertLogs('sgr', level='ERROR'):
             r = self.solicitar()
         self.assertRedirects(r, reverse('recuperar_validar'))
         self.assertEqual(CorreoSaliente.objects.filter(destinatario='bcastillo@example.test').count(), 1)
+
+    @override_settings(EMAIL_BACKEND='cuentas.correo.BandejaBackend', SGR_BANDEJA_REENVIAR_SMTP=True,
+                       EMAIL_HOST='127.0.0.1', EMAIL_PORT=1, EMAIL_TIMEOUT=2)
+    def test_bandeja_oculta_codigo_con_correo_real(self):
+        """PR-23 · Con el correo real activo, la bandeja no guarda ni muestra el código de recuperación"""
+        from cuentas.models import CodigoRecuperacion, CorreoSaliente
+        with self.assertLogs('sgr', level='ERROR'):
+            self.solicitar()
+        copia = CorreoSaliente.objects.get(destinatario='bcastillo@example.test')
+        self.assertIsNone(re.search(r'\b\d{6}\b', copia.cuerpo))
+        self.assertIn('●●●●●●', copia.cuerpo)
+        self.assertTrue(CodigoRecuperacion.objects.filter(usuario__nombre_usuario='bcastillo').exists())
+        self.entrar('admin')
+        r = self.client.get(reverse('correos'))
+        self.assertContains(r, '●●●●●●')
+
+    @override_settings(SGR_BANDEJA_REENVIAR_SMTP=True)
+    def test_bandeja_oculta_correos_antiguos(self):
+        """PR-24 · Al activar el correo real, también se ocultan los correos guardados antes"""
+        from cuentas.models import CorreoSaliente
+        CorreoSaliente.objects.create(destinatario='x@example.test', asunto='Código',
+                                      cuerpo='Su código es: 123456\nEnlace: http://testserver/bienvenida/MQ/abc-123/')
+        self.entrar('admin')
+        r = self.client.get(reverse('correos'))
+        self.assertNotContains(r, '123456')
+        self.assertNotContains(r, '/bienvenida/MQ/')

@@ -149,3 +149,109 @@ class IngresoAtencionTests(PruebaSGR):
         self.assertIn(a, r.context['pagina'].object_list)
         r = self.client.get(reverse('atenciones_lista'), {'q': a.solicitante.rut[:6]})
         self.assertIn(a, r.context['pagina'].object_list)
+
+
+class SeguimientoAtencionTests(PruebaSGR):
+    """Corrección EV2: la atención se sigue en el tiempo y queda abierta o cerrada."""
+
+    def setUp(self):
+        self.entrar('bcastillo')
+        self.atencion = Atencion.objects.filter(delegacion__codigo='DEL06', estado=Atencion.ABIERTA).first()
+
+    def seguir(self, atencion=None, **datos):
+        atencion = atencion or self.atencion
+        return self.client.post(reverse('atenciones_seguimiento', args=[atencion.pk]), datos, follow=True)
+
+    def test_nace_abierta(self):
+        """PT-20 · Toda atención nueva queda en estado Abierta"""
+        tipo = TipoAtencion.objects.get(codigo='TA001')
+        self.client.post(reverse('atenciones_crear'), {
+            'token_envio': str(uuid.uuid4()), 'rut': '11.111.111-1', 'nombre': 'Vecina de Prueba',
+            'tipo': tipo.pk, 'subatencion': tipo.subatenciones.filter(activo=True).first().pk,
+            'descripcion': 'Solicita orientación sobre el beneficio municipal.'})
+        nueva = Atencion.objects.latest('pk')
+        self.assertEqual(nueva.estado, Atencion.ABIERTA)
+        self.assertIsNone(nueva.cerrada)
+
+    def test_nota_de_seguimiento_mantiene_abierta(self):
+        """PT-21 · Una nota de seguimiento queda en el historial y la atención sigue abierta"""
+        antes = self.atencion.seguimientos.count()
+        r = self.seguir(accion='NOTA', comentario='Se llamó al vecino para informar el avance.')
+        self.assertMensaje(r, 'Seguimiento registrado')
+        self.atencion.refresh_from_db()
+        self.assertEqual(self.atencion.estado, Atencion.ABIERTA)
+        self.assertEqual(self.atencion.seguimientos.count(), antes + 1)
+        self.assertContains(r, 'Se llamó al vecino para informar el avance.')
+
+    def test_cerrar_con_resolucion(self):
+        """PT-22 · Cerrar registra quién y cuándo, y la atención pasa a Cerrada"""
+        self.seguir(accion='CIERRE', comentario='Se entregó la respuesta al vecino.')
+        self.atencion.refresh_from_db()
+        self.assertEqual(self.atencion.estado, Atencion.CERRADA)
+        self.assertEqual(self.atencion.cerrada_por, self.usuario('bcastillo'))
+        self.assertIsNotNone(self.atencion.cerrada)
+        from core.models import Auditoria
+        self.assertTrue(Auditoria.objects.filter(entidad='atenciones', registro=str(self.atencion.pk),
+                                                 evento='CAMBIO_ESTADO').exists())
+
+    def test_comentario_obligatorio(self):
+        """PT-23 · No se cierra ni se registra seguimiento sin comentario"""
+        r = self.seguir(accion='CIERRE', comentario='')
+        self.atencion.refresh_from_db()
+        self.assertEqual(self.atencion.estado, Atencion.ABIERTA)
+        self.assertMensaje(r, 'obligatorio')
+
+    def test_cerrada_solo_admite_reapertura(self):
+        """PT-24 · Una atención cerrada no recibe notas; se puede reabrir con motivo"""
+        self.seguir(accion='CIERRE', comentario='Resuelta en la visita.')
+        antes = self.atencion.seguimientos.count()
+        self.seguir(accion='NOTA', comentario='Intento de nota en una atención cerrada.')
+        self.assertEqual(self.atencion.seguimientos.count(), antes)
+        self.seguir(accion='REAPERTURA', comentario='El vecino volvió: el problema persiste.')
+        self.atencion.refresh_from_db()
+        self.assertEqual(self.atencion.estado, Atencion.ABIERTA)
+        self.assertIsNone(self.atencion.cerrada_por)
+
+    def test_consultor_no_puede_seguir(self):
+        """PT-25 · Un perfil de solo lectura ve el seguimiento pero no puede registrar ni cerrar"""
+        self.client.logout()
+        self.entrar('lectura')
+        r = self.client.get(reverse('atenciones_ver', args=[self.atencion.pk]))
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNone(r.context['form'])
+        r = self.client.post(reverse('atenciones_seguimiento', args=[self.atencion.pk]),
+                             {'accion': 'CIERRE', 'comentario': 'Intento sin permiso.'})
+        self.assertEqual(r.status_code, 403)
+        self.atencion.refresh_from_db()
+        self.assertEqual(self.atencion.estado, Atencion.ABIERTA)
+
+    def test_otra_delegacion_denegada(self):
+        """PT-26 · No se puede cerrar una atención de una delegación no autorizada"""
+        ajena = Atencion.objects.filter(delegacion__codigo='DEL01', estado=Atencion.ABIERTA).first()
+        r = self.client.post(reverse('atenciones_seguimiento', args=[ajena.pk]),
+                             {'accion': 'CIERRE', 'comentario': 'No debería poder.'})
+        self.assertEqual(r.status_code, 403)
+        ajena.refresh_from_db()
+        self.assertEqual(ajena.estado, Atencion.ABIERTA)
+
+    def test_filtro_y_exportacion_por_estado(self):
+        """PT-27 · El listado filtra por estado y la exportación incluye estado y cierre"""
+        self.seguir(accion='CIERRE', comentario='Resuelta.')
+        r = self.client.get(reverse('atenciones_lista'), {'estado': 'CERRADA'})
+        self.assertTrue(r.context['pagina'].object_list)
+        self.assertTrue(all(a.estado == Atencion.CERRADA for a in r.context['pagina'].object_list))
+        r = self.client.get(reverse('atenciones_lista'), {'estado': 'ABIERTA'})
+        self.assertTrue(all(a.estado == Atencion.ABIERTA for a in r.context['pagina'].object_list))
+        from io import BytesIO
+
+        from openpyxl import load_workbook
+        r = self.client.get(reverse('atenciones_exportar'), {'estado': 'CERRADA'})
+        hoja = load_workbook(BytesIO(r.content)).active
+        textos = [str(c.value) for fila in hoja.iter_rows() for c in fila if c.value]
+        self.assertIn('Estado', textos)
+        self.assertIn('Cerrada por', textos)
+
+    def test_get_no_permitido(self):
+        """PT-28 · El seguimiento solo se registra por POST"""
+        r = self.client.get(reverse('atenciones_seguimiento', args=[self.atencion.pk]))
+        self.assertEqual(r.status_code, 405)

@@ -25,6 +25,10 @@ class Solicitante(models.Model):
 
 
 class Atencion(models.Model):
+    ABIERTA = 'ABIERTA'
+    CERRADA = 'CERRADA'
+    ESTADOS = [(ABIERTA, 'Abierta'), (CERRADA, 'Cerrada')]
+
     solicitante = models.ForeignKey(Solicitante, on_delete=models.PROTECT, related_name='atenciones')
     tipo = models.ForeignKey(TipoAtencion, on_delete=models.PROTECT, related_name='atenciones',
                              verbose_name='tipo de atención')
@@ -36,6 +40,11 @@ class Atencion(models.Model):
     responsable = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                                     related_name='atenciones', verbose_name='responsable')
     creada = models.DateTimeField('fecha de registro', auto_now_add=True)
+    # Seguimiento: toda atención nace abierta y se cierra con una resolución escrita
+    estado = models.CharField('estado', max_length=8, choices=ESTADOS, default=ABIERTA)
+    cerrada = models.DateTimeField('fecha de cierre', null=True, blank=True)
+    cerrada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                                    related_name='atenciones_cerradas', verbose_name='cerrada por')
     # Identificador del formulario enviado: un segundo envío del mismo
     # formulario no crea un registro duplicado.
     token_envio = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
@@ -44,7 +53,8 @@ class Atencion(models.Model):
         verbose_name = 'atención'
         verbose_name_plural = 'atenciones'
         ordering = ['-creada']
-        indexes = [models.Index(fields=['delegacion', '-creada'])]
+        indexes = [models.Index(fields=['delegacion', '-creada']),
+                   models.Index(fields=['delegacion', 'estado', '-creada'], name='atencion_deleg_estado')]
 
     def __str__(self):
         return self.folio
@@ -53,3 +63,32 @@ class Atencion(models.Model):
     def folio(self):
         anio = self.creada.year if self.creada else ''
         return f'AT-{anio}-{self.pk:06d}' if self.pk else 'AT-nueva'
+
+    @property
+    def abierta(self):
+        return self.estado == self.ABIERTA
+
+
+class SeguimientoAtencion(models.Model):
+    """Cada paso del seguimiento de una atención: una nota, su cierre o su reapertura."""
+
+    NOTA = 'NOTA'
+    CIERRE = 'CIERRE'
+    REAPERTURA = 'REAPERTURA'
+    TIPOS = [(NOTA, 'Seguimiento'), (CIERRE, 'Cierre'), (REAPERTURA, 'Reapertura')]
+
+    atencion = models.ForeignKey(Atencion, on_delete=models.CASCADE, related_name='seguimientos',
+                                 verbose_name='atención')
+    tipo = models.CharField('tipo', max_length=10, choices=TIPOS, default=NOTA)
+    comentario = models.TextField('comentario', max_length=1000)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                related_name='seguimientos_atencion', verbose_name='registrado por')
+    creado = models.DateTimeField('fecha', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'seguimiento de atención'
+        verbose_name_plural = 'seguimientos de atención'
+        ordering = ['creado', 'id']
+
+    def __str__(self):
+        return f'{self.atencion.folio} · {self.get_tipo_display()}'

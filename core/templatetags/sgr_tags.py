@@ -73,6 +73,20 @@ def cifra(valor, decimales=1):
 
 
 @register.filter
+def fecha_ficha(valor):
+    """Fecha con hora si es datetime y sin hora si es date (el filtro date falla con 'H:i' en un date)."""
+    from datetime import datetime
+
+    from django.utils import timezone
+    from django.utils.dateformat import format as formatear
+    if isinstance(valor, datetime):
+        if timezone.is_aware(valor):
+            valor = timezone.localtime(valor)
+        return formatear(valor, 'd-m-Y H:i')
+    return formatear(valor, 'd-m-Y')
+
+
+@register.filter
 def iniciales(nombre):
     return ''.join(p[0] for p in str(nombre).split()[:2]).upper()
 
