@@ -2,31 +2,97 @@
 {% load sgr_tags %}
 {% block titulo %}Períodos{% endblock %}
 {% block titulo_pagina %}Períodos de medición{% endblock %}
-{% block bajada %}Trimestres de la matriz SGR con sus parámetros de cálculo. Solo uno puede estar abierto; al cerrarlo, sus resultados quedan congelados.{% endblock %}
-{% block traza %}Matriz SGR · parámetros de la hoja RESUMEN{% endblock %}
+{% block bajada %}Trimestres de la matriz SGR con su avance en el tiempo y sus parámetros de cálculo. Solo uno puede estar abierto; al cerrarlo, sus resultados quedan congelados.{% endblock %}
+{% block traza %}Matriz SGR · parámetros de las hojas RESUMEN y SEMAFORO{% endblock %}
+
 {% block contenido %}
-<div class="panel">
-    <div class="desplazable"><table class="tabla">
-        <thead><tr><th>Período</th><th>Fechas</th><th class="num">Días</th><th class="num">Tope ítem</th><th class="num">Tope total</th><th class="num">Felicitación</th><th class="num">Reclamo</th><th class="num">Metas</th><th class="num">Actividades</th><th>Estado</th>{% if puede_editar %}<th class="acciones">Acciones</th>{% endif %}</tr></thead>
-        <tbody>{% for p in periodos %}<tr><td><strong>{{ p.nombre }}</strong></td><td>{{ p.inicio|date:"d-m-Y" }} al {{ p.termino|date:"d-m-Y" }}</td><td class="num">{{ p.dias }}</td><td class="num">{{ p.tope_item }} %</td><td class="num">{{ p.tope_total }} %</td><td class="num">+{{ p.bono_felicitacion }} % (máx. {{ p.max_felicitaciones }})</td><td class="num">−{{ p.descuento_reclamo }} %</td><td class="num">{{ p.total_metas }}</td><td class="num">{{ p.total_actividades }}</td><td>{% estado p.estado %}</td>
-            {% if puede_editar %}<td class="acciones"><div class="acciones-fila">
-                {% if p.estado == 'ABIERTO' %}<form method="post" action="{% url 'periodo_estado' p.pk 'cerrar' %}" data-confirmar="¿Cerrar {{ p.nombre }}?" data-confirmar-detalle="Ya no se podrán ingresar ni validar actividades del período.">{% csrf_token %}<button class="enlace-accion peligro">Cerrar</button></form>
-                {% else %}<form method="post" action="{% url 'periodo_estado' p.pk 'abrir' %}" data-confirmar="¿Abrir {{ p.nombre }}?">{% csrf_token %}<button class="enlace-accion">Abrir</button></form>{% endif %}
-                {% if not p.total_metas %}<form method="post" action="{% url 'periodo_estado' p.pk 'copiar' %}">{% csrf_token %}<button class="enlace-accion">Copiar metas</button></form>{% endif %}
-            </div></td>{% endif %}</tr>{% endfor %}</tbody>
-    </table></div>
-</div>
+{% if abierto %}
+<section class="panel periodo-actual" aria-labelledby="titulo-actual">
+    <div class="periodo-actual-cabecera">
+        <div>
+            <span class="sobretitulo"><i class="bi bi-broadcast" aria-hidden="true"></i>Período en curso</span>
+            <h2 id="titulo-actual">{{ abierto.nombre }}</h2>
+            <p class="ruta">{{ abierto.inicio|date:"l d \d\e F"|capfirst }} al {{ abierto.termino|date:"l d \d\e F \d\e Y" }} · {{ abierto.dias }} días</p>
+        </div>
+        <div class="periodo-actual-estado">{% estado abierto.estado %} <span class="fase fase-{{ abierto.fase|slugify }}">{{ abierto.fase|capfirst }}</span></div>
+    </div>
+    <div class="linea-tiempo" role="img" aria-label="Han transcurrido {{ abierto.dias_transcurridos }} de {{ abierto.dias }} días ({{ abierto.avance_tiempo|cifra }} %)">
+        <div class="linea-tiempo-etiquetas"><span>{{ abierto.inicio|date:"d-m-Y" }}</span><strong>Día {{ abierto.dias_transcurridos }} de {{ abierto.dias }} · {{ abierto.avance_tiempo|cifra }} % del trimestre</strong><span>{{ abierto.termino|date:"d-m-Y" }}</span></div>
+        <div class="pista pista-tiempo"><div class="relleno inst" data-ancho="{{ abierto.avance_tiempo|stringformat:'.2f' }}"></div></div>
+        <p class="ruta">{% if abierto.dias_restantes %}Quedan {{ abierto.dias_restantes }} día{{ abierto.dias_restantes|pluralize }}. Hoy se espera un avance de {{ abierto.avance_tiempo|cifra }} % en cada ítem para estar en verde.{% else %}El trimestre terminó: recuerde cerrarlo para congelar los resultados.{% endif %}</p>
+    </div>
+    <div class="tarjetas-resumen">
+        <div class="mini-dato"><i class="bi bi-people" aria-hidden="true"></i><span class="valor">{{ resumen.funcionarios }}</span><span class="etiqueta">funcionarios con registros</span></div>
+        <div class="mini-dato"><i class="bi bi-journal-text" aria-hidden="true"></i><span class="valor">{{ resumen.total }}</span><span class="etiqueta">actividades registradas</span></div>
+        <div class="mini-dato"><i class="bi bi-check2-all" aria-hidden="true"></i><span class="valor">{{ resumen.realizadas }}</span><span class="etiqueta">realizadas</span></div>
+        <div class="mini-dato"><i class="bi bi-star" aria-hidden="true"></i><span class="valor">{{ resumen.suman }}</span><span class="etiqueta">suman puntaje</span></div>
+        <div class="mini-dato{% if resumen.por_validar %} atencion{% endif %}"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span class="valor">{{ resumen.por_validar }}</span><span class="etiqueta">por validar</span></div>
+        <div class="mini-dato{% if resumen.vencidas %} alerta{% endif %}"><i class="bi bi-calendar-x" aria-hidden="true"></i><span class="valor">{{ resumen.vencidas }}</span><span class="etiqueta">compromisos vencidos</span></div>
+    </div>
+    <div class="panel-pie">
+        <a href="{% url 'periodo_ver' abierto.pk %}" class="boton principal"><i class="bi bi-bar-chart-line" aria-hidden="true"></i>Ver detalle del período</a>
+        <span class="espacio"></span>
+        <span class="ruta">{% if alcance_global %}Todas las delegaciones{% else %}Datos de sus delegaciones{% endif %}</span>
+    </div>
+</section>
+
+<section class="panel" aria-labelledby="titulo-parametros">
+    <div class="panel-cabecera"><h2 id="titulo-parametros">Parámetros de cálculo de {{ abierto.nombre }}</h2></div>
+    <div class="tarjetas-parametros">
+        {% for icono, etiqueta, valor, explicacion in parametros %}
+        <div class="tarjeta-parametro"><i class="bi {{ icono }}" aria-hidden="true"></i>
+            <div><span class="etiqueta">{{ etiqueta }}</span><span class="valor">{{ valor }}</span><span class="apoyo">{{ explicacion }}</span></div></div>
+        {% endfor %}
+    </div>
+</section>
+{% else %}
+<div class="aviso alerta"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+    <div>No hay un período abierto: no se pueden registrar actividades. {% if puede_editar %}Abra uno de la lista.{% endif %}</div></div>
+{% endif %}
+
+<section aria-labelledby="titulo-todos">
+    <h2 id="titulo-todos" class="titulo-seccion">Todos los períodos <span class="ruta">· {{ periodos|length }}</span></h2>
+    <div class="tarjetas-periodo">
+        {% for p in periodos %}
+        <article class="panel tarjeta-periodo{% if p.abierto %} abierta{% endif %}">
+            <div class="tarjeta-periodo-cabecera">
+                <h3><a href="{% url 'periodo_ver' p.pk %}">{{ p.nombre }}</a></h3>
+                <div>{% estado p.estado %} <span class="fase fase-{{ p.fase|slugify }}">{{ p.fase|capfirst }}</span></div>
+            </div>
+            <p class="ruta">{{ p.inicio|date:"d-m-Y" }} al {{ p.termino|date:"d-m-Y" }} · {{ p.dias }} días</p>
+            <div class="pista pista-delgada" role="img" aria-label="{{ p.avance_tiempo|cifra }} % del período transcurrido"><div class="relleno {% if p.abierto %}inst{% else %}gris{% endif %}" data-ancho="{{ p.avance_tiempo|stringformat:'.2f' }}"></div></div>
+            <dl class="cifras-periodo">
+                <div><dt>Metas</dt><dd>{{ p.total_metas }} <span class="ruta">en {{ p.total_cargos }} cargo{{ p.total_cargos|pluralize }}</span></dd></div>
+                <div><dt>Actividades</dt><dd>{{ p.total_actividades }}</dd></div>
+                <div><dt>Realizadas</dt><dd>{{ p.total_realizadas }}</dd></div>
+            </dl>
+            <div class="acciones-fila tarjeta-periodo-acciones">
+                <a class="boton pequeno" href="{% url 'periodo_ver' p.pk %}"><i class="bi bi-eye" aria-hidden="true"></i>Ver detalle</a>
+                {% if puede_editar %}
+                {% if p.estado == 'ABIERTO' %}<form method="post" action="{% url 'periodo_estado' p.pk 'cerrar' %}" data-confirmar="¿Cerrar {{ p.nombre }}?" data-confirmar-detalle="Ya no se podrán ingresar ni validar actividades del período.">{% csrf_token %}<button class="boton pequeno peligro"><i class="bi bi-lock" aria-hidden="true"></i>Cerrar</button></form>
+                {% else %}<form method="post" action="{% url 'periodo_estado' p.pk 'abrir' %}" data-confirmar="¿Abrir {{ p.nombre }}?" data-confirmar-detalle="Solo puede haber un período abierto a la vez.">{% csrf_token %}<button class="boton pequeno"><i class="bi bi-unlock" aria-hidden="true"></i>Abrir</button></form>{% endif %}
+                {% if not p.total_metas %}<form method="post" action="{% url 'periodo_estado' p.pk 'copiar' %}">{% csrf_token %}<button class="boton pequeno"><i class="bi bi-files" aria-hidden="true"></i>Copiar metas</button></form>{% endif %}
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
 {% if form %}
 <div class="panel">
     <div class="panel-cabecera"><h2>Nuevo período</h2></div>
     <form method="post" novalidate data-validar data-un-envio>{% csrf_token %}
         <div class="panel-cuerpo">
             {% include "parciales/_errores_formulario.html" %}
+            <h3 class="subtitulo-seccion"><i class="bi bi-calendar-range" aria-hidden="true"></i>Nombre y fechas</h3>
             <div class="rejilla rejilla-3">{% include "parciales/_campo.html" with campo=form.nombre %}{% include "parciales/_campo.html" with campo=form.inicio %}{% include "parciales/_campo.html" with campo=form.termino %}</div>
+            <h3 class="subtitulo-seccion"><i class="bi bi-sliders" aria-hidden="true"></i>Topes y semáforo</h3>
             <div class="rejilla rejilla-4">{% include "parciales/_campo.html" with campo=form.tope_item %}{% include "parciales/_campo.html" with campo=form.tope_total %}{% include "parciales/_campo.html" with campo=form.umbral_naranjo %}{% include "parciales/_campo.html" with campo=form.cumplimiento_minimo %}</div>
+            <h3 class="subtitulo-seccion"><i class="bi bi-award" aria-hidden="true"></i>Felicitaciones y reclamos</h3>
             <div class="rejilla rejilla-3">{% include "parciales/_campo.html" with campo=form.bono_felicitacion %}{% include "parciales/_campo.html" with campo=form.max_felicitaciones %}{% include "parciales/_campo.html" with campo=form.descuento_reclamo %}</div>
         </div>
-        <div class="panel-pie"><button type="submit" class="boton principal" data-texto-envio="Guardando…">Crear período</button><span class="ruta">Se crea cerrado: copie las metas y ábralo cuando corresponda.</span></div>
+        <div class="panel-pie"><button type="submit" class="boton principal" data-texto-envio="Guardando…"><i class="bi bi-plus-lg" aria-hidden="true"></i>Crear período</button><span class="ruta">Se crea cerrado: copie las metas y ábralo cuando corresponda.</span></div>
     </form>
 </div>
 {% endif %}

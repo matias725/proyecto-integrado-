@@ -587,7 +587,7 @@ class OrganizacionesTests(BaseMatriz):
             self.assertEqual(subfamilia(nombre), codigo, nombre)
 
     def test_importacion_con_datos_dudosos(self):
-        """PO-02 · Importa, traduce territorios, omite repetidos y anota datos dudosos"""
+        """PO-02 · Importa, traduce territorios y sectores, omite repetidos y anota datos dudosos"""
         ruta = self.excel([
             ['  junta de vecinos   el valle ', 'CALLE 1', 'RURAL', 30, date(2010, 1, 1), 9001, date(2010, 2, 1), 5],
             ['CLUB DEPORTIVO NORTE', 'CALLE 2', 'CIAS', '3 CLUBES', date(2012, 1, 1), 9002, None, None],
@@ -602,7 +602,9 @@ class OrganizacionesTests(BaseMatriz):
         self.assertEqual((valle.nombre, valle.delegacion.codigo, valle.tipo.codigo, valle.verificada),
                          ('JUNTA DE VECINOS EL VALLE', 'DEL06', 'TO01', False))
         self.assertIn('Socios no numérico', Organizacion.objects.get(registro_pj=9002).observacion)
-        self.assertIn('inferido', Organizacion.objects.get(registro_pj=9003).observacion)
+        alfalfares = Organizacion.objects.get(registro_pj=9003)      # sector de La Antena según la matriz
+        self.assertEqual((alfalfares.delegacion.codigo, alfalfares.sector.nombre), ('DEL03', 'Alfalfares'))
+        self.assertIn('sector de La Antena', alfalfares.observacion)
         sin = Organizacion.objects.get(registro_pj=9004)
         self.assertIsNone(sin.delegacion)
         self.assertIn('Inscripción anterior', sin.observacion)

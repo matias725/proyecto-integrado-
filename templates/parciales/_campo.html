@@ -2,7 +2,7 @@
   Dibuja un campo de formulario con su etiqueta, marca de obligatorio,
   ayuda y errores. Uso: {% include "parciales/_campo.html" with campo=form.nombre %}
 {% endcomment %}
-{% if campo.widget_type == 'checkboxselectmultiple' %}
+{% if campo.widget_type == 'checkboxselectmultiple' or campo.widget_type == 'radioselect' %}
 <fieldset class="campo{% if campo.errors %} invalido{% endif %}">
     <legend>{{ campo.label }}{% if campo.field.required %} <span class="obligatorio" aria-hidden="true">*</span>{% endif %}</legend>
     <div class="opciones">{{ campo }}</div>

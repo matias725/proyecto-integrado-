@@ -498,3 +498,31 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-ancho]').forEach(el => { el.style.width = porcentaje(el.dataset.ancho); });
     document.querySelectorAll('[data-izquierda]').forEach(el => { el.style.left = porcentaje(el.dataset.izquierda); });
 });
+
+/* ---------- Listas dependientes sin consultar al servidor: opciones con data-padre (sector o encargados
+   según la delegación). data-padre puede traer varios valores separados por espacio. ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('select[data-depende-de]').forEach(hijo => {
+        const padre = document.getElementById(hijo.dataset.dependeDe);
+        if (!padre) return;
+        const vacia = hijo.querySelector('option[value=""]');
+        const textoVacio = vacia ? vacia.textContent : '';
+        const filtrar = () => {
+            let visibles = 0;
+            hijo.querySelectorAll('option[data-padre]').forEach(o => {
+                const corresponde = padre.value !== '' && o.dataset.padre.split(' ').includes(padre.value);
+                o.hidden = !corresponde;
+                o.disabled = !corresponde;
+                if (corresponde) visibles += 1;
+            });
+            const elegida = hijo.selectedOptions[0];
+            if (elegida && elegida.disabled) hijo.value = '';
+            if (vacia) {
+                vacia.textContent = !padre.value ? 'Elija primero la delegación'
+                    : (visibles ? textoVacio : 'No hay opciones en esta delegación');
+            }
+        };
+        padre.addEventListener('change', filtrar);
+        filtrar();
+    });
+});

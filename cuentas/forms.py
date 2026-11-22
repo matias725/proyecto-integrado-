@@ -152,12 +152,11 @@ class RolForm(FormularioCatalogo):
 # Mantenedor de usuarios
 # ---------------------------------------------------------------------------
 class UsuarioForm(forms.ModelForm):
-    clave = forms.CharField(
-        label='Contraseña', required=False, strip=False,
-        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}, render_value=False))
-    confirmacion = forms.CharField(
-        label='Confirmar contraseña', required=False, strip=False,
-        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}, render_value=False))
+    """
+    Datos de la cuenta, sin contraseña: el administrador no puede ver, definir ni cambiar
+    la contraseña de otra persona. La cuenta nueva recibe un enlace de bienvenida para que
+    la persona cree la suya, y si la olvida usa «¿Olvidó su contraseña?».
+    """
 
     class Meta:
         model = Usuario
@@ -183,12 +182,6 @@ class UsuarioForm(forms.ModelForm):
         self.fields['delegaciones'].required = True
         self.fields['delegaciones'].help_text = 'Al menos una. La primera se usa como contexto inicial.'
         self.fields['nombre_usuario'].help_text = 'Minúsculas, sin espacios. Sirve para ingresar junto con el correo.'
-        if self.instance.pk:
-            self.fields['clave'].help_text = 'Déjela en blanco para conservar la contraseña actual.'
-        else:
-            self.fields['clave'].label = 'Contraseña inicial (opcional)'
-            self.fields['clave'].help_text = ('Recomendado: déjela en blanco. La persona recibirá un correo de '
-                                              'bienvenida con un enlace para crear su propia contraseña.')
         if self.instance.pk and actor and self.instance.pk == actor.pk:
             self.fields['is_active'].disabled = True
             self.fields['is_active'].help_text = 'No puede desactivar su propia cuenta.'
@@ -219,27 +212,9 @@ class UsuarioForm(forms.ModelForm):
                 raise ValidationError('Solo puede asignar delegaciones que usted tiene autorizadas.')
         return elegidas
 
-    def clean(self):
-        limpio = super().clean()
-        clave, confirmacion = limpio.get('clave'), limpio.get('confirmacion')
-        if clave or confirmacion:
-            if clave != confirmacion:
-                self.add_error('confirmacion', 'Las contraseñas no coinciden.')
-            else:
-                usuario = self.instance if self.instance.pk else Usuario(
-                    nombre=limpio.get('nombre', ''), nombre_usuario=limpio.get('nombre_usuario', ''),
-                    correo=limpio.get('correo', ''))
-                try:
-                    password_validation.validate_password(clave, usuario)
-                except ValidationError as error:
-                    self.add_error('clave', error)
-        return limpio
-
     def save(self, commit=True):
         usuario = super().save(commit=False)
-        if self.cleaned_data.get('clave'):
-            usuario.set_password(self.cleaned_data['clave'])
-        elif not usuario.pk:
+        if not usuario.pk:
             # Sin contraseña inicial nadie puede ingresar con esta cuenta hasta que la persona
             # defina la suya con el enlace del correo de bienvenida.
             usuario.set_unusable_password()
@@ -247,7 +222,15 @@ class UsuarioForm(forms.ModelForm):
             usuario.save()
             self.save_m2m()
             self._conservar_delegaciones_ajenas(usuario)
+            self._quitar_encargos_fuera_de_sus_delegaciones(usuario)
         return usuario
+
+    @staticmethod
+    def _quitar_encargos_fuera_de_sus_delegaciones(usuario):
+        """Si deja de trabajar en una delegación, deja de ser encargado de sus organizaciones."""
+        from gestion.models import EncargadoOrganizacion
+        EncargadoOrganizacion.objects.filter(usuario=usuario).exclude(
+            organizacion__delegacion__in=usuario.delegaciones.all()).delete()
 
     def _conservar_delegaciones_ajenas(self, usuario):
         """Un actor sin alcance global no ve todas las delegaciones del usuario

@@ -18,7 +18,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Lower
 
-from catalogos.models import Cargo, Catalogo, Delegacion, ItemMedicion
+from catalogos.models import Cargo, Catalogo, Delegacion, ItemMedicion, Sector, texto_territorio
 
 
 # ---------------------------------------------------------------------------
@@ -78,6 +78,31 @@ class Periodo(models.Model):
     def contiene(self, fecha):
         return self.inicio <= fecha <= self.termino
 
+    # ----- línea de tiempo del período (para la pantalla de períodos) -----
+    @property
+    def dias_transcurridos(self):
+        from .reglas import hoy
+        return max(0, min((hoy() - self.inicio).days + 1, self.dias))
+
+    @property
+    def dias_restantes(self):
+        return self.dias - self.dias_transcurridos
+
+    @property
+    def avance_tiempo(self):
+        return self.dias_transcurridos / self.dias * 100 if self.dias else 0
+
+    @property
+    def fase(self):
+        """«por comenzar», «en curso» o «finalizado» según la fecha de hoy (independiente de abierto/cerrado)."""
+        from .reglas import hoy
+        dia = hoy()
+        if dia < self.inicio:
+            return 'por comenzar'
+        if dia > self.termino:
+            return 'finalizado'
+        return 'en curso'
+
 
 class MetaCargo(models.Model):
     """Una fila de la hoja de un cargo: ítem, ponderador y meta trimestral."""
@@ -131,6 +156,9 @@ class Organizacion(models.Model):
                              verbose_name='subfamilia')
     delegacion = models.ForeignKey(Delegacion, on_delete=models.PROTECT, null=True, blank=True,
                                    related_name='organizaciones', verbose_name='territorio de delegación')
+    sector = models.ForeignKey(Sector, on_delete=models.PROTECT, null=True, blank=True,
+                               related_name='organizaciones', verbose_name='sector',
+                               help_text='Parte del territorio de la delegación donde funciona la organización.')
     domicilio = models.CharField('domicilio legal', max_length=200, blank=True)
     socios = models.PositiveIntegerField('socios activos', null=True, blank=True)
     fecha_constitucion = models.DateField('fecha de constitución', null=True, blank=True)
@@ -157,6 +185,80 @@ class Organizacion(models.Model):
     @property
     def estado(self):
         return 'Vigente' if self.activo else 'No vigente'
+
+    @property
+    def territorio(self):
+        return texto_territorio(self.delegacion, self.sector)
+
+    # ----- encargados municipales (hasta 3 funcionarios a cargo de la organización) -----
+    MAXIMO_ENCARGADOS = 3
+
+    def _encargos(self):
+        # Usa los encargos precargados (prefetch_related) para no consultar una vez por fila
+        return sorted(self.encargos.all(), key=lambda e: e.orden)
+
+    @property
+    def lista_encargados(self):
+        return [e.usuario for e in self._encargos()]
+
+    @property
+    def encargados_texto(self):
+        return ', '.join(u.nombre for u in self.lista_encargados) or 'Sin asignar'
+
+    @property
+    def encargados_resumen(self):
+        n = len(self._encargos())
+        return f'{n} de {self.MAXIMO_ENCARGADOS}' if n else 'Sin asignar'
+
+    def encargado(self, orden):
+        return next((e.usuario for e in self._encargos() if e.orden == orden), None)
+
+    # Nombres por puesto, para la exportación a Excel
+    @property
+    def encargado_1(self):
+        return getattr(self.encargado(1), 'nombre', '')
+
+    @property
+    def encargado_2(self):
+        return getattr(self.encargado(2), 'nombre', '')
+
+    @property
+    def encargado_3(self):
+        return getattr(self.encargado(3), 'nombre', '')
+
+    @property
+    def tarjetas_encargados(self):
+        """Los 3 puestos, con el funcionario asignado o None."""
+        return [(orden, self.encargado(orden)) for orden in range(1, self.MAXIMO_ENCARGADOS + 1)]
+
+
+class EncargadoOrganizacion(models.Model):
+    """
+    Funcionario municipal a cargo de una organización (revisión EV2). Hasta 3 por organización:
+    el puesto (orden) va de 1 a 3 y no se repite, y un funcionario no figura dos veces.
+    """
+
+    organizacion = models.ForeignKey(Organizacion, on_delete=models.CASCADE, related_name='encargos',
+                                     verbose_name='organización')
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                related_name='encargos_organizacion', verbose_name='funcionario encargado')
+    orden = models.PositiveSmallIntegerField('puesto', choices=[(1, 'Encargado 1'), (2, 'Encargado 2'),
+                                                                (3, 'Encargado 3')])
+    asignado_el = models.DateTimeField('asignado el', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'encargado de la organización'
+        verbose_name_plural = 'encargados de organizaciones'
+        ordering = ['organizacion', 'orden']
+        constraints = [
+            models.UniqueConstraint(fields=['organizacion', 'orden'], name='encargado_puesto_unico'),
+            models.UniqueConstraint(fields=['organizacion', 'usuario'], name='encargado_sin_repetir'),
+            # Máximo 3 encargados por organización, asegurado también en la base de datos
+            models.CheckConstraint(condition=Q(orden__gte=1) & Q(orden__lte=3), name='encargado_maximo_tres'),
+        ]
+
+    def __str__(self):
+        return f'{self.usuario} · {self.organizacion}'
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +308,11 @@ class Actividad(models.Model):
         help_text='Regla 1: se registra como «otra gestión» y no suma puntaje.')
     organizacion = models.ForeignKey(Organizacion, on_delete=models.SET_NULL, null=True, blank=True,
                                      related_name='actividades', verbose_name='organización')
-    territorio = models.CharField('sector o territorio', max_length=80, blank=True)
+    sector = models.ForeignKey(Sector, on_delete=models.PROTECT, null=True, blank=True,
+                               related_name='actividades', verbose_name='sector',
+                               help_text='Parte del territorio de la delegación (columna TERRITORIO del TUBO).')
+    territorio = models.CharField('referencia del lugar', max_length=80, blank=True,
+                                  help_text='Calle, pasaje, villa o punto de referencia dentro del sector.')
     area_apoyo = models.CharField('área o persona de apoyo', max_length=120, blank=True)
     estado = models.CharField('estado en el TUBO', max_length=10, choices=ESTADOS, default=INGRESADO)
     fecha_compromiso = models.DateField('fecha de compromiso', null=True, blank=True)
@@ -259,6 +365,23 @@ class Actividad(models.Model):
     def vencida(self):
         from .reglas import hoy
         return bool(self.fecha_compromiso and self.estado != self.REALIZADO and self.fecha_compromiso < hoy())
+
+    @property
+    def dias_compromiso(self):
+        """Días que faltan (positivo) o de atraso (negativo) respecto de la fecha de compromiso."""
+        from .reglas import hoy
+        if not self.fecha_compromiso or self.estado == self.REALIZADO:
+            return None
+        return (self.fecha_compromiso - hoy()).days
+
+    @property
+    def dias_atraso(self):
+        dias = self.dias_compromiso
+        return -dias if dias is not None and dias < 0 else 0
+
+    @property
+    def lugar(self):
+        return texto_territorio(self.delegacion, self.sector, self.territorio)
 
 
 class HistorialActividad(models.Model):

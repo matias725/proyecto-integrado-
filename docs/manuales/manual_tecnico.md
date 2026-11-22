@@ -43,8 +43,8 @@ core/           motor CRUD (crud.py), auditoría (models.py), seguridad (segurid
                 exportación Excel (excel.py), etiquetas de plantilla (templatetags/sgr_tags.py)
 cuentas/        Usuario, Rol, Permiso, acceso y recuperación, middleware de delegación activa,
                 permisos (permisos.py), módulos del menú (modulos.py), datos iniciales (inicial.py)
-catalogos/      Delegación, Ítem de medición, Cargo, Tipo y Sub atención (mantenedores)
-atenciones/     Atención a vecinos por RUT (EV1)
+catalogos/      Delegación, Sector del territorio, Ítem de medición, Cargo, Tipo y Sub atención (mantenedores)
+atenciones/     Atención a vecinos por RUT (EV1), con estado y seguimiento (SeguimientoAtencion)
 gestion/        Matriz SGR: modelos, reglas.py, calculos.py, forms.py, views.py,
                 importacion.py (base JJVV), inicial.py (períodos, metas y demostración)
 templates/      layouts/, parciales/, una carpeta por app
@@ -69,6 +69,28 @@ docs/           bd/, seguridad/, pruebas/, manuales/
 ### Permisos
 
 Un **permiso** es un par `modulo.accion` (`ver`, `crear`, `editar`, `eliminar`, `exportar`). Los **roles** agrupan permisos y tienen **alcance** global (todas las delegaciones) o por delegación (solo las asignadas al usuario). Los módulos y su grupo en el menú están en `cuentas/modulos.py`; los roles iniciales en `cuentas/inicial.py` (`ROLES`).
+
+### Correcciones de la revisión EV2 (`ev2-2.1.0`)
+
+| Corrección | Dónde | Detalle |
+|---|---|---|
+| Comuna con selector | `catalogos/models.py` (`COMUNAS`), migración `catalogos/0003` | `Delegacion.comuna` usa las 15 comunas de la Región de Coquimbo como opciones y `La Serena` por defecto. La migración normaliza valores escritos a mano («la serena» → «La Serena») |
+| Seguimiento de atenciones | `atenciones/models.py`, `views.seguimiento`, migración `atenciones/0002` | `Atencion.estado` (ABIERTA/CERRADA), `cerrada`, `cerrada_por` y la tabla `SeguimientoAtencion` (NOTA, CIERRE, REAPERTURA, con comentario obligatorio). La vista bloquea la fila (`select_for_update`), verifica la delegación autorizada y audita (`MODIFICACION` o `CAMBIO_ESTADO`). Nuevo permiso `atenciones.editar` para delegado y funcionario |
+| Contraseñas privadas | `cuentas/forms.py` (`UsuarioForm`), `cuentas/correo.py` | El formulario de usuarios no tiene campos de contraseña: la cuenta nueva queda sin clave utilizable y recibe el enlace de bienvenida. Con `SGR_BANDEJA_REENVIAR_SMTP=1`, la bandeja de correos guarda y muestra los correos sin códigos de 6 dígitos ni enlaces `/bienvenida/` |
+| Cargo en el formulario de usuario | `templates/cuentas/usuario_formulario.html` | El campo `cargo` no se dibujaba y guardar una edición lo dejaba vacío; ahora se muestra y se conserva |
+
+### Observaciones de la revisión EV2 (`ev2-2.2.0`)
+
+| Observación | Dónde | Detalle |
+|---|---|---|
+| Períodos más claros y detallados | `gestion/views.py` (`periodos`, `periodo_ver`, `parametros_periodo`), `Periodo.dias_transcurridos`, `dias_restantes`, `avance_tiempo`, `fase`; plantillas `periodos.html` y `periodo_ver.html` | Período en curso con línea de tiempo y resumen; parámetros como tarjetas; tarjetas de todos los períodos. Nueva ruta `periodos/<pk>/` con actividades por estado y por mes (`TruncMonth`), resultado por delegación con `calculos.indicadores` y `resultado_equipo`, y metas por cargo. Alcance: un perfil por delegación solo ve sus delegaciones. Abrir o cerrar desde el detalle vuelve al detalle (`volver=detalle`) |
+| Tabla con filtros en Compromisos | `views._filtrar_compromisos`, `views.agenda`, `views.agenda_exportar` (ruta `agenda/exportar/`), `agenda.html` | Filtros por texto/folio, período, estado, plazo (vencidas, 7 días, al día, realizadas), sector, responsable (solo quien ve al equipo) y rango de fechas. Orden por urgencia con `Case/When`. Vista `tabla` (por defecto, paginada) o `tablero`. El Excel usa el mismo filtro y queda auditado (`EXPORTACION`, entidad `agenda`) |
+| Hasta 3 encargados municipales | Modelo `EncargadoOrganizacion` (migración `gestion/0003`, que reemplaza la directiva de la `0002`), `OrganizacionForm`, plantillas `organizacion_formulario.html` y `organizacion_detalle.html`, `UsuarioForm._quitar_encargos_fuera_de_sus_delegaciones` | Organización × funcionario con puesto 1 a 3: `CHECK` de 1 a 3 y `UNIQUE (organizacion, orden)` y `(organizacion, usuario)`. El formulario ofrece 3 listas con funcionarios activos con cargo; `SelectConPadre` marca cada opción con las delegaciones del funcionario (varias, separadas por espacio) y `sgr.js` las filtra según la delegación elegida. El servidor valida delegación y repetidos, y al guardar deja los puestos correlativos. Listado y Excel con `prefetch_related('encargos__usuario')`; filtro `?a_cargo=mias`; la ficha de usuario lista «Organizaciones a cargo» |
+| Sector dentro del territorio | Modelo `Sector` (migración `catalogos/0004`), mantenedor `Sectores` (módulo `sectores`), `Organizacion.sector` y `Actividad.sector` | Catálogo por delegación con código `SEC###` y nombre único por delegación. En organizaciones, la lista de sectores se filtra en el navegador según la delegación (`SelectConPadre` agrega `data-padre`; `sgr.js` oculta las demás) y el servidor rechaza un sector ajeno. En actividades se ofrecen los de la delegación activa; si no se elige y la organización tiene sector, se hereda. `Actividad.territorio` pasa a ser la «referencia del lugar». Sectores iniciales en `cuentas/inicial.py` (`SECTORES`) |
+| Importación con sector | `gestion/importacion.py` | «ALFALFARES» se importa como sector Alfalfares de La Antena (antes: Rural inferido) y el sector se deduce del nombre cuando coincide con uno de la delegación |
+| Ficha con fechas (error) | `core/templatetags/sgr_tags.py` (`fecha_ficha`), `templates/crud/detalle.html` | La ficha común formateaba toda fecha con hora y fallaba (500) en organizaciones con fecha de constitución |
+
+Permisos nuevos: `sectores.*` (coordinador: todos; delegado: ver, crear y editar en sus delegaciones; consultor: ver). `sgr_inicializar` los aplica al actualizar.
 
 ---
 
@@ -186,7 +208,7 @@ for a in Actividad.objects.all():
 
 ```bash
 python manage.py test pruebas          # 205 pruebas funcionales (≈ 12 s en SQLite, ≈ 25 s en MySQL)
-python manage.py test pruebas_ui       # 17 pruebas en Chromium con capturas en docs/pruebas/evidencias/
+python manage.py test pruebas_ui       # 20 pruebas en Chromium con capturas en docs/pruebas/evidencias/
 ```
 
 Cada prueba lleva un identificador en la primera línea de su docstring (`RG-07 · …`) que la matriz de pruebas cruza con los casos funcionales. El plan completo está en [`../pruebas/plan_de_pruebas_ev2.md`](../pruebas/plan_de_pruebas_ev2.md).

@@ -1,4 +1,5 @@
 {% extends "layouts/app.html" %}
+{% load sgr_tags %}
 {% comment %}Vista de consulta común: datos, registros relacionados e historial.{% endcomment %}
 
 {% block titulo %}{{ obj }} · {{ m.titulo }}{% endblock %}
@@ -37,7 +38,7 @@
         {% for etiqueta, valor in campos %}
         <tr>
             <th scope="row">{{ etiqueta }}</th>
-            <td>{% if valor.year %}{{ valor|date:"d-m-Y H:i" }}{% elif valor == 'Activo' %}<span class="estado ok">Activo</span>{% elif valor == 'Inactivo' %}<span class="estado neutro">Inactivo</span>{% else %}{{ valor|default:'—' }}{% endif %}</td>
+            <td>{% if valor.year %}{{ valor|fecha_ficha }}{% elif valor == 'Activo' %}<span class="estado ok">Activo</span>{% elif valor == 'Inactivo' %}<span class="estado neutro">Inactivo</span>{% else %}{{ valor|default:'—' }}{% endif %}</td>
         </tr>
         {% endfor %}
     </table>

@@ -6,7 +6,7 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
-from catalogos.models import Cargo, ItemMedicion
+from catalogos.models import Cargo, ItemMedicion, Sector
 
 from .models import Actividad, Ausencia, MetaCargo, Observacion, Organizacion, Periodo
 from .reglas import fecha_minima_de_ingreso, hoy, normalizar_telefono, validar_fecha_actividad
@@ -53,7 +53,8 @@ class ActividadForm(forms.ModelForm):
     class Meta:
         model = Actividad
         fields = ['fecha', 'item', 'naturaleza', 'origen', 'titulo', 'descripcion', 'solicitante_nombre',
-                  'solicitante_telefono', 'solicitante_es_delegado', 'organizacion', 'territorio', 'area_apoyo',
+                  'solicitante_telefono', 'solicitante_es_delegado', 'organizacion', 'sector', 'territorio',
+                  'area_apoyo',
                   'estado', 'fecha_compromiso']
         widgets = {
             'fecha': FechaInput(), 'fecha_compromiso': FechaInput(),
@@ -80,6 +81,13 @@ class ActividadForm(forms.ModelForm):
         self.fields['organizacion'].queryset = organizaciones.order_by('nombre')
         self.fields['organizacion'].empty_label = 'Ninguna'
         self.fields['organizacion'].help_text = 'Organizaciones del territorio de la delegación activa.'
+        self.delegacion = delegacion
+        sectores = Sector.objects.filter(activo=True)
+        self.fields['sector'].queryset = (sectores.filter(delegacion=delegacion) if delegacion
+                                          else sectores.none()).order_by('nombre')
+        self.fields['sector'].empty_label = 'Sin sector'
+        self.fields['sector'].help_text = f'Parte del territorio de {delegacion.nombre}.' if delegacion else ''
+        self.fields['territorio'].widget.attrs['placeholder'] = 'Ej.: pasaje Las Rosas, villa El Valle'
         minima = fecha_minima_de_ingreso()
         self.fields['fecha'].widget.attrs.update({'min': minima.isoformat(), 'max': hoy().isoformat()})
         self.fields['fecha'].help_text = (f'Desde el {minima:%d-%m-%Y}: la semana anterior se cierra el lunes.')
@@ -114,6 +122,11 @@ class ActividadForm(forms.ModelForm):
             self.add_error('fecha_compromiso', 'La fecha de compromiso no puede ser anterior a la actividad.')
         if limpio.get('estado') != Actividad.REALIZADO and not compromiso:
             self.add_error('fecha_compromiso', 'Una solicitud pendiente necesita fecha de compromiso.')
+        sector, organizacion = limpio.get('sector'), limpio.get('organizacion')
+        if sector and self.delegacion and sector.delegacion_id != self.delegacion.pk:
+            self.add_error('sector', 'Elija un sector del territorio de la delegación activa.')
+        if not sector and organizacion and organizacion.sector_id:
+            limpio['sector'] = organizacion.sector      # se hereda el sector de la organización
         return limpio
 
 

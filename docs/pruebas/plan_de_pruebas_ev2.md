@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Versión del sistema | `ev2-2.0.0` (matriz SGR) |
+| Versión del sistema | `ev2-2.2.0` (matriz SGR, correcciones y observaciones de la revisión EV2) |
 | Fecha de ejecución | 04-11-2026 |
-| Resultado | **222 de 222** pruebas aprobadas en SQLite (205 funcionales + 17 en navegador) · **205 de 205** contra MySQL 8.0 · **65 de 65** casos funcionales aprobados |
+| Resultado | **265 de 265** pruebas aprobadas en SQLite (245 funcionales + 20 en navegador) · **245 de 245** contra MySQL 8.0 · **71 de 71** casos funcionales aprobados (incluye la revisión EV2: correcciones CF-66 a CF-68 y observaciones CF-69 a CF-71) |
 | Matriz con el detalle | [`matriz_pruebas_sgr_ev2.xlsx`](matriz_pruebas_sgr_ev2.xlsx) (hojas: Matriz funcional, Pruebas automatizadas, Estrés, Umbrales, Pendientes) |
 
 ---
@@ -24,11 +24,11 @@ Verificar que el SGR cumple el **nuevo requerimiento** de la Coordinación de De
 | Nivel | Qué verifica | Herramienta | Dónde | Cantidad |
 |---|---|---|---|---|
 | Reglas y cálculo | Cada regla con su caso normal y su **borde** (7.º/8.º ingreso, lunes/martes, exactamente 120 %) | `django.test` | `pruebas/test_matriz.py` | 62 |
-| Funcional de pantallas | Flujo completo por HTTP: formulario → servidor → base → respuesta | `django.test.Client` | `pruebas/*.py` | 205 en total |
+| Funcional de pantallas | Flujo completo por HTTP: formulario → servidor → base → respuesta | `django.test.Client` | `pruebas/*.py` | 245 en total |
 | Permisos y acceso por objeto | 403 al salir del perfil, de la delegación o del dueño | `django.test.Client` | `test_permisos.py`, `test_matriz.py` | 30+ |
 | Seguridad | CSP, cabeceras, límite por IP, archivos maliciosos, CSRF | `django.test.Client` | `test_seguridad.py`, `test_matriz.py`, `test_sistema.py` | 20+ |
-| Interfaz | SweetAlert2, confirmaciones, doble clic, lista dependiente, medidores, **sin errores de CSP** | Playwright + Chromium | `pruebas_ui/test_interfaz.py` | 17 |
-| Base de datos | Mismas pruebas sobre MySQL 8 (restricciones, columna generada, collation) | `SGR_DB_MOTOR=mysql` | `ejecucion_mysql8.txt` | 205 |
+| Interfaz | SweetAlert2, confirmaciones, doble clic, lista dependiente, medidores, **sin errores de CSP** | Playwright + Chromium | `pruebas_ui/test_interfaz.py` | 20 |
+| Base de datos | Mismas pruebas sobre MySQL 8 (restricciones, columna generada, collation) | `SGR_DB_MOTOR=mysql` | `ejecucion_mysql8.txt` | 245 |
 | Rendimiento con volumen | Consultas acotadas (sin N+1) y planes de ejecución con 60.000 actividades | `CaptureQueriesContext`, `EXPLAIN ANALYZE` | `PF-01`, `docs/bd/explain_mysql8.txt` | 1 + 5 consultas |
 | Carga concurrente | 10 → 25 → 50 → 100 usuarios simultáneos | Locust + monitor de CPU/memoria | `pruebas_estres/`, `estres/aws/` | 4 etapas |
 
@@ -78,6 +78,10 @@ La fecha del sistema se fija en el **miércoles 04-11-2026** (`SGR_FECHA_HOY`) p
 | Base JJVV | CF-59, CF-60 | PO-01 a PO-06 | Socios en texto, territorio vacío, repetidos, sin registro, reimportar verificadas |
 | Seguridad transversal | CF-55, CF-58, CF-63, CF-64 | PV-04 a PV-06, PE-01 a PE-06, SG-01 a SG-09 | Archivo renombrado, `X-Forwarded-For` falso, otra delegación |
 | Rendimiento | CF-62 | PF-01 | 10 vs 500 actividades: mismas consultas |
+| Revisión EV2 · correcciones (`ev2-2.1.0`) | CF-66 a CF-68 | PI-30, PI-31, PT-20 a PT-28, PB-10 a PB-13, PR-23, PR-24 | Comuna fuera de la lista, atención cerrada que recibe notas, contraseña enviada a mano |
+| Revisión EV2 · períodos más detallados | CF-69 | PN-01 a PN-05, UI-20 | Delegado ve solo sus delegaciones; fases «por comenzar» y «finalizado»; totales por estado y por mes cuadran |
+| Revisión EV2 · tabla con filtros en Compromisos | CF-70 | PK-01 a PK-06, UI-19 | Fecha inválida ignorada, funcionario que pide a otro responsable, «sin sector», exportación con filtros |
+| Revisión EV2 · hasta 3 encargados municipales y sector | CF-71 | PG-01 a PG-12, PO-02, UI-18 | Funcionario de otra delegación o repetido, sin delegación, cuarto encargado en la base, funcionario al que le quitan la delegación, funcionaria con dos delegaciones, sector ajeno |
 
 Los casos CF-01 a CF-42 (acceso, recuperación, mantenedores, atenciones, permisos, interfaz) se mantienen de la primera parte de la EV2 y siguen aprobados.
 
@@ -94,7 +98,7 @@ python scripts/generar_matriz_pruebas.py --ui       # ejecuta todo y rehace la m
 
 Evidencias:
 
-- Capturas de las pruebas de interfaz: [`evidencias/`](evidencias/) (UI-01 a UI-17).
+- Capturas de las pruebas de interfaz: [`evidencias/`](evidencias/) (UI-01 a UI-20).
 - Salida completa contra MySQL: [`ejecucion_mysql8.txt`](ejecucion_mysql8.txt).
 - Planes de ejecución: [`../bd/explain_mysql8_antes_de_optimizar.txt`](../bd/explain_mysql8_antes_de_optimizar.txt) y [`../bd/explain_mysql8.txt`](../bd/explain_mysql8.txt).
 - Estrés en AWS: [`estres/aws/`](estres/aws/).
@@ -107,10 +111,10 @@ Evidencias:
 
 | Indicador | Esperado | Obtenido | Estado |
 |---|---|---|---|
-| Casos funcionales aprobados | 100 % | 65 de 65 | Cumple |
-| Pruebas automáticas (SQLite) | 0 fallas | 222 de 222 | Cumple |
-| Pruebas automáticas (MySQL 8) | 0 fallas | 205 de 205 | Cumple |
-| Errores de JavaScript o CSP en el navegador | 0 | 0 en 17 pruebas | Cumple |
+| Casos funcionales aprobados | 100 % | 71 de 71 | Cumple |
+| Pruebas automáticas (SQLite) | 0 fallas | 265 de 265 | Cumple |
+| Pruebas automáticas (MySQL 8) | 0 fallas | 245 de 245 | Cumple |
+| Errores de JavaScript o CSP en el navegador | 0 | 0 en 20 pruebas | Cumple |
 | Consultas del tablero al crecer el volumen | Constantes | Iguales con 10 y 500 actividades | Cumple |
 | Consulta más lenta de la matriz con 60.000 actividades | ≤ 10 ms | 2,1 ms (avance por ítem) | Cumple tras optimizar |
 | Tasa de errores bajo carga (AWS, 100 usuarios) | < 1 % | 0 % | Cumple |
@@ -129,6 +133,9 @@ Cada diferencia entre lo esperado y lo obtenido se analizó y se corrigió o se 
 | 5 | Las pruebas de interfaz pasan con la CSP activa | 2 pruebas fallaron | Las esperas de Playwright evaluaban texto con `eval()`, que la CSP bloquea (la aplicación no lo usa) | Esperas consultadas desde Python. Confirma que la CSP bloquea código evaluado |
 | 6 | UI-06 estable | Fallaba de forma intermitente | La prueba leía la lista dependiente antes de terminar de recargarse | Espera a que la lista tenga exactamente las opciones del nuevo tipo |
 | 7 | Una prueba que cambia de usuario actúa como el segundo | Seguía con la sesión del primero | El acceso redirige sin volver a autenticar si ya hay sesión | La utilidad de pruebas cierra la sesión antes de entrar |
+| 8 | Editar un usuario conserva su cargo | El cargo quedaba vacío y la persona salía de la matriz | El formulario no dibujaba el campo «cargo» y Django lo guardaba vacío | Se dibuja el campo. Prueba PB-13 (`ev2-2.1.0`) |
+| 9 | La ficha de una organización se abre | **Error 500** en toda organización con fecha de constitución | La ficha común formateaba toda fecha con hora (`H:i`), y Django no admite hora en un `date` | Filtro `fecha_ficha` (con hora solo para fecha-hora). Prueba PG-06 (`ev2-2.2.0`) |
+| 10 | Alfalfares queda en su delegación | Se asignaba a Rural como «territorio inferido» | La base JJVV trae «ALFALFARES» en la columna de delegación, pero la matriz lo lista como sector de La Antena | Se importa como sector Alfalfares de La Antena. Prueba PO-02 (`ev2-2.2.0`) |
 
 ### 7.3 Diferencias entre el requerimiento y el Excel trimestral
 
@@ -141,6 +148,8 @@ El correo del requerimiento y la matriz Excel no coinciden en algunos valores. E
 | Ponderadores de «Planificación y control» | — | Suman 85 % | Se completa con «Informe a la jefatura» 15 % | Metas y ponderaciones |
 | Meta de emergencias | — | 0 (división por cero) | 2 | Metas y ponderaciones |
 | Base JJVV | — | 22 sin territorio, 8 con socios en texto, 108 fechas en texto, 1 repetida | Se importan con observación y quedan «por verificar» | Organizaciones |
+| Territorio de las actividades | — | Columna «TERRITORIO» del TUBO con lista de sectores por delegación (Las Compañías: Latorre, Rukalaf, Toqui, Zorrilla; La Antena: Alfalfares, Antena, Ceres, La Florida) | Catálogo de sectores por delegación; las otras 4 delegaciones parten con sectores referenciales a confirmar | Configuración → Sectores del territorio |
+| Alfalfares | — | Sector de La Antena en el TUBO; la base JJVV lo trae como si fuera delegación | Sector Alfalfares de La Antena | Importación de la base JJVV |
 
 ### 7.4 Carga concurrente (AWS EC2 t3.small)
 
@@ -165,3 +174,5 @@ Sin errores en ninguna etapa y recuperación inmediata. La degradación viene de
 6. **Integración continua**: ejecutar `python manage.py test pruebas` y `pip-audit` en GitHub Actions en cada PR.
 7. **Respaldo diario** de la base y de `/opt/sgr/archivos` (comandos en el manual técnico).
 8. **Probar en Firefox y Safari** antes de la puesta en marcha (hoy se prueba en Chromium).
+9. **Confirmar los sectores** de Centro, Avenida del Mar, La Pampa y Rural con cada delegación: hoy son referenciales (solo Las Compañías y La Antena vienen de la matriz). Se editan en «Sectores del territorio» sin tocar código.
+10. **Asignar encargados** a las organizaciones importadas desde la base JJVV, que llegan sin encargados: el listado muestra «Sin asignar» o «2 de 3» para ubicarlas.

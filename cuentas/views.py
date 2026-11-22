@@ -339,5 +339,11 @@ def inicio(request):
 @permiso_requerido('correos', 'ver')
 def bandeja(request):
     pagina = Paginator(CorreoSaliente.objects.all(), settings.SGR_POR_PAGINA).get_page(request.GET.get('pagina'))
+    if settings.SGR_BANDEJA_REENVIAR_SMTP:
+        # También se ocultan los correos guardados antes de activar el correo real
+        from .correo import ocultar_secretos
+        for correo in pagina.object_list:
+            correo.cuerpo = ocultar_secretos(correo.cuerpo)
     return render(request, 'cuentas/bandeja.html', {'pagina': pagina,
-                                                    'backend': settings.EMAIL_BACKEND.rsplit('.', 1)[-1]})
+                                                    'backend': settings.EMAIL_BACKEND.rsplit('.', 1)[-1],
+                                                    'oculta': settings.SGR_BANDEJA_REENVIAR_SMTP})

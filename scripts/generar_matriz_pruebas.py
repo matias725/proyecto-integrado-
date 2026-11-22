@@ -112,8 +112,8 @@ CASOS = [
      'El rol y sus permisos se guardan; el rol protegido no se elimina ni desactiva.',
      ['PC-01', 'PI-09', 'PI-10'], '', MATIAS),
     ('CF-16', 'CRUD de Usuarios', 'Usuarios', 'Perfil admin',
-     '1. Crear usuario con rol, delegaciones y contraseña. 2. Editar sin cambiar clave. 3. Desactivar. 4. Eliminar.',
-     'Correo y usuario únicos; la contraseña cumple requisitos; nadie se desactiva a sí mismo.',
+     '1. Crear usuario con rol, cargo y delegaciones (sin contraseña). 2. Editar. 3. Desactivar. 4. Eliminar.',
+     'Correo y usuario únicos; el formulario no tiene contraseña; nadie se desactiva a sí mismo.',
      ['PC-01', 'PI-11', 'PI-12', 'PI-13', 'PI-14', 'PI-15'], '', MATIAS),
     ('CF-17', 'CRUD de Ítems y metas', 'Ítems', 'Perfil admin',
      '1. Crear IT099. 2. Consultar. 3. Editar. 4. Desactivar. 5. Eliminar.', 'Operaciones completas y auditadas.',
@@ -312,6 +312,50 @@ CASOS = [
      'Llega un correo con un enlace de un solo uso; sin usarlo no se puede ingresar; con él se crea la contraseña '
      'con los mismos requisitos; reusado o alterado se rechaza; si el correo falla la cuenta igual queda creada.',
      ['PB-01', 'PB-02', 'PB-03', 'PB-04', 'PB-05', 'PB-06', 'PB-07', 'PB-08', 'PB-09'], '16-crear-contrasena.png', ALEXIS),
+    # ----- Correcciones de la revisión EV2 (ev2-2.1.0) -----
+    ('CF-66', 'Comuna de la delegación con selector', 'Delegaciones', 'Perfil admin',
+     '1. Abrir «Nueva delegación». 2. Revisar la comuna. 3. Elegir otra comuna y guardar. 4. Enviar una comuna fuera de la lista.',
+     'La comuna viene seleccionada en La Serena; se puede cambiar a otra comuna de la región; un valor ajeno a la lista se rechaza.',
+     ['PI-30', 'PI-31'], '', MATIAS),
+    ('CF-67', 'Seguimiento de la atención (abierta o cerrada)', 'Atenciones', 'Funcionario bcastillo y consultor lectura',
+     '1. Registrar una atención. 2. Agregar una nota de seguimiento. 3. Cerrar con resolución. 4. Intentar una nota en la '
+     'cerrada. 5. Reabrir con motivo. 6. Filtrar y exportar por estado. 7. Intentar cerrar como consultor o en otra delegación.',
+     'Nace abierta; cada paso queda con autor y fecha; cerrar exige comentario y registra quién y cuándo; la cerrada solo '
+     'admite reapertura; el listado filtra y el Excel trae estado y cierre; sin permiso o fuera de su delegación responde 403.',
+     ['PT-20', 'PT-21', 'PT-22', 'PT-23', 'PT-24', 'PT-25', 'PT-26', 'PT-27', 'PT-28'], '', CARLOS),
+    ('CF-68', 'El administrador no ve ni cambia contraseñas ajenas', 'Usuarios', 'Perfil admin',
+     '1. Abrir crear y editar usuario. 2. Enviar una contraseña al editar. 3. Revisar detalle y exportación. '
+     '4. Con correo real, revisar la bandeja tras una recuperación.',
+     'No hay campos de contraseña; la contraseña enviada se ignora; ni el detalle ni el Excel la muestran; la bandeja oculta '
+     'códigos y enlaces; editar conserva el cargo.',
+     ['PI-14', 'PB-07', 'PB-10', 'PB-11', 'PB-12', 'PB-13', 'PR-23', 'PR-24'], '', ALEXIS),
+    # ----- Observaciones de la revisión EV2 (ev2-2.2.0) -----
+    ('CF-69', 'Períodos detallados: línea de tiempo, parámetros y resultado por delegación', 'Períodos',
+     'Coordinador emunoz, delegada arojas y funcionario bcastillo',
+     '1. Abrir Períodos. 2. Revisar el período en curso y sus parámetros. 3. Abrir «Ver detalle». '
+     '4. Comparar totales por estado y por mes. 5. Cerrar el período desde el detalle. 6. Entrar como delegada y como funcionario.',
+     'Muestra el día del trimestre y lo esperado al día; los totales por estado y por mes suman lo mismo; el coordinador ve '
+     'las 6 delegaciones y la delegada solo las suyas; cerrar vuelve al detalle; el funcionario recibe 403.',
+     ['PN-01', 'PN-02', 'PN-03', 'PN-04', 'PN-05', 'UI-20'], 'UI-20-periodo-detalle.png', ALEXIS),
+    ('CF-70', 'Compromisos del TUBO: tabla con filtros', 'Compromisos (TUBO)', 'Delegada arojas y funcionario bcastillo',
+     '1. Abrir Compromisos (se ve la tabla). 2. Filtrar por plazo, estado, sector, responsable y fechas. 3. Buscar por folio. '
+     '4. Pasar al tablero por estado. 5. Exportar a Excel con filtros. 6. Como funcionario, pedir los de otro responsable.',
+     'La tabla ordena lo pendiente por urgencia y lo realizado al final; cada filtro solo deja lo que corresponde y se '
+     'mantiene al cambiar de vista; el Excel trae las mismas filas con sector y plazo; el funcionario solo ve lo suyo.',
+     ['PK-01', 'PK-02', 'PK-03', 'PK-04', 'PK-05', 'PK-06', 'UI-19'], 'UI-19-compromisos-filtrados.png', CARLOS),
+    ('CF-71', 'Organizaciones con hasta 3 encargados municipales y sector del territorio', 'Organizaciones y sectores',
+     'Delegada arojas, coordinador emunoz y funcionaria ftest',
+     '1. Crear una organización con 3 funcionarios encargados y su sector. 2. Elegir un funcionario de otra delegación o '
+     'repetido. 3. Editar dejando puestos vacíos. 4. Elegir un sector de otra delegación. 5. Buscar por encargado, filtrar '
+     '«a mi cargo» y exportar. '
+     '6. Crear sectores. 7. Registrar una actividad con sector. 8. Importar la base con sectores en el nombre.',
+     'La ficha muestra los encargados con su cargo y el territorio con su sector; solo se ofrecen funcionarios de la '
+     'delegación y no se repiten; la base impide un cuarto encargado; los puestos quedan correlativos; las listas de '
+     'sectores y encargados cambian con la delegación; la actividad hereda el sector de la organización; Alfalfares '
+     'queda como sector de La Antena.',
+     ['PG-01', 'PG-02', 'PG-03', 'PG-04', 'PG-05', 'PG-06', 'PG-07', 'PG-08', 'PG-09', 'PG-10', 'PG-11', 'PG-12',
+      'PO-02', 'UI-18'],
+     'UI-18-encargados-y-sector.png', MATIAS),
 ]
 
 GRUPOS = {
@@ -320,6 +364,7 @@ GRUPOS = {
     'PS': 'SweetAlert2', 'PU': 'Auditoría', 'PX': 'Sistema', 'UI': 'Interfaz (navegador)',
     'RG': 'Reglas del requerimiento', 'PM': 'Cálculo de la matriz', 'PV': 'Validación y acceso por objeto',
     'PE': 'Evidencias', 'PO': 'Organizaciones e importación', 'PF': 'Rendimiento', 'SG': 'Seguridad', 'PB': 'Correo de bienvenida',
+    'PN': 'Períodos', 'PK': 'Compromisos del TUBO', 'PG': 'Encargados y sectores',
 }
 
 

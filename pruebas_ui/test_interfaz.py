@@ -354,3 +354,55 @@ class InterfazTests(StaticLiveServerTestCase):
         self.ir('/validacion/')
         self.evidencia('UI-17-bandeja-validacion')
         self.assertTrue(self.p.locator('main table, main .vacio').count() > 0)
+
+    # ----- revisión de la EV2 (versión ev2-2.2.0) ----------------------------
+    def test_ui18_sector_y_encargados_dependen_de_la_delegacion(self):
+        """UI-18 · En la organización, sectores y encargados muestran solo los de la delegación elegida"""
+        self.entrar('emunoz')
+        self.ir('/organizaciones/nuevo/')
+        visibles = 'els => els.filter(o => !o.hidden && o.value).map(o => o.textContent.trim())'
+        self.assertEqual(self.p.eval_on_selector_all('#id_sector option', visibles), [])   # sin delegación
+        self.assertEqual(self.p.eval_on_selector_all('#id_encargado_1 option', visibles), [])
+        self.p.select_option('#id_delegacion', label='DEL04 · Las Compañías')
+        self.assertEqual(sorted(self.p.eval_on_selector_all('#id_sector option', visibles)),
+                         ['Latorre', 'Rukalaf', 'Toqui', 'Zorrilla'])
+        self.p.select_option('#id_sector', label='Toqui')
+        self.p.select_option('#id_delegacion', label='DEL03 · La Antena')   # al cambiar, el sector se limpia
+        self.assertEqual(self.p.input_value('#id_sector'), '')
+        self.assertIn('La Florida', self.p.eval_on_selector_all('#id_sector option', visibles))
+        # Una funcionaria con dos delegaciones (Rural y La Antena) aparece en ambas
+        encargados = self.p.eval_on_selector_all('#id_encargado_1 option', visibles)
+        self.assertTrue(any(t.startswith('Ana Rojas Miranda') for t in encargados), encargados)
+        self.assertTrue(any(t.startswith('Rodrigo Silva Morales') for t in encargados), encargados)
+        self.assertFalse(any(t.startswith('Bruno Castillo') for t in encargados), encargados)
+        self.p.select_option('#id_encargado_1', label=next(t for t in encargados if t.startswith('Rodrigo')))
+        self.p.locator('.encargados-formulario').scroll_into_view_if_needed()
+        self.evidencia('UI-18-encargados-y-sector')
+
+    def test_ui19_compromisos_filtran_al_cambiar(self):
+        """UI-19 · En Compromisos, elegir un plazo filtra la tabla sin más clics y se puede pasar al tablero"""
+        self.entrar('arojas')
+        self.ir('/agenda/')
+        self.assertTrue(self.p.locator('table.tabla-compromisos').count())
+        with self.p.expect_navigation():
+            self.p.select_option('#plazo', 'vencidas')
+        self.assertIn('plazo=vencidas', self.p.url)
+        filas = self.p.locator('table.tabla-compromisos tbody tr')
+        self.assertTrue(filas.count() == 0 or self.p.locator('.plazo.vencido').count() == filas.count())
+        self.evidencia('UI-19-compromisos-filtrados')
+        self.p.click('.vistas-compromisos a:has-text("Tablero")')
+        self.p.wait_for_selector('.columnas-tubo')
+        self.assertIn('plazo=vencidas', self.p.url)                   # el filtro se mantiene
+
+    def test_ui20_periodos_linea_de_tiempo(self):
+        """UI-20 · Períodos dibuja la línea de tiempo y las barras del detalle sin estilos en línea"""
+        self.entrar('emunoz')
+        self.ir('/periodos/')
+        self.assertTrue(self.p.locator('.periodo-actual .pista-tiempo .relleno').evaluate('e => e.style.width')
+                        .endswith('%'))
+        self.evidencia('UI-20-periodos')
+        self.p.click('.periodo-actual a:has-text("Ver detalle")')
+        self.p.wait_for_selector('.barras')
+        anchos = self.p.eval_on_selector_all('[data-ancho]', 'els => els.map(e => e.style.width)')
+        self.assertTrue(anchos and all(a.endswith('%') for a in anchos), anchos)
+        self.evidencia('UI-20-periodo-detalle')

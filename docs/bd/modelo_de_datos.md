@@ -1,6 +1,6 @@
 # Modelo de datos · SGR La Serena (EV2)
 
-Base de datos relacional en **MySQL 8.0** (producción, AWS EC2) y SQLite (desarrollo y pruebas). El esquema lo generan las migraciones de Django; el volcado equivalente está en [`sgr_ev2_esquema_mysql.sql`](sgr_ev2_esquema_mysql.sql) (31 tablas, `utf8mb4_0900_ai_ci`, InnoDB).
+Base de datos relacional en **MySQL 8.0** (producción, AWS EC2) y SQLite (desarrollo y pruebas). El esquema lo generan las migraciones de Django; el volcado equivalente está en [`sgr_ev2_esquema_mysql.sql`](sgr_ev2_esquema_mysql.sql) (33 tablas, `utf8mb4_0900_ai_ci`, InnoDB).
 
 | Archivo | Contenido |
 |---|---|
@@ -30,6 +30,8 @@ erDiagram
     SUB_ATENCION ||--o{ ATENCION : detalla
     DELEGACION ||--o{ ATENCION : registra
     USUARIO ||--o{ ATENCION : atiende
+    ATENCION ||--o{ SEGUIMIENTO_ATENCION : "se sigue"
+    USUARIO ||--o{ SEGUIMIENTO_ATENCION : registra
 
     PERIODO ||--o{ META_CARGO : define
     CARGO ||--o{ META_CARGO : "tiene metas"
@@ -40,6 +42,7 @@ erDiagram
     USUARIO ||--o{ ACTIVIDAD : registra
     ITEM_MEDICION ||--o{ ACTIVIDAD : "suma a"
     ORGANIZACION |o--o{ ACTIVIDAD : beneficia
+    SECTOR |o--o{ ACTIVIDAD : "ocurre en"
     USUARIO |o--o{ ACTIVIDAD : valida
     ACTIVIDAD ||--o{ HISTORIAL_ACTIVIDAD : "cambia de estado"
     ACTIVIDAD ||--o{ EVIDENCIA : respalda
@@ -51,6 +54,10 @@ erDiagram
 
     TIPO_ORGANIZACION ||--o{ ORGANIZACION : clasifica
     DELEGACION |o--o{ ORGANIZACION : "territorio de"
+    DELEGACION ||--o{ SECTOR : "se divide en"
+    SECTOR |o--o{ ORGANIZACION : "funciona en"
+    ORGANIZACION ||--o{ ENCARGADO_ORGANIZACION : "tiene a cargo"
+    USUARIO ||--o{ ENCARGADO_ORGANIZACION : "es encargado"
     USUARIO |o--o{ AUDITORIA : genera
 
     USUARIO {
@@ -61,6 +68,23 @@ erDiagram
         bigint cargo_id FK
         smallint intentos_fallidos
         datetime bloqueado_hasta
+    }
+    ATENCION {
+        bigint id PK
+        bigint solicitante_id FK
+        bigint subatencion_id FK
+        bigint delegacion_id FK
+        varchar estado "ABIERTA o CERRADA"
+        datetime cerrada "null si abierta"
+        bigint cerrada_por_id FK
+    }
+    SEGUIMIENTO_ATENCION {
+        bigint id PK
+        bigint atencion_id FK
+        varchar tipo "NOTA, CIERRE o REAPERTURA"
+        text comentario
+        bigint usuario_id FK
+        datetime creado
     }
     PERIODO {
         bigint id PK
@@ -132,9 +156,23 @@ erDiagram
         varchar nombre
         bigint tipo_id FK
         bigint delegacion_id FK
+        bigint sector_id FK "null: sin sector"
         int registro_pj UK
         bool verificada
         varchar observacion
+    }
+    SECTOR {
+        bigint id PK
+        varchar codigo UK "SEC001"
+        varchar nombre "único por delegación"
+        bigint delegacion_id FK
+    }
+    ENCARGADO_ORGANIZACION {
+        bigint id PK
+        bigint organizacion_id FK
+        bigint usuario_id FK "funcionario municipal"
+        smallint orden "puesto 1 a 3"
+        datetime asignado_el
     }
 ```
 
@@ -142,11 +180,11 @@ erDiagram
 
 | Módulo | Tablas | Para qué |
 |---|---|---|
-| Catálogos | `catalogos_delegacion`, `catalogos_itemmedicion`, `catalogos_cargo`, `catalogos_tipoatencion`, `catalogos_subatencion` | Datos maestros que mantiene la coordinación |
+| Catálogos | `catalogos_delegacion`, `catalogos_sector`, `catalogos_itemmedicion`, `catalogos_cargo`, `catalogos_tipoatencion`, `catalogos_subatencion` | Datos maestros que mantiene la coordinación; los sectores son las partes del territorio de cada delegación (revisión EV2) |
 | Cuentas | `cuentas_usuario`, `cuentas_rol`, `cuentas_permiso`, `cuentas_rol_permisos`, `cuentas_usuario_delegaciones`, `cuentas_codigorecuperacion`, `cuentas_correosaliente` | Acceso, perfiles, alcance por delegación y recuperación de clave |
-| Atenciones | `atenciones_solicitante`, `atenciones_atencion` | Atención a vecinos por RUT (EV1) |
+| Atenciones | `atenciones_solicitante`, `atenciones_atencion`, `atenciones_seguimientoatencion` | Atención a vecinos por RUT (EV1), con estado abierta/cerrada y su seguimiento (corrección EV2) |
 | Matriz SGR | `gestion_periodo`, `gestion_metacargo`, `gestion_actividad`, `gestion_historialactividad`, `gestion_evidencia`, `gestion_ausencia`, `gestion_observacion` | Las hojas por cargo, SEMÁFORO, TUBO, FELICITACIONES y RECLAMOS del Excel trimestral |
-| Organizaciones | `gestion_tipoorganizacion`, `gestion_organizacion` | Base JJVV y organizaciones funcionales por territorio |
+| Organizaciones | `gestion_tipoorganizacion`, `gestion_organizacion`, `gestion_encargadoorganizacion` | Base JJVV y organizaciones funcionales por territorio y sector, con hasta 3 funcionarios municipales encargados (revisión EV2) |
 | Control | `core_auditoria` | Bitácora de operaciones y accesos denegados |
 
 ### Del Excel a la base
@@ -155,6 +193,7 @@ erDiagram
 |---|---|
 | Una hoja por cargo (metas y ponderaciones) | `gestion_metacargo` (período × cargo × ítem) |
 | Filas de actividades y TUBO | `gestion_actividad` (con `fecha_compromiso` para el TUBO) |
+| Columna «TERRITORIO» del TUBO (lista de sectores) | `catalogos_sector`, referenciado por `gestion_actividad.sector_id` y `gestion_organizacion.sector_id` |
 | SEMÁFORO (días de ausencia) | `gestion_ausencia`; los días efectivos se calculan |
 | FELICITACIONES y RECLAMOS | `gestion_observacion` con respaldo obligatorio |
 | RESUMEN | No se guarda: se calcula en `gestion/calculos.py` desde las tablas anteriores |
@@ -167,7 +206,7 @@ erDiagram
 ### Primera forma normal (1FN)
 
 - Cada columna guarda un solo valor. En el Excel una celda podía tener «3 CLUBES» o varios teléfonos; en la base, `socios` es entero y el texto dudoso queda en `observacion` al importar.
-- No hay grupos repetidos: las metas de un cargo no son 29 columnas de una hoja, son 29 filas de `gestion_metacargo`.
+- No hay grupos repetidos: las metas de un cargo no son 29 columnas de una hoja, son 29 filas de `gestion_metacargo`. Del mismo modo, los encargados no son columnas «encargado 1, 2, 3» en la organización: son hasta 3 filas de `gestion_encargadoorganizacion` (organización × funcionario), y el nombre del funcionario está solo en `cuentas_usuario`.
 - Cada tabla tiene clave primaria (`id`, entero de 64 bits).
 
 ### Segunda forma normal (2FN)
@@ -177,7 +216,7 @@ erDiagram
 
 ### Tercera forma normal (3FN)
 
-- Ningún dato no clave depende de otro dato no clave. El nombre de la delegación, del ítem, del cargo o del tipo de organización está una sola vez en su catálogo.
+- Ningún dato no clave depende de otro dato no clave. El nombre de la delegación, del sector, del ítem, del cargo o del tipo de organización está una sola vez en su catálogo. El texto «Las Compañías · sector Toqui» que se ve en pantalla no se guarda: se arma desde la delegación y el sector.
 - El resultado de la matriz (cumplimiento, total, semáforo, resultado de equipo) **no se guarda**: se calcula con consultas agregadas. Así no puede quedar desactualizado cuando se valida, rechaza o cierra una actividad.
 
 ### Desnormalizaciones deliberadas (y por qué)
@@ -198,7 +237,8 @@ erDiagram
 | Regla | Dónde se garantiza |
 |---|---|
 | Claves foráneas | `FOREIGN KEY` en InnoDB; borrado `PROTECT` en catálogos: no se elimina un ítem, cargo o delegación en uso (pruebas PI-xx) |
-| Unicidad sin distinguir mayúsculas | Índices sobre `LOWER(nombre)` en catálogos (`delegacion_nombre_unico_ci`, `item_nombre_unico_ci`, …) |
+| Unicidad sin distinguir mayúsculas | Índices sobre `LOWER(nombre)` en catálogos (`delegacion_nombre_unico_ci`, `item_nombre_unico_ci`, …); el sector es único **dentro de su delegación** (`sector_nombre_por_delegacion_ci`) |
+| Máximo 3 encargados por organización, sin repetir | `CHECK (orden BETWEEN 1 AND 3)` (`encargado_maximo_tres`), `UNIQUE (organizacion_id, orden)` y `UNIQUE (organizacion_id, usuario_id)` (prueba PG-11). Que el encargado trabaje en la delegación de la organización, y que el sector sea de esa delegación, lo valida el formulario (pruebas PG-02, PG-04 y PG-09) |
 | Un solo período abierto | Índice único sobre `marca_abierto` (prueba PV-16) |
 | Fechas coherentes | `CHECK (termino > inicio)` en períodos y `CHECK (hasta >= desde)` en ausencias |
 | Una meta por cargo e ítem en cada período | `UNIQUE (periodo_id, cargo_id, item_id)` |

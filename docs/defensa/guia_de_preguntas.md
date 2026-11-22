@@ -4,7 +4,8 @@ Preguntas probables de la comisión, la respuesta corta y **qué mostrar** en pa
 
 **Antes de empezar**
 
-- Abrir http://34.232.208.74 (o local con `SGR_FECHA_HOY=2026-11-04`) con tres pestañas: `bcastillo` (funcionario), `arojas` (delegada, en DEL06 Rural) y `emunoz` (coordinador). Clave: `Serena#2026`.
+- Iniciar el Learner Lab (botón «Start Lab») unos 15 minutos antes: la instancia arranca sola y conserva la IP elástica.
+- Abrir http://3.211.71.204 (o local con `SGR_FECHA_HOY=2026-11-04`) con tres pestañas: `bcastillo` (funcionario), `arojas` (delegada, en DEL06 Rural) y `emunoz` (coordinador). Clave: `Serena#2026`.
 - Tener abiertos: el Excel trimestral original, `docs/pruebas/matriz_pruebas_sgr_ev2.xlsx` y `docs/bd/modelo_de_datos.md`.
 - Terminal lista con `python manage.py test pruebas.test_matriz` (tarda ≈ 4 s).
 
@@ -66,6 +67,34 @@ Si alguien lograra inyectar un `<script>`, el navegador no lo ejecutaría. Lo co
 **¿Qué falta?**
 HTTPS con dominio (configuración lista), segundo factor para administradores y `pip-audit` automático. Están en la sección «Pendientes conocidos».
 
+## 4.1 Correcciones de la revisión EV2 (`ev2-2.1.0`)
+
+**¿El administrador puede ver o cambiar la contraseña de un usuario?**
+No. Las contraseñas se guardan cifradas (hash PBKDF2) y el formulario de usuarios ya no tiene campos de contraseña: al crear una cuenta, la persona recibe un enlace para crear la suya, y si la olvida usa «¿Olvidó su contraseña?». Con el correo real activo, la bandeja de correos tampoco muestra los códigos ni los enlaces (PB-10 a PB-13, PR-23, PR-24). *Demostrar*: con `admin`, editar a `bcastillo` y mostrar que no hay campo de contraseña.
+
+**¿Cómo se hace seguimiento a una atención?**
+Toda atención nace **Abierta**. En su ficha se registran notas de seguimiento y se **cierra** con la resolución entregada al vecino (comentario obligatorio, queda quién y cuándo). Una cerrada solo se puede **reabrir** con motivo. El listado filtra por estado y el Excel lo incluye (PT-20 a PT-28). *Demostrar*: con `bcastillo`, abrir una atención abierta, cerrarla y filtrar «Cerradas».
+
+**¿Y la comuna de la delegación?**
+Es una lista con las comunas de la Región de Coquimbo que viene en **La Serena** por defecto y se puede cambiar (PI-30, PI-31). *Demostrar*: con `admin`, «Delegaciones → Nuevo».
+
+## 4.2 Observaciones de la revisión EV2 (`ev2-2.2.0`)
+
+**¿Qué muestra ahora la pantalla de períodos?**
+El período en curso con su línea de tiempo («Día 35 de 92»), lo que se espera de avance hoy, un resumen de la gestión (actividades, realizadas, por validar, compromisos vencidos) y los 6 parámetros de cálculo explicados. Cada período tiene su detalle con actividades por estado y por mes, el **resultado del equipo por delegación** con su semáforo y las metas por cargo. El delegado solo ve sus delegaciones (PN-01 a PN-05). *Demostrar*: con `emunoz`, Períodos → «Ver detalle del período».
+
+**¿Cómo se filtran los compromisos?**
+Compromisos abre una **tabla** con filtros por estado, plazo (vencidas, vencen en 7 días, al día, realizadas), sector, responsable y rango de fechas, además de búsqueda por folio. Lo pendiente aparece primero por urgencia, con los días de atraso. El mismo filtro sirve para el tablero por estado y para exportar a Excel (PK-01 a PK-06). *Demostrar*: con `arojas`, elegir «Plazo: Vencidas» y exportar.
+
+**¿Quiénes son las 3 personas a cargo de la organización?**
+Hasta **3 funcionarios municipales encargados**, elegidos entre los usuarios con cargo de la delegación de la organización (por ejemplo, el territorial y el gestor social). Se guardan en una tabla aparte, una fila por encargado con su puesto 1 a 3: la base de datos impide un cuarto encargado y repetir a un funcionario (PG-11), no como columnas, para respetar la 1FN. No son obligatorios: el listado muestra «2 de 3» para saber cuántos faltan. Se busca una organización por el nombre del encargado, cada funcionario puede filtrar «las que tengo a cargo» y en su ficha de usuario se ven sus organizaciones; si deja de trabajar en la delegación, deja de ser encargado (PG-01 a PG-05, PG-12). *Demostrar*: con `arojas`, editar «Junta de Vecinos El Romero».
+
+**¿Qué es el sector del territorio?**
+Es la parte del territorio de una delegación, como la columna «TERRITORIO» del TUBO en la matriz Excel. Las listas de Las Compañías (Latorre, Rukalaf, Toqui, Zorrilla) y La Antena (Alfalfares, Antena, Ceres, La Florida) vienen de esa planilla; las demás son de referencia y se ajustan en «Sectores del territorio». Se usa en organizaciones, actividades y en el filtro de compromisos; el servidor rechaza un sector de otra delegación (PG-04, PG-07 a PG-10). *Demostrar*: con `emunoz`, nueva organización: al cambiar la delegación cambia la lista de sectores.
+
+**¿Encontraron errores al hacer estos cambios?**
+Sí. La ficha de una organización con fecha de constitución daba **error 500**, porque la ficha común mostraba todas las fechas con hora. Se corrigió y quedó una prueba (PG-06). También se corrigió Alfalfares: la base JJVV lo trae como si fuera delegación, pero la matriz lo lista como sector de La Antena. Ambos están en el plan de pruebas, sección 7.2.
+
 ## 5. Trabajo en equipo y entorno
 
 **¿Cómo se organizaron?**
@@ -77,7 +106,7 @@ Cinco comandos con SQLite o el script `instalar_ec2.sh` en AWS. *Mostrar*: `docs
 ## 6. Pruebas
 
 **¿Cuántas pruebas tienen y qué cubren?**
-222 automáticas (205 funcionales + 17 en navegador), todas aprobadas, también contra MySQL 8. 65 casos funcionales con trazabilidad a cada regla. *Mostrar*: hoja «Matriz funcional».
+265 automáticas (245 funcionales + 20 en navegador), todas aprobadas, también contra MySQL 8. 71 casos funcionales con trazabilidad a cada regla. *Mostrar*: hoja «Matriz funcional».
 
 **¿Probaron los bordes?**
 Sí: 7.º y 8.º ingreso, lunes y martes del cierre, exactamente 120 % y más, ausencia que empieza antes del período, 4 felicitaciones (cuentan 3), total que no baja de 0. *Mostrar*: sección 5 del plan de pruebas.

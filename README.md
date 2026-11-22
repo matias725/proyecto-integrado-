@@ -2,7 +2,11 @@
 
 Sistema web para registrar y supervisar la gestión de las **delegaciones municipales de la Ilustre Municipalidad de La Serena**: atenciones a vecinos y vecinas, catálogos de atención, usuarios, roles y permisos por delegación.
 
-Proyecto Integrado · INACAP 2026 · **Segunda evaluación (EV2)** · versión `ev2-2.0.0`: incorpora la **matriz SGR** del nuevo requerimiento de la Coordinación de Delegaciones.
+Proyecto Integrado · INACAP 2026 · **Segunda evaluación (EV2)** · versión `ev2-2.2.0`: incorpora la **matriz SGR** del nuevo requerimiento de la Coordinación de Delegaciones.
+
+**Correcciones de la revisión EV2 (`ev2-2.1.0`):** la comuna de la delegación se elige en una lista y viene en La Serena por defecto; las atenciones tienen seguimiento con estado abierta/cerrada; el administrador ya no puede definir ni cambiar contraseñas ajenas.
+
+**Observaciones de la revisión EV2 (`ev2-2.2.0`):** la pantalla de períodos muestra la línea de tiempo del trimestre, sus parámetros y un detalle por delegación y cargo; Compromisos (TUBO) tiene una tabla con filtros (estado, plazo, sector, responsable, fechas) y exportación; cada organización tiene hasta **3 funcionarios municipales encargados** (de su delegación); y el territorio incluye el **sector** (catálogo «Sectores del territorio», con las listas de Las Compañías y La Antena tomadas de la matriz Excel).
 
 | Documento | Para qué |
 |---|---|
@@ -50,7 +54,7 @@ Proyecto Integrado · INACAP 2026 · **Segunda evaluación (EV2)** · versión `
 | Períodos y metas | **Operativo** | Trimestres con sus parámetros, un solo período abierto (también en la base), metas y ponderadores por cargo que suman 100 %, copia desde el período anterior |
 | Organizaciones | **Operativo** | Base JJVV y organizaciones funcionales por territorio; importador con limpieza y observaciones (`sgr_importar_organizaciones`) |
 | Informes e historial por vecino | **Operativo** | Matriz completa del período en pantalla y Excel; historial de atenciones por RUT |
-| Despliegue en AWS | **Operativo** | http://34.232.208.74/ · EC2 + Nginx + Gunicorn + MySQL 8 (sección 6) |
+| Despliegue en AWS | **Operativo** | http://3.211.71.204/ · EC2 + Nginx + Gunicorn + MySQL 8 (sección 6) |
 
 ### Perfiles de evaluación
 
@@ -131,9 +135,9 @@ La interfaz sigue las normas gráficas de la Municipalidad (color institucional 
 ## 5. Pruebas
 
 ```bash
-python manage.py test pruebas            # 205 pruebas funcionales automatizadas (≈ 12 s)
+python manage.py test pruebas            # 245 pruebas funcionales automatizadas (≈ 30 s)
 pip install -r requirements-dev.txt && playwright install chromium
-python manage.py test pruebas_ui         # 17 pruebas de interfaz en navegador real (SweetAlert2, CSP, doble envío…)
+python manage.py test pruebas_ui         # 20 pruebas de interfaz en navegador real (SweetAlert2, CSP, doble envío…)
 ```
 
 Plan de pruebas completo, trazabilidad con las reglas y comparación obtenido vs esperado: [`docs/pruebas/plan_de_pruebas_ev2.md`](docs/pruebas/plan_de_pruebas_ev2.md).
@@ -196,20 +200,23 @@ Pasos resumidos:
    También acepta una carpeta: subir el código con `scp` y ejecutar `sudo bash deploy/instalar_ec2.sh /tmp/sgr`.
 4. Verificar `http://IP-ELÁSTICA/salud/` → `{"estado": "ok"}` e ingresar con las cuentas de evaluación.
 
-**URL pública:** http://34.232.208.74/ · **Versión publicada:** `ev2-v1.0.4` · **Salud:** http://34.232.208.74/salud/ · **Acceso:** cuentas de la sección 1.
+**URL pública:** http://3.211.71.204/ · **Versión publicada:** `ev2-2.2.0` · **Salud:** http://3.211.71.204/salud/ · **Acceso:** cuentas de la sección 1.
 
-### Componentes publicados (AWS Academy, región us-east-1)
+### Componentes publicados (AWS Academy Learner Lab, región us-east-1)
 
 | Recurso | Valor |
 |---|---|
-| Instancia EC2 | `sgr-laserena-ev2` · t3.small · Ubuntu 24.04 LTS · disco gp3 20 GB |
-| IP elástica | 34.232.208.74 |
-| Grupo de seguridad | `sgr-ev2-sg`: HTTP 80 abierto; SSH 22 solo desde la IP del equipo |
-| Par de llaves | `sgr-ev2` (el archivo `.pem` no se sube al repositorio) |
+| Instancia EC2 | `sgr-laserena-ev2` · t3.small · Ubuntu 24.04 LTS · disco gp3 20 GB · perfil `LabInstanceProfile` |
+| IP elástica | 3.211.71.204 |
+| Grupo de seguridad | `sgr-ev2-sg`: HTTP 80 abierto; SSH 22 solo desde EC2 Instance Connect (18.206.107.24/29) |
+| Par de llaves | `vockey` del Learner Lab (el archivo `.pem` no se sube al repositorio) |
 | Servicios | `nginx` (80) → `sgr` (Gunicorn, 127.0.0.1:8000, 3 workers) → `mysql` (local, base `sgr_laserena`) |
 | Secretos | `/opt/sgr/.env` (permisos 600), generados por `instalar_ec2.sh` |
+| Código | Paquete `sgr-ev2-2.2.0.tar.gz` en un bucket S3 privado; la instancia lo descarga al arrancar (datos de usuario) y ejecuta `instalar_ec2.sh` sobre esa carpeta |
 
-Actualizar a una nueva versión: `sudo bash /opt/sgr/app/deploy/actualizar.sh`.
+> La versión EV2 se publicó primero en la cuenta de otro integrante (http://34.232.208.74, donde también se hicieron las pruebas de estrés). Al agotarse ese crédito se reinstaló desde cero en esta cuenta con el mismo `instalar_ec2.sh`.
+
+Actualizar a una nueva versión: `sudo bash /opt/sgr/app/deploy/actualizar.sh`. Como esta instancia se instaló desde un paquete y no desde Git, antes se copia el código nuevo en `/opt/sgr/app` (por ejemplo, desde S3 con `rsync --exclude .env`) y luego se ejecuta el script.
 
 > En AWS Academy la instancia se detiene al cerrar el laboratorio; la IP elástica se conserva. Al iniciar el laboratorio, encender la instancia: los servicios arrancan solos.
 

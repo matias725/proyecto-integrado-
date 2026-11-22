@@ -277,6 +277,7 @@ fieldset.campo { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
 .opciones > div { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px 14px; }
 .opciones label { display: flex; align-items: center; gap: 7px; font-weight: 400; font-size: .88rem; margin: 0; }
 .campo.invalido .opciones { outline: 1px solid var(--rojo); outline-offset: 6px; border-radius: 2px; }
+.opciones > div:has(input[type="radio"]) { grid-template-columns: 1fr; }
 .mayusculas { text-transform: uppercase; }
 .campo-fijo {
     display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 11px;
@@ -549,3 +550,142 @@ body.menu-abierto::after { content: ""; position: fixed; inset: 0; background: r
 .formulario-en-linea .campo { margin: 0; }
 @media (max-width: 900px) { .columnas-tubo { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .columnas-tubo { grid-template-columns: 1fr; } }
+
+/* ---------- Organizaciones: secciones del formulario y encargados municipales (revisión EV2) ---------- */
+.subtitulo-seccion { display: flex; align-items: center; gap: 8px; margin: 22px 0 12px; padding-bottom: 6px;
+    font-size: .95rem; color: var(--inst-oscuro); border-bottom: 1px solid var(--linea-suave); }
+.subtitulo-seccion:first-child { margin-top: 0; }
+.subtitulo-seccion .ruta { font-weight: 400; }
+.numero-persona { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--inst); color: #fff; font-size: .75rem; }
+.tarjetas-directiva { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 16px; }
+.tarjeta-persona { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--linea); border-left: 3px solid var(--inst);
+    border-radius: var(--radio); font-size: .88rem; overflow-wrap: anywhere; }
+.tarjeta-persona.vacia { border-left-color: var(--linea); color: var(--tinta-tenue); background: #FAFAFA; }
+.tarjeta-persona .cargo-persona { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--tinta-media); }
+.tarjeta-persona strong { font-size: 1rem; color: var(--tinta); }
+.tarjeta-persona.vacia strong { color: var(--tinta-tenue); }
+.tarjeta-persona i { margin-right: 6px; color: var(--tinta-tenue); }
+@media (max-width: 760px) { .tarjetas-directiva { grid-template-columns: 1fr; } }
+
+/* ---------- Compromisos del TUBO: filtros, resumen, tabla y tablero (corrección EV2) ---------- */
+.filtros-compromisos { margin-bottom: 16px; }
+.filtros-compromisos .panel-cuerpo { padding-bottom: 14px; }
+.filtros-amplios { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.filtros-amplios .buscador-campo { grid-column: span 2; }
+.filtros-compromisos label { display: block; font-size: .82rem; font-weight: 700; margin-bottom: 5px; }
+.filtros-compromisos input, .filtros-compromisos select { width: 100%; padding: 8px 10px; border: 1px solid var(--linea);
+    border-radius: var(--radio); font: inherit; font-size: .9rem; background: #fff; min-height: 38px; }
+.resumen-tubo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.resumen-tubo .dato { border-left: 4px solid var(--linea); margin: 0; }
+.resumen-tubo .tubo-total { border-left-color: var(--inst); }
+.resumen-tubo .tubo-total .valor { color: var(--inst); }
+.resumen-tubo .tubo-realizadas { border-left-color: var(--verde); }
+.resumen-tubo .tubo-proceso { border-left-color: #C8892B; }
+.resumen-tubo .tubo-proceso .valor { color: var(--ambar); }
+.resumen-tubo .tubo-pendientes { border-left-color: var(--rojo); }
+.vistas-compromisos { display: inline-flex; margin-bottom: 12px; border: 1px solid var(--linea); border-radius: var(--radio);
+    overflow: hidden; background: var(--superficie); }
+.vistas-compromisos a { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; font-size: .88rem;
+    color: var(--tinta-media); text-decoration: none; }
+.vistas-compromisos a + a { border-left: 1px solid var(--linea); }
+.vistas-compromisos a[aria-current] { background: var(--inst); color: #fff; font-weight: 700; }
+.vistas-compromisos a:not([aria-current]):hover { background: var(--inst-suave); color: var(--inst); }
+.tabla-compromisos .sin-quiebre { white-space: nowrap; }
+.tabla-compromisos .titulo-compromiso { font-weight: 700; }
+.tabla-compromisos tr.compromiso-vencido td:first-child { box-shadow: inset 3px 0 0 var(--rojo); }
+.tabla-compromisos tr.compromiso-realizado .titulo-compromiso { text-decoration: line-through; color: var(--tinta-media); }
+.plazo { font-size: .78rem; font-weight: 700; margin-top: 2px; }
+.plazo.vencido { color: var(--rojo); }
+.plazo.hoy, .plazo.proximo { color: var(--ambar); }
+.columna-tubo h3 { display: flex; justify-content: space-between; align-items: center; text-transform: uppercase;
+    letter-spacing: .04em; font-size: .82rem; }
+.contador-columna { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 6px;
+    border-radius: 13px; background: #fff; border: 1px solid var(--linea); font-size: .8rem; color: var(--tinta); }
+.columna-tubo.estado-ingresado h3 { color: var(--tinta-media); }
+.columna-tubo.estado-pendiente h3 { color: var(--rojo); }
+.columna-tubo.estado-en_proceso h3 { color: var(--ambar); }
+.columna-tubo.estado-realizado h3 { color: var(--verde); }
+.columna-tubo.estado-pendiente li a { border-left: 3px solid var(--rojo); }
+.columna-tubo.estado-en_proceso li a { border-left: 3px solid #C8892B; }
+.columna-tubo.estado-realizado li a { border-left: 3px solid var(--verde); }
+.columna-tubo li a .codigo { display: block; font-size: .75rem; margin-bottom: 3px; }
+.columna-tubo li.realizada b { text-decoration: line-through; color: var(--tinta-media); }
+.mas-en-tabla { padding: 0 12px 12px; margin: 0; }
+@media (max-width: 900px) { .resumen-tubo { grid-template-columns: 1fr 1fr; } .filtros-amplios .buscador-campo { grid-column: 1 / -1; } }
+@media (max-width: 560px) { .resumen-tubo { grid-template-columns: 1fr; } }
+
+/* ---------- Períodos: período en curso, línea de tiempo, tarjetas y detalle (corrección EV2) ---------- */
+.periodo-actual { border-top: 4px solid var(--inst); }
+.periodo-actual-cabecera { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+    padding: 18px 20px 6px; flex-wrap: wrap; }
+.periodo-actual-cabecera h2 { margin: 2px 0 4px; font-size: 1.45rem; }
+.periodo-actual-cabecera p { margin: 0; }
+.periodo-actual-estado { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.sobretitulo { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; color: var(--inst); }
+.fase { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700;
+    border: 1px solid var(--linea); background: #fff; color: var(--tinta-media); }
+.fase.fase-en-curso { background: var(--azul-fondo); color: var(--azul); border-color: #C6D6E8; }
+.fase.fase-finalizado { background: #EFEFEF; }
+.fase.fase-por-comenzar { background: var(--ambar-fondo); color: #7A4A00; border-color: #EBD5AE; }
+.linea-tiempo { padding: 6px 20px 4px; }
+.linea-tiempo-etiquetas { display: flex; justify-content: space-between; gap: 10px; font-size: .8rem;
+    color: var(--tinta-media); margin-bottom: 6px; }
+.linea-tiempo-etiquetas strong { color: var(--tinta); text-align: center; }
+.pista-tiempo { height: 14px; border-radius: 7px; overflow: hidden; }
+.pista-tiempo .relleno { border-radius: 7px; }
+.pista .relleno.inst { background: var(--inst); }
+.pista .relleno.gris { background: #9E9E9E; }
+.pista .relleno.estado-ingresado { background: #9E9E9E; }
+.pista .relleno.estado-pendiente { background: var(--rojo); }
+.pista .relleno.estado-en_proceso { background: #C8892B; }
+.pista .relleno.estado-realizado { background: var(--verde); }
+.pista-delgada { height: 10px; border-radius: 5px; }
+.pista-delgada .relleno { border-radius: 5px; }
+.tarjetas-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 12px 20px 18px; }
+.mini-dato { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; padding: 12px;
+    border: 1px solid var(--linea-suave); border-radius: var(--radio); background: #FBFBFB; }
+.mini-dato i { grid-row: span 2; font-size: 1.3rem; color: var(--inst); }
+.mini-dato .valor { font-size: 1.35rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.mini-dato .etiqueta { font-size: .76rem; color: var(--tinta-media); }
+.mini-dato.atencion { background: var(--ambar-fondo); border-color: #EBD5AE; }
+.mini-dato.atencion i, .mini-dato.atencion .valor { color: var(--ambar); }
+.mini-dato.alerta { background: var(--rojo-fondo); border-color: #EDC7C4; }
+.mini-dato.alerta i, .mini-dato.alerta .valor { color: var(--rojo); }
+.tarjetas-parametros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 16px; }
+.tarjetas-parametros.compactas { grid-template-columns: 1fr 1fr; }
+.tarjeta-parametro { display: flex; gap: 12px; padding: 12px 14px; border: 1px solid var(--linea-suave);
+    border-radius: var(--radio); }
+.tarjeta-parametro > i { font-size: 1.25rem; color: var(--inst); margin-top: 2px; }
+.tarjeta-parametro .etiqueta, .tarjeta-parametro .valor, .tarjeta-parametro .apoyo { display: block; }
+.tarjeta-parametro .etiqueta { font-size: .78rem; color: var(--tinta-media); }
+.tarjeta-parametro .valor { font-size: 1.25rem; font-weight: 700; }
+.tarjeta-parametro .apoyo { font-size: .76rem; color: var(--tinta-tenue); line-height: 1.35; }
+.titulo-seccion { font-size: 1.05rem; margin: 22px 0 12px; }
+.tarjetas-periodo { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.tarjeta-periodo { padding: 16px 18px; margin: 0; display: grid; gap: 10px; border-left: 4px solid var(--linea); }
+.tarjeta-periodo.abierta { border-left-color: var(--inst); }
+.tarjeta-periodo-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tarjeta-periodo-cabecera h3 { margin: 0; font-size: 1.05rem; }
+.tarjeta-periodo-cabecera h3 a { color: var(--tinta); text-decoration: none; }
+.tarjeta-periodo-cabecera h3 a:hover { color: var(--inst); text-decoration: underline; }
+.tarjeta-periodo p { margin: 0; }
+.cifras-periodo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; }
+.cifras-periodo dt { font-size: .74rem; color: var(--tinta-media); }
+.cifras-periodo dd { margin: 0; font-weight: 700; font-size: 1.05rem; }
+.cifras-periodo dd .ruta { display: block; font-weight: 400; font-size: .72rem; }
+.tarjeta-periodo-acciones { justify-content: flex-start; flex-wrap: wrap; }
+.barras { display: grid; gap: 12px; }
+.barra-fila { display: grid; grid-template-columns: 120px 1fr auto; gap: 12px; align-items: center; font-size: .88rem; }
+.barra-valor { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.col-avance { min-width: 200px; }
+.avance-celda { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; font-weight: 700; }
+.avance-celda .marca-esperada { top: -4px; bottom: -4px; }
+.avance-celda .marca-esperada::after { display: none; }
+.tabla-compromisos .codigo { white-space: nowrap; }
+@media (max-width: 900px) { .tarjetas-parametros { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .tarjetas-parametros, .tarjetas-parametros.compactas { grid-template-columns: 1fr; }
+    .barra-fila { grid-template-columns: 1fr auto; } .barra-fila .pista { grid-column: 1 / -1; grid-row: 2; } }
+.puesto-encargado { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; }
+.puesto-encargado .numero-persona { margin-top: 30px; }

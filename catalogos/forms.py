@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from core.forms_base import FormularioCatalogo
 from core.reglas import motivo_no_desactivar
 
-from .models import Delegacion, ItemMedicion, SubAtencion, TipoAtencion
+from .models import Delegacion, ItemMedicion, Sector, SubAtencion, TipoAtencion
 
 
 def validar_desactivacion(form):
@@ -24,6 +24,10 @@ class DelegacionForm(FormularioCatalogo):
     class Meta:
         model = Delegacion
         fields = ['codigo', 'nombre', 'direccion', 'comuna', 'activo']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['comuna'].help_text = 'Por defecto La Serena. Puede elegir otra comuna de la región.'
 
     def clean_activo(self):
         return validar_desactivacion(self)
@@ -76,4 +80,36 @@ class SubAtencionForm(FormularioCatalogo):
             self.add_error('activo', 'No puede quedar activa mientras su tipo de atención esté inactivo.')
         if self.instance.pk and tipo and tipo.pk != self.instance.tipo_id and self.instance.atenciones.exists():
             self.add_error('tipo', 'Ya tiene atenciones registradas con el tipo actual; no se puede cambiar.')
+        return limpio
+
+
+class SectorForm(FormularioCatalogo):
+    prefijo, digitos = 'SEC', 3
+    nombre_unico = False          # se valida por delegación en clean()
+
+    class Meta:
+        model = Sector
+        fields = ['codigo', 'nombre', 'delegacion', 'descripcion', 'activo']
+
+    def __init__(self, *args, actor=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        delegaciones = Delegacion.objects.filter(activo=True)
+        if actor and not actor.alcance_global:
+            delegaciones = actor.delegaciones_autorizadas()
+        if self.instance.pk:
+            delegaciones = delegaciones | Delegacion.objects.filter(pk=self.instance.delegacion_id)
+        self.fields['delegacion'].queryset = delegaciones.distinct().order_by('codigo')
+        self.fields['delegacion'].empty_label = 'Seleccione la delegación'
+        self.fields['delegacion'].help_text = 'El sector es una parte del territorio de esta delegación.'
+
+    def clean(self):
+        limpio = super().clean()
+        delegacion, nombre = limpio.get('delegacion'), limpio.get('nombre')
+        if delegacion and nombre and Sector.objects.filter(delegacion=delegacion, nombre__iexact=nombre).exclude(
+                pk=self.instance.pk).exists():
+            self.add_error('nombre', f'{delegacion.nombre} ya tiene un sector con ese nombre.')
+        if self.instance.pk and delegacion and delegacion.pk != self.instance.delegacion_id and (
+                self.instance.organizaciones.exists() or self.instance.actividades.exists()):
+            self.add_error('delegacion', 'Ya tiene organizaciones o actividades asociadas; no se puede mover a '
+                                         'otra delegación.')
         return limpio

@@ -1,9 +1,10 @@
 {% extends "layouts/app.html" %}
+{% load sgr_tags %}
 
 {% block titulo %}Atenciones{% endblock %}
 {% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / Gestión municipal / Atenciones{% endblock %}
 {% block titulo_pagina %}Atenciones ciudadanas{% endblock %}
-{% block bajada %}Atenciones registradas en {{ delegacion_activa.codigo }} · {{ delegacion_activa.nombre }}. Al cambiar de delegación activa, el listado y la exportación cambian con ella.{% endblock %}
+{% block bajada %}Atenciones registradas en {{ delegacion_activa.codigo }} · {{ delegacion_activa.nombre }}. {{ abiertas }} abierta{{ abiertas|pluralize }} de {{ total_general }}. Al cambiar de delegación activa, el listado y la exportación cambian con ella.{% endblock %}
 {% block traza %}Requisito A1 «Ingreso de atención» · RF-009, RF-032{% endblock %}
 
 {% block accion %}
@@ -29,6 +30,13 @@
             {% for t in tipos %}<option value="{{ t.pk }}"{% if tipo == t.pk|stringformat:'s' %} selected{% endif %}>{{ t.nombre }}</option>{% endfor %}
         </select>
     </div>
+    <div>
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado" data-enviar-al-cambiar>
+            <option value="">Todas</option>
+            {% for valor, nombre in estados %}<option value="{{ valor }}"{% if estado == valor %} selected{% endif %}>{{ nombre }}s</option>{% endfor %}
+        </select>
+    </div>
     <div><button type="submit" class="boton" data-texto-envio="Buscando…"><i class="bi bi-funnel" aria-hidden="true"></i>Filtrar</button></div>
     <div>
         <a href="{% url 'atenciones_exportar' %}{% querystring pagina=None %}" class="boton secundario" data-exportar
@@ -42,7 +50,7 @@
     {% if pagina.object_list %}
     <div class="desplazable">
         <table class="tabla">
-            <thead><tr><th>Folio</th><th>Fecha</th><th>Solicitante</th><th>Tipo · Sub atención</th><th>Responsable</th><th class="acciones">Acciones</th></tr></thead>
+            <thead><tr><th>Folio</th><th>Fecha</th><th>Solicitante</th><th>Tipo · Sub atención</th><th>Responsable</th><th>Estado</th><th class="acciones">Acciones</th></tr></thead>
             <tbody>
                 {% for a in pagina.object_list %}
                 <tr>
@@ -51,6 +59,7 @@
                     <td>{{ a.solicitante.nombre }}<div class="ruta">{{ a.solicitante.rut }}</div></td>
                     <td>{{ a.tipo }}<div class="ruta">{{ a.subatencion }}</div></td>
                     <td>{{ a.responsable.nombre }}</td>
+                    <td>{% if a.abierta %}{% insignia 'pendiente' 'Abierta' %}{% else %}{% insignia 'ok' 'Cerrada' %}{% endif %}</td>
                     <td class="acciones"><a class="enlace-accion" href="{% url 'atenciones_ver' a.pk %}">Ver</a></td>
                 </tr>
                 {% endfor %}

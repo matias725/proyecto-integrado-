@@ -1,0 +1,25 @@
+{% extends "crud/detalle.html" %}
+{% comment %}Ficha de la organización: datos comunes más sus encargados municipales (hasta 3).{% endcomment %}
+
+{% block bajada %}{{ obj.tipo.nombre }} · {{ obj.territorio }} · {% if obj.activo %}vigente{% else %}no vigente{% endif %}{% endblock %}
+
+{% block extra_detalle %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>Encargados municipales</h2><span class="espacio"></span><span class="ruta">{{ obj.encargados_resumen }}</span></div>
+    <div class="tarjetas-directiva">
+        {% for orden, persona in obj.tarjetas_encargados %}
+        <div class="tarjeta-persona{% if not persona %} vacia{% endif %}">
+            <span class="cargo-persona">Encargado {{ orden }}</span>
+            {% if persona %}
+            <strong>{{ persona.nombre }}{% if not persona.is_active %} <span class="estado neutro">Inactivo</span>{% endif %}</strong>
+            <span><i class="bi bi-person-badge" aria-hidden="true"></i>{{ persona.cargo.nombre|default:'Sin cargo' }}</span>
+            <span><i class="bi bi-envelope" aria-hidden="true"></i>{{ persona.correo }}</span>
+            {% else %}
+            <strong>Sin asignar</strong>
+            <span>Se asigna desde «Editar».</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

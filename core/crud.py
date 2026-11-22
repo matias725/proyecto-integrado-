@@ -61,6 +61,7 @@ class Mantenedor:
     traza = ''
     descripcion = ''
     plantilla_formulario = 'crud/formulario.html'
+    plantilla_detalle = 'crud/detalle.html'
     relacionados = []        # [(ruta del queryset, etiqueta, columnas)] mostrados en la ficha
 
     # ---------------- Ganchos que cada mantenedor puede redefinir ----------------
@@ -81,6 +82,12 @@ class Mantenedor:
         return self.modulo.replace('_', '-')
 
     # ---------------- Utilidades internas ----------------
+    @property
+    def grupo(self):
+        """Grupo del menú al que pertenece el módulo (para la miga de pan)."""
+        from cuentas.modulos import MODULOS
+        return next((m[5] for m in MODULOS if m[0] == self.modulo), '')
+
     @property
     def participio(self):
         return 'a' if self.femenino else 'o'
@@ -161,7 +168,7 @@ class Mantenedor:
         if obj is None:
             return self.fuera_de_alcance(request, pk)
         historial = Auditoria.objects.filter(entidad=self.modulo, registro=str(obj.pk))[:8]
-        return render(request, 'crud/detalle.html', self.contexto(
+        return render(request, self.plantilla_detalle, self.contexto(
             request, obj=obj, campos=[(e, valor(obj, r)) for r, e in self.detalle],
             relacionados=self.relacionados_de(obj), historial=historial,
             activo=self._activo(obj), modificable=self.puede_modificar(request, obj)))
