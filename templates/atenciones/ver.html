@@ -35,6 +35,33 @@
     </table>
 </div>
 <div id="seguimiento">
+    {% if compromiso %}
+    <div class="panel aviso-compromiso" id="enviar-compromiso">
+        <div class="panel-cabecera"><h2><i class="bi bi-inbox" aria-hidden="true"></i> En Compromisos (TUBO)</h2></div>
+        <div class="panel-cuerpo">
+            <p>Esta atención se envió a compromiso como <a href="{% url 'actividad_ver' compromiso.pk %}"><span class="codigo">{{ compromiso.folio }}</span></a>.</p>
+            <p>{% estado compromiso.estado %} <span class="ruta">· responsable {{ compromiso.funcionario.nombre }} · compromiso al {{ compromiso.fecha_compromiso|date:"d-m-Y" }}{% if compromiso.vencida %} · vencida{% endif %}</span></p>
+        </div>
+        {% if user|tiene_permiso:'agenda.ver' %}<div class="panel-pie"><a href="{% url 'agenda' %}?vista=tubo" class="boton"><i class="bi bi-kanban" aria-hidden="true"></i>Ver el TUBO de compromisos</a></div>{% endif %}
+    </div>
+    {% elif form_compromiso %}
+    <div class="panel" id="enviar-compromiso">
+        <div class="panel-cabecera"><h2><i class="bi bi-send" aria-hidden="true"></i> Enviar a compromiso</h2></div>
+        <form method="post" action="{% url 'atencion_a_compromiso' atencion.pk %}" novalidate data-validar data-un-envio>
+            {% csrf_token %}
+            <div class="panel-cuerpo">
+                <p class="ruta">La atención pasa al TUBO de Compromisos como solicitud «Ingresada», con los datos del vecino, y se sigue desde allí hasta quedar realizada.</p>
+                <div class="rejilla rejilla-2">
+                    {% include "parciales/_campo.html" with campo=form_compromiso.fecha_compromiso %}
+                    {% include "parciales/_campo.html" with campo=form_compromiso.area_apoyo %}
+                    {% include "parciales/_campo.html" with campo=form_compromiso.sector %}
+                    {% include "parciales/_campo.html" with campo=form_compromiso.organizacion %}
+                </div>
+            </div>
+            <div class="panel-pie"><button type="submit" class="boton principal" data-texto-envio="Enviando…"><i class="bi bi-send" aria-hidden="true"></i>Enviar a compromiso</button></div>
+        </form>
+    </div>
+    {% endif %}
     {% if form %}
     <div class="panel">
         <div class="panel-cabecera"><h2>{% if atencion.abierta %}Registrar seguimiento{% else %}Reabrir atención{% endif %}</h2></div>

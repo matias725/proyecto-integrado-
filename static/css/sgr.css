@@ -91,6 +91,9 @@ code, .codigo { font-family: var(--mono); font-size: .88em; }
     color: var(--inst); font: inherit; font-weight: 700; padding: 3px 6px; max-width: 280px;
 }
 .distintivo .fijo { color: var(--tinta-tenue); font-size: .85rem; }
+.contexto-cabecera { justify-self: center; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; min-width: 0; }
+.distintivo.trimestre { background: #fff7e6; }
+.distintivo .trimestre-dias { color: var(--tinta-media); }
 
 .usuario { display: flex; align-items: center; gap: 12px; }
 .usuario .datos { text-align: right; line-height: 1.25; }
@@ -462,7 +465,8 @@ fieldset.campo { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
    --------------------------------------------------------------------- */
 @media (max-width: 1100px) {
     .cabecera { grid-template-columns: auto 1fr; }
-    .distintivo { grid-column: 1 / -1; grid-row: 2; justify-self: stretch; }
+    .contexto-cabecera { grid-column: 1 / -1; grid-row: 2; justify-self: stretch; }
+    .contexto-cabecera .distintivo { flex: 1 1 280px; }
     .herramientas { grid-template-columns: 1fr 1fr; }
     .herramientas .buscador-campo { grid-column: 1 / -1; }
 }

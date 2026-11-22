@@ -129,7 +129,10 @@ def nueva(request):
                 registrar(request, 'ALTA', 'atenciones', atencion.pk,
                           f'{atencion.folio} · {atencion.tipo} / {atencion.subatencion}')
                 messages.success(request, f'Atención registrada con el folio {atencion.folio}.')
-                return redirect(reverse('atenciones_ver', args=[atencion.pk]) + '?nueva=1')
+                destino = reverse('atenciones_ver', args=[atencion.pk]) + '?nueva=1'
+                if request.POST.get('siguiente') == 'compromiso':
+                    destino += '#enviar-compromiso'
+                return redirect(destino)
         else:
             messages.error(request, 'No se guardó. Revise los campos marcados en el formulario.')
     else:
@@ -155,7 +158,14 @@ def ver(request, pk):
     if error:
         return error
     puede_seguir = request.user.tiene_permiso('atenciones', 'editar')
+    from gestion.forms import EnviarCompromisoForm
+    from gestion.models import Actividad
+    compromiso = Actividad.objects.filter(atencion=atencion).select_related('funcionario').first()
+    puede_enviar = (compromiso is None and atencion.abierta and request.user.tiene_permiso('actividades', 'crear')
+                    and atencion.delegacion == request.delegacion_activa)
     return render(request, 'atenciones/ver.html', {
+        'compromiso': compromiso,
+        'form_compromiso': EnviarCompromisoForm(delegacion=atencion.delegacion) if puede_enviar else None,
         'atencion': atencion, 'nueva': request.GET.get('nueva') == '1',
         'otra_delegacion': atencion.delegacion != request.delegacion_activa,
         'seguimientos': atencion.seguimientos.select_related('usuario'),

@@ -130,6 +130,43 @@ class ActividadForm(forms.ModelForm):
         return limpio
 
 
+class EnviarCompromisoForm(forms.Form):
+    """«Enviar a compromiso»: la atención pasa al TUBO como solicitud con fecha de compromiso."""
+
+    fecha_compromiso = forms.DateField(label='Fecha de compromiso', widget=FechaInput(),
+                                       help_text='Fecha en que se compromete la respuesta al vecino.')
+    sector = forms.ModelChoiceField(label='Sector', queryset=Sector.objects.none(), required=False,
+                                    empty_label='Sin sector')
+    organizacion = forms.ModelChoiceField(label='Organización', queryset=Organizacion.objects.none(),
+                                          required=False, empty_label='Ninguna')
+    area_apoyo = forms.CharField(label='Área o persona de apoyo', max_length=120, required=False,
+                                 widget=forms.TextInput(attrs={'placeholder': 'Ej.: DIDECO, Aseo y Ornato'}))
+
+    def __init__(self, *args, delegacion=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['fecha_compromiso'].widget.attrs['min'] = hoy().isoformat()
+        if delegacion:
+            self.fields['sector'].queryset = Sector.objects.filter(activo=True, delegacion=delegacion).order_by('nombre')
+            self.fields['organizacion'].queryset = Organizacion.objects.filter(
+                activo=True, delegacion=delegacion).order_by('nombre')
+
+    def clean_fecha_compromiso(self):
+        fecha = self.cleaned_data['fecha_compromiso']
+        if fecha < hoy():
+            raise ValidationError('La fecha de compromiso no puede ser anterior a hoy.')
+        return fecha
+
+
+def item_tubo(funcionario, periodo):
+    """Ítem de tipo TUBO al que van los compromisos; primero el que tiene meta para el cargo del funcionario."""
+    items = ItemMedicion.objects.filter(activo=True, medicion=ItemMedicion.TUBO).order_by('codigo')
+    if funcionario.cargo_id and periodo:
+        propio = items.filter(metas__periodo=periodo, metas__cargo_id=funcionario.cargo_id).first()
+        if propio:
+            return propio
+    return items.first()
+
+
 class EstadoActividadForm(forms.Form):
     estado = forms.ChoiceField(label='Nuevo estado', choices=Actividad.ESTADOS)
     observacion = forms.CharField(label='Avance u observación', min_length=5, max_length=500,

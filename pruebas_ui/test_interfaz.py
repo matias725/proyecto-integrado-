@@ -380,9 +380,11 @@ class InterfazTests(StaticLiveServerTestCase):
         self.evidencia('UI-18-encargados-y-sector')
 
     def test_ui19_compromisos_filtran_al_cambiar(self):
-        """UI-19 · En Compromisos, elegir un plazo filtra la tabla sin más clics y se puede pasar al tablero"""
+        """UI-19 · Compromisos abre el TUBO en tarjetas; en la tabla, elegir un plazo filtra sin más clics"""
         self.entrar('arojas')
         self.ir('/agenda/')
+        self.p.wait_for_selector('.columnas-tubo')
+        self.p.click('.vistas-compromisos a:has-text("Tabla")')
         self.assertTrue(self.p.locator('table.tabla-compromisos').count())
         with self.p.expect_navigation():
             self.p.select_option('#plazo', 'vencidas')
@@ -390,7 +392,7 @@ class InterfazTests(StaticLiveServerTestCase):
         filas = self.p.locator('table.tabla-compromisos tbody tr')
         self.assertTrue(filas.count() == 0 or self.p.locator('.plazo.vencido').count() == filas.count())
         self.evidencia('UI-19-compromisos-filtrados')
-        self.p.click('.vistas-compromisos a:has-text("Tablero")')
+        self.p.click('.vistas-compromisos a:has-text("TUBO en tarjetas")')
         self.p.wait_for_selector('.columnas-tubo')
         self.assertIn('plazo=vencidas', self.p.url)                   # el filtro se mantiene
 

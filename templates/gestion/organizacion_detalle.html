@@ -1,9 +1,29 @@
 {% extends "crud/detalle.html" %}
-{% comment %}Ficha de la organización: datos comunes más sus encargados municipales (hasta 3).{% endcomment %}
+{% load sgr_tags %}
+{% comment %}Ficha de la organización: datos comunes, directiva vecinal y encargados municipales (hasta 3).{% endcomment %}
 
 {% block bajada %}{{ obj.tipo.nombre }} · {{ obj.territorio }} · {% if obj.activo %}vigente{% else %}no vigente{% endif %}{% endblock %}
 
 {% block extra_detalle %}
+<div class="panel">
+    <div class="panel-cabecera"><h2>Directiva vecinal</h2><span class="espacio"></span><span class="ruta">Vecinos registrados en el sistema</span></div>
+    <div class="tarjetas-directiva">
+        {% for codigo, cargo, vecino in obj.tarjetas_directiva %}
+        <div class="tarjeta-persona{% if not vecino %} vacia{% endif %}">
+            <span class="cargo-persona">{{ cargo }}</span>
+            {% if vecino %}
+            <strong>{{ vecino.nombre }}</strong>
+            <span><i class="bi bi-person-vcard" aria-hidden="true"></i>{{ vecino.rut }}</span>
+            {% if vecino.telefono %}<span><i class="bi bi-telephone" aria-hidden="true"></i>{{ vecino.telefono }}</span>{% endif %}
+            {% if user|tiene_permiso:'atencion_social.ver' %}<a class="enlace-accion" href="{% url 'atencion_social' %}?rut={{ vecino.rut|urlencode }}">Ver historial del vecino</a>{% endif %}
+            {% else %}
+            <strong>Sin asignar</strong>
+            <span>Se asigna desde «Editar».</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
 <div class="panel">
     <div class="panel-cabecera"><h2>Encargados municipales</h2><span class="espacio"></span><span class="ruta">{{ obj.encargados_resumen }}</span></div>
     <div class="tarjetas-directiva">

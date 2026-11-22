@@ -2,11 +2,12 @@
 {% load sgr_tags %}
 
 {% block titulo %}Actividades{% endblock %}
-{% block titulo_pagina %}Actividades y TUBO de trabajo{% endblock %}
+{% block titulo_pagina %}Actividades registradas{% endblock %}
 {% block bajada %}{% if integrantes %}Actividades del equipo de {{ delegacion_activa.nombre_completo }}{% else %}Sus actividades en {{ delegacion_activa.nombre_completo }}{% endif %} en {{ periodo.nombre }}. Solo suman puntaje las acciones realizadas con nombre y teléfono del usuario.{% endblock %}
 {% block traza %}Matriz SGR · reglas 1 a 5 del nuevo requerimiento{% endblock %}
 
 {% block accion %}
+{% if user|tiene_permiso:'agenda.ver' %}<a href="{% url 'agenda' %}" class="boton"><i class="bi bi-kanban" aria-hidden="true"></i>TUBO en Compromisos</a>{% endif %}
 {% if puede_crear %}
 <span class="contador-diario{% if ingresos_hoy >= max_diario %} lleno{% endif %}" title="Máximo diario de ingresos (regla 3)"><i class="bi bi-calendar-check" aria-hidden="true"></i>Hoy <b>{{ ingresos_hoy }}/{{ max_diario }}</b></span>
 <a href="{% url 'actividad_nueva' %}" class="boton principal"{% if ingresos_hoy >= max_diario %} aria-disabled="true"{% endif %}><i class="bi bi-plus-lg" aria-hidden="true"></i>Registrar actividad</a>

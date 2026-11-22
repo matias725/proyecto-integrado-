@@ -21,8 +21,11 @@
     <div class="panel">
         {% if caso %}
         <div class="panel-cabecera"><div><h2>{{ caso.solicitante.nombre }}</h2><span class="ruta">{{ caso.solicitante.rut }} · {{ caso.solicitante.telefono|default:'sin teléfono' }}</span></div></div>
+        {% if caso.cargos %}<div class="panel-cuerpo"><span class="etiqueta">Directiva de organizaciones</span>
+            <ul class="lista-simple">{% for d in caso.cargos %}<li><b>{{ d.get_cargo_display }}</b> de {% if user|tiene_permiso:'organizaciones.ver' %}<a href="{% url 'organizaciones_ver' d.organizacion.pk %}">{{ d.organizacion.nombre }}</a>{% else %}{{ d.organizacion.nombre }}{% endif %}</li>{% endfor %}</ul></div>{% endif %}
         <ul class="historial">{% for a in caso.atenciones %}
             <li><b>{{ a.tipo }} · {{ a.subatencion }}</b> {% if a.abierta %}{% insignia 'pendiente' 'Abierta' %}{% else %}{% insignia 'ok' 'Cerrada' %}{% endif %}<p>{{ a.descripcion }}</p><span class="ruta"><a href="{% url 'atenciones_ver' a.pk %}">{{ a.folio }}</a> · {{ a.responsable.nombre }} · {{ a.creada|date:"d-m-Y H:i" }}</span></li>
+        {% empty %}<li class="ruta">Sin atenciones registradas en esta delegación.</li>
         {% endfor %}</ul>
         {% else %}<div class="vacio"><i class="bi bi-person-lines-fill" aria-hidden="true"></i><p>Elija un vecino para ver su historial.</p></div>{% endif %}
     </div>

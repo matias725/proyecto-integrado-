@@ -8,6 +8,8 @@ Proyecto Integrado · INACAP 2026 · **Segunda evaluación (EV2)** · versión `
 
 **Observaciones de la revisión EV2 (`ev2-2.2.0`):** la pantalla de períodos muestra la línea de tiempo del trimestre, sus parámetros y un detalle por delegación y cargo; Compromisos (TUBO) tiene una tabla con filtros (estado, plazo, sector, responsable, fechas) y exportación; cada organización tiene hasta **3 funcionarios municipales encargados** (de su delegación); y el territorio incluye el **sector** (catálogo «Sectores del territorio», con las listas de Las Compañías y La Antena tomadas de la matriz Excel).
 
+**Correcciones del profesor tras la presentación:** cada organización registra su **directiva vecinal** (presidente, tesorero y encargado) vinculada a los vecinos por RUT; el **TUBO completo vive en Compromisos**, que abre en tarjetas por estado; desde una atención se puede **«Enviar a compromiso»** y llega al TUBO como solicitud ingresada; y el **trimestre en curso** se ve siempre en la cabecera, para todos los usuarios.
+
 | Documento | Para qué |
 |---|---|
 | [Guía de instalación](docs/instalacion.md) | Paso a paso en Windows, Linux, MySQL y AWS |

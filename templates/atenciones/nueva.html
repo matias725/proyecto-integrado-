@@ -1,4 +1,5 @@
 {% extends "layouts/app.html" %}
+{% load sgr_tags %}
 
 {% block titulo %}Ingreso de atención{% endblock %}
 {% block migas %}<a href="{% url 'inicio' %}">Inicio</a> / <a href="{% url 'atenciones_lista' %}">Atenciones</a> / Ingreso{% endblock %}
@@ -52,6 +53,7 @@
         </div>
         <div class="panel-pie">
             <button type="submit" class="boton principal" data-texto-envio="Guardando…"><i class="bi bi-check-lg" aria-hidden="true"></i>Guardar atención</button>
+            {% if user|tiene_permiso:'actividades.crear' %}<button type="submit" name="siguiente" value="compromiso" class="boton" data-texto-envio="Guardando…"><i class="bi bi-send" aria-hidden="true"></i>Guardar y enviar a compromiso</button>{% endif %}
             <a href="{% url 'atenciones_lista' %}" class="boton" data-cancelar>Cancelar</a>
             <span class="espacio"></span>
             <span class="ruta">Los campos con <span class="obligatorio">*</span> son obligatorios</span>

@@ -64,7 +64,7 @@ Colores del semáforo:
 
 ### 3.2 Registrar una actividad
 
-**Actividades y TUBO → Registrar actividad**
+**Actividades → Registrar actividad**
 
 ![Registrar actividad](capturas/03-registrar-actividad.png)
 
@@ -84,19 +84,25 @@ Puede registrar **hasta 7 actividades por día**. Al llegar al límite, el botó
 
 ### 3.3 Cerrar un compromiso (TUBO)
 
-**Compromisos (TUBO)** muestra las solicitudes con fecha de compromiso en una **tabla con filtros**:
+**Compromisos (TUBO)** reúne todo el TUBO de trabajo. Abre en **TUBO en tarjetas**: las solicitudes con fecha de compromiso en 4 columnas (Ingresado, Pendiente, En proceso, Realizado). La pestaña **Tabla** muestra lo mismo con filtros:
 
 - **Filtros**: búsqueda (folio, actividad, solicitante o área de apoyo), período, estado, **plazo** (vencidas, vencen en 7 días, al día, realizadas), **sector**, responsable (delegado y coordinación) y rango de **fecha de compromiso**. Las listas filtran al elegir una opción; «Limpiar filtros» vuelve a mostrar todo.
 - **Resumen**: cuántas hay en el TUBO, cuántas realizadas (con la tasa de resolución frente a la meta habitual de 80 %), en proceso, e ingresadas o pendientes con sus vencidas.
 - **Tabla**: lo pendiente primero, ordenado por fecha de compromiso; cada fila indica los días que faltan o los días de atraso, y lo realizado aparece tachado al final.
-- **Tablero por estado**: las mismas solicitudes en 4 columnas (Ingresado, Pendiente, En proceso, Realizado), con los filtros aplicados.
+- **TUBO en tarjetas**: las mismas solicitudes por estado, con los filtros aplicados.
 - **Exportar a Excel** descarga exactamente lo filtrado, con sector y plazo.
 
 Para cerrar un compromiso, abra la actividad con **Ver**, elija **Realizado**, escriba una observación y guarde. La actividad suma desde ese momento y queda en su historial.
 
 ![Compromisos](capturas/05-compromisos-tubo.png)
 
-![Compromisos en tablero](capturas/20-compromisos-tablero.png)
+![TUBO en tarjetas](capturas/21-tubo-tarjetas.png)
+
+**Enviar una atención a compromiso.** Al registrar una atención puede pulsar **Guardar y enviar a compromiso**, o abrir la atención y usar el panel **Enviar a compromiso**: indique la fecha de compromiso y, si corresponde, el área de apoyo, el sector y la organización. La atención llega al TUBO como solicitud *Ingresada*, con el nombre y teléfono del vecino, y en su seguimiento queda el folio del compromiso. Una atención se envía una sola vez y debe estar abierta.
+
+![Atención enviada a compromiso](capturas/22-atencion-enviada-a-compromiso.png)
+
+**Trimestre siempre visible.** La cabecera de todas las pantallas muestra el trimestre en curso, sus fechas y los días que quedan.
 
 ### 3.4 Adjuntar evidencias
 
@@ -104,7 +110,7 @@ En el detalle de la actividad, sección **Evidencias**, adjunte fotos (JPG, PNG)
 
 ### 3.5 Mis actividades
 
-**Actividades y TUBO** lista todo lo que registró, con búsqueda, filtros por estado, ítem y validación, y exportación a Excel. La columna «Puntaje» indica si suma y, si no, por qué.
+**Actividades** lista todo lo que registró, con búsqueda, filtros por estado, ítem y validación, y exportación a Excel. La columna «Puntaje» indica si suma y, si no, por qué.
 
 ![Mis actividades](capturas/04-mis-actividades.png)
 
@@ -169,6 +175,10 @@ Al crear o editar una organización el formulario se divide en:
 - **Registro municipal**: registro de personalidad jurídica, fechas, registro de directiva, socios y observación.
 
 La ficha muestra los 3 puestos de encargado como tarjetas (nombre, cargo y correo del funcionario). La búsqueda también encuentra una organización por el nombre de un encargado, y la dirección `/organizaciones/?a_cargo=mias` lista las que usted tiene a cargo. En la ficha de cada usuario aparecen sus «Organizaciones a cargo»; si a un funcionario le quitan la delegación, deja de ser encargado de sus organizaciones.
+
+**Directiva vecinal.** Al crear o editar una organización, la sección **Directiva vecinal** registra al **Presidente**, al **Tesorero** y al **Encargado** de la organización. Cada cargo se vincula con un vecino por su **RUT**: si ya está registrado (por ejemplo, porque tuvo una atención) se usa ese mismo registro; si no, escriba su nombre y queda registrado como vecino. Un vecino no ocupa dos cargos en la misma organización. La ficha muestra la directiva en tarjetas, y el **Historial por vecino** indica en qué organizaciones tiene un cargo.
+
+![Directiva vecinal](capturas/23-directiva-vecinal.png)
 
 ![Organizaciones](capturas/11-organizaciones.png)
 
