@@ -437,3 +437,45 @@ class InterfazTests(StaticLiveServerTestCase):
         self.p.wait_for_selector('.aviso-compromiso')
         self.assertEqual(Actividad.objects.filter(atencion=atencion).count(), 1)
         self.evidencia('UI-21-atencion-a-compromiso')
+
+    def test_ui22_tubo_arrastrar_tarjetas(self):
+        """UI-22 · En el TUBO se arrastra una tarjeta a otra columna (y «Mover a…» sin mouse) y el estado se guarda"""
+        from datetime import timedelta
+        from cuentas.models import Usuario
+        from gestion.models import Actividad, Periodo
+        from gestion.reglas import evaluar_puntaje, hoy
+        dueno = Usuario.objects.get(nombre_usuario='bcastillo')
+        a = Actividad(periodo=Periodo.objects.get(estado=Periodo.ABIERTO), delegacion=dueno.delegaciones.first(),
+                      funcionario=dueno, item=ItemMedicion.objects.filter(medicion=ItemMedicion.TUBO).first(),
+                      fecha=hoy(), ingresada_el=hoy(), titulo='Poda de árbol en el pasaje',
+                      descripcion='Solicitud de prueba para arrastrar en el TUBO.', solicitante_nombre='Vecina',
+                      estado=Actividad.INGRESADO, fecha_compromiso=hoy() + timedelta(days=5))
+        a.puntua, a.motivo_sin_puntaje = evaluar_puntaje(a)
+        a.save()
+        self.entrar('bcastillo')
+        self.ir('/agenda/')
+        tarjeta = self.p.locator(f'li[data-folio="{a.folio}"]')
+        self.assertEqual(tarjeta.get_attribute('draggable'), 'true')
+        antes = int(self.p.inner_text('[data-contador="EN_PROCESO"]'))
+        tarjeta.drag_to(self.p.locator('section.estado-en_proceso'))
+        self.p.wait_for_selector(f'ul[data-columna="EN_PROCESO"] li[data-folio="{a.folio}"]:not(.moviendo)')
+        self.esperar('() => !document.querySelector(".tarjeta-tubo.moviendo")')
+        self.p.wait_for_timeout(300)
+        a.refresh_from_db()
+        self.assertEqual(a.estado, Actividad.EN_PROCESO)
+        self.assertEqual(int(self.p.inner_text('[data-contador="EN_PROCESO"]')), antes + 1)
+        self.evidencia('UI-22-tubo-arrastrado')
+        # Sin mouse: «Mover a…» → Realizado pide confirmación y la respuesta al vecino
+        tarjeta.locator('select[data-mover-a]').select_option('REALIZADO')
+        dlg = self.dialogo()
+        dlg.locator('textarea').fill('Se podó el árbol y se retiraron las ramas.')
+        dlg.locator('.swal2-confirm').click()
+        self.p.wait_for_selector(f'ul[data-columna="REALIZADO"] li[data-folio="{a.folio}"].realizada')
+        self.esperar('() => !document.querySelector(".tarjeta-tubo.moviendo")')
+        a.refresh_from_db()
+        self.assertEqual((a.estado, a.fecha_cierre), (Actividad.REALIZADO, hoy()))
+        self.assertEqual(a.historial.latest('pk').observacion, 'Se podó el árbol y se retiraron las ramas.')
+        # Las tarjetas de otros funcionarios no se pueden arrastrar
+        ajenas = self.p.locator('li.tarjeta-tubo:not(.movible)')
+        if ajenas.count():
+            self.assertIsNone(ajenas.first.get_attribute('draggable'))

@@ -52,9 +52,9 @@
 
 <div class="resumen-tubo">
     <div class="panel dato tubo-total"><span class="etiqueta">En el TUBO</span><span class="valor">{{ total }}</span><span class="apoyo">Solicitudes con compromiso{% if hay_filtros %} (filtradas){% endif %}</span></div>
-    <div class="panel dato tubo-realizadas{% if porcentaje >= 80 %} verde{% elif porcentaje >= 48 %} ambar{% else %} rojo{% endif %}"><span class="etiqueta">Realizadas</span><span class="valor">{{ resueltas }}</span><span class="apoyo">Tasa de resolución {{ porcentaje|cifra }} % · meta habitual 80 %</span></div>
-    <div class="panel dato tubo-proceso"><span class="etiqueta">En proceso</span><span class="valor">{{ en_proceso }}</span><span class="apoyo">Con área de apoyo o en terreno</span></div>
-    <div class="panel dato tubo-pendientes{% if vencidas %} rojo{% endif %}"><span class="etiqueta">Ingresadas y pendientes</span><span class="valor">{{ por_iniciar }}</span><span class="apoyo">{% if vencidas %}{{ vencidas }} vencida{{ vencidas|pluralize }} sin realizar{% else %}Sin compromisos vencidos{% endif %}</span></div>
+    <div data-resumen="realizadas" class="panel dato tubo-realizadas{% if porcentaje >= 80 %} verde{% elif porcentaje >= 48 %} ambar{% else %} rojo{% endif %}"><span class="etiqueta">Realizadas</span><span class="valor">{{ resueltas }}</span><span class="apoyo">Tasa de resolución {{ porcentaje|cifra }} % · meta habitual 80 %</span></div>
+    <div data-resumen="proceso" class="panel dato tubo-proceso"><span class="etiqueta">En proceso</span><span class="valor">{{ en_proceso }}</span><span class="apoyo">Con área de apoyo o en terreno</span></div>
+    <div data-resumen="pendientes" data-vencidas="{{ vencidas }}" class="panel dato tubo-pendientes{% if vencidas %} rojo{% endif %}"><span class="etiqueta">Ingresadas y pendientes</span><span class="valor">{{ por_iniciar }}</span><span class="apoyo">{% if vencidas %}{{ vencidas }} vencida{{ vencidas|pluralize }} sin realizar{% else %}Sin compromisos vencidos{% endif %}</span></div>
 </div>
 
 <nav class="vistas-compromisos" aria-label="Forma de ver los compromisos">
@@ -93,18 +93,27 @@
     {% include "parciales/_paginador.html" %}
 </div>
 {% else %}
-<div class="columnas-tubo">
+{% if hay_movibles %}<p class="ayuda-tubo ruta"><i class="bi bi-arrows-move" aria-hidden="true"></i> Arrastre una tarjeta a otra columna para cambiar su estado, o use «Mover a…» en la tarjeta. Queda registrado en el historial de la solicitud.</p>
+{% elif not tubo_abierto %}<p class="ayuda-tubo ruta"><i class="bi bi-lock" aria-hidden="true"></i> El período está cerrado: el TUBO se puede consultar, pero sus tarjetas ya no se mueven.</p>{% endif %}
+<div class="columnas-tubo"{% if hay_movibles %} data-tubo-arrastrable data-csrf="{{ csrf_token }}"{% endif %}>
     {% for c in columnas %}
     <section class="columna-tubo estado-{{ c.codigo|lower }}" aria-labelledby="col-{{ c.codigo }}">
-        <h3 id="col-{{ c.codigo }}">{{ forloop.counter }}. {{ c.nombre }} <span class="contador-columna">{{ c.total }}</span></h3>
-        <ul>{% for a in c.filas %}
-            <li class="{% if a.vencida %}vencida{% endif %}{% if a.estado == 'REALIZADO' %} realizada{% endif %}"><a href="{% url 'actividad_ver' a.pk %}">
+        <h3 id="col-{{ c.codigo }}">{{ forloop.counter }}. {{ c.nombre }} <span class="contador-columna" data-contador="{{ c.codigo }}">{{ c.total }}</span></h3>
+        <ul data-columna="{{ c.codigo }}" data-nombre="{{ c.nombre }}">{% for a in c.filas %}
+            <li class="tarjeta-tubo{% if a.vencida %} vencida{% endif %}{% if a.estado == 'REALIZADO' %} realizada{% endif %}{% if a.movible %} movible{% endif %}" data-estado="{{ a.estado }}" data-folio="{{ a.folio }}"{% if a.vencida %} data-vencida{% endif %}{% if a.movible %} draggable="true" data-mover="{% url 'actividad_mover' a.pk %}"{% endif %}>
+                <a href="{% url 'actividad_ver' a.pk %}" draggable="false">
                 <span class="codigo">{{ a.folio }}</span>
                 <b>{{ a.titulo }}</b>
                 <div class="ruta">Solicitante: {{ a.solicitante_nombre|default:'—' }}</div>
                 {% if a.area_apoyo %}<div class="ruta">Apoyo: {{ a.area_apoyo }}</div>{% endif %}
-                <div class="ruta">{{ a.funcionario.nombre }} · {% if a.sector %}{{ a.sector.nombre }} · {% endif %}compromiso {{ a.fecha_compromiso|date:"d-m" }}{% if a.vencida %} · vencida{% endif %}</div></a></li>
-        {% empty %}<li class="ruta">Sin solicitudes</li>{% endfor %}</ul>
+                <div class="ruta">{{ a.funcionario.nombre }} · {% if a.sector %}{{ a.sector.nombre }} · {% endif %}compromiso {{ a.fecha_compromiso|date:"d-m" }}<span class="marca-vencida">{% if a.vencida %} · vencida{% endif %}</span></div></a>
+                {% if a.movible %}<label class="mover-a"><span class="solo-lectores">Mover {{ a.folio }} a</span>
+                    <select data-mover-a aria-label="Mover {{ a.folio }} a otra columna">
+                        <option value="">Mover a…</option>
+                        {% for codigo, nombre in estados %}<option value="{{ codigo }}"{% if codigo == a.estado %} disabled{% endif %}>{{ nombre }}</option>{% endfor %}
+                    </select></label>{% endif %}
+            </li>
+        {% empty %}<li class="ruta sin-tarjetas">Sin solicitudes</li>{% endfor %}</ul>
         {% if c.total > 30 %}<p class="ruta mas-en-tabla">Se muestran 30 de {{ c.total }}. <a href="{% querystring vista='tabla' estado=c.codigo pagina=None %}">Ver todos en la tabla</a></p>{% endif %}
     </section>
     {% endfor %}

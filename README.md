@@ -137,9 +137,9 @@ La interfaz sigue las normas gráficas de la Municipalidad (color institucional 
 ## 5. Pruebas
 
 ```bash
-python manage.py test pruebas            # 245 pruebas funcionales automatizadas (≈ 30 s)
+python manage.py test pruebas            # 261 pruebas funcionales automatizadas (≈ 40 s)
 pip install -r requirements-dev.txt && playwright install chromium
-python manage.py test pruebas_ui         # 20 pruebas de interfaz en navegador real (SweetAlert2, CSP, doble envío…)
+python manage.py test pruebas_ui         # 22 pruebas de interfaz en navegador real (SweetAlert2, CSP, doble envío, arrastrar en el TUBO…)
 ```
 
 Plan de pruebas completo, trazabilidad con las reglas y comparación obtenido vs esperado: [`docs/pruebas/plan_de_pruebas_ev2.md`](docs/pruebas/plan_de_pruebas_ev2.md).

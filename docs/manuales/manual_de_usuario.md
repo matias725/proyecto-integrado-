@@ -89,14 +89,16 @@ Puede registrar **hasta 7 actividades por día**. Al llegar al límite, el botó
 - **Filtros**: búsqueda (folio, actividad, solicitante o área de apoyo), período, estado, **plazo** (vencidas, vencen en 7 días, al día, realizadas), **sector**, responsable (delegado y coordinación) y rango de **fecha de compromiso**. Las listas filtran al elegir una opción; «Limpiar filtros» vuelve a mostrar todo.
 - **Resumen**: cuántas hay en el TUBO, cuántas realizadas (con la tasa de resolución frente a la meta habitual de 80 %), en proceso, e ingresadas o pendientes con sus vencidas.
 - **Tabla**: lo pendiente primero, ordenado por fecha de compromiso; cada fila indica los días que faltan o los días de atraso, y lo realizado aparece tachado al final.
-- **TUBO en tarjetas**: las mismas solicitudes por estado, con los filtros aplicados.
+- **TUBO en tarjetas**: las mismas solicitudes por estado, con los filtros aplicados. **Arrastre una tarjeta a otra columna** para cambiar su estado (por ejemplo, de Pendiente a En proceso); los contadores y la tasa de resolución se actualizan al instante. Sin mouse (celular o teclado), use el menú **Mover a…** de la tarjeta. Al soltar en **Realizado** se pide confirmar y se puede anotar la respuesta entregada al vecino. Solo se pueden mover las solicitudes propias (o las del equipo, si es delegado) y solo con el período abierto; cada movimiento queda en el historial de la actividad.
 - **Exportar a Excel** descarga exactamente lo filtrado, con sector y plazo.
 
-Para cerrar un compromiso, abra la actividad con **Ver**, elija **Realizado**, escriba una observación y guarde. La actividad suma desde ese momento y queda en su historial.
+Para cerrar un compromiso, arrástrelo a **Realizado** en el TUBO, o abra la actividad con **Ver**, elija **Realizado**, escriba una observación y guarde. La actividad suma desde ese momento y queda en su historial.
 
 ![Compromisos](capturas/05-compromisos-tubo.png)
 
 ![TUBO en tarjetas](capturas/21-tubo-tarjetas.png)
+
+![Tarjeta arrastrada a En proceso](../pruebas/evidencias/UI-22-tubo-arrastrado.png)
 
 **Enviar una atención a compromiso.** Al registrar una atención puede pulsar **Guardar y enviar a compromiso**, o abrir la atención y usar el panel **Enviar a compromiso**: indique la fecha de compromiso y, si corresponde, el área de apoyo, el sector y la organización. La atención llega al TUBO como solicitud *Ingresada*, con el nombre y teléfono del vecino, y en su seguimiento queda el folio del compromiso. Una atención se envía una sola vez y debe estar abierta.
 

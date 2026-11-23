@@ -15,7 +15,7 @@ from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Case, Count, IntegerField, Q, Sum, Value, When
 from django.db.models.functions import TruncMonth
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -275,30 +275,75 @@ def actividad_ver(request, pk):
     })
 
 
+def puede_mover(usuario, actividad):
+    """Cambia el estado del TUBO el responsable de la solicitud o quien valida (delegado o coordinación)."""
+    return usuario.tiene_permiso('actividades', 'crear') and (
+        actividad.funcionario_id == usuario.pk or usuario.tiene_permiso('validacion', 'editar'))
+
+
+def cambiar_estado(request, actividad, estado, observacion):
+    """Cambio de estado común a la ficha y al TUBO en tarjetas: fecha de cierre, historial y auditoría."""
+    anterior = actividad.estado
+    actividad.estado = estado
+    actividad.fecha_cierre = hoy() if estado == Actividad.REALIZADO else None
+    actividad.save(update_fields=['estado', 'fecha_cierre'])
+    HistorialActividad.objects.create(actividad=actividad, usuario=request.user, estado_anterior=anterior,
+                                      estado_nuevo=estado, observacion=observacion)
+    registrar(request, 'CAMBIO_ESTADO', 'actividades', actividad.pk, f'{anterior} → {estado}')
+
+
 @require_POST
 @permiso_requerido('actividades', 'crear')
 def actividad_estado(request, pk):
     actividad = obtener_actividad(request, pk)
     if actividad is None:
         return denegar(request, f'actividad {pk} fuera de alcance')
-    if actividad.funcionario_id != request.user.pk and not request.user.tiene_permiso('validacion', 'editar'):
+    if not puede_mover(request.user, actividad):
         return denegar(request, f'actividad {pk}: solo el responsable o el delegado cambian su estado')
     if not actividad.periodo.abierto:
         messages.error(request, 'El período está cerrado: sus actividades ya no se modifican.')
         return redirect('actividad_ver', pk=pk)
     form = EstadoActividadForm(request.POST, actividad=actividad)
     if form.is_valid():
-        anterior = actividad.estado
-        actividad.estado = form.cleaned_data['estado']
-        actividad.fecha_cierre = hoy() if actividad.estado == Actividad.REALIZADO else None
-        actividad.save(update_fields=['estado', 'fecha_cierre'])
-        HistorialActividad.objects.create(actividad=actividad, usuario=request.user, estado_anterior=anterior,
-                                          estado_nuevo=actividad.estado, observacion=form.cleaned_data['observacion'])
-        registrar(request, 'CAMBIO_ESTADO', 'actividades', actividad.pk, f'{anterior} → {actividad.estado}')
+        cambiar_estado(request, actividad, form.cleaned_data['estado'], form.cleaned_data['observacion'])
         messages.success(request, f'{actividad.folio} quedó «{actividad.get_estado_display()}».')
     else:
         messages.error(request, ' '.join(e for errores in form.errors.values() for e in errores))
     return redirect('actividad_ver', pk=pk)
+
+
+@require_POST
+def actividad_mover(request, pk):
+    """
+    TUBO en tarjetas: mover una solicitud a otra columna (arrastrar y soltar o «Mover a…»).
+    Responde JSON para que la página se actualice sin recargar; aplica las mismas reglas que la ficha.
+    """
+    def error(texto, estado_http):
+        return JsonResponse({'ok': False, 'error': texto}, status=estado_http)
+
+    if not request.user.is_authenticated:
+        return error('Su sesión terminó. Vuelva a ingresar.', 401)
+    actividad = Actividad.objects.select_related('periodo', 'delegacion').filter(pk=pk).first()
+    if actividad is None:
+        return error('La solicitud ya no existe.', 404)
+    if (actividad.delegacion not in request.delegaciones_autorizadas or not puede_mover(request.user, actividad)
+            or (not ve_equipo(request.user) and actividad.funcionario_id != request.user.pk)):
+        registrar(request, 'ACCESO_DENEGADO', request.path[:60], detalle=f'actividad {pk}: mover en el TUBO')
+        return error('Solo el responsable de la solicitud o el delegado pueden cambiar su estado.', 403)
+    if not actividad.periodo.abierto:
+        return error('El período está cerrado: sus solicitudes ya no se modifican.', 409)
+    estados = dict(Actividad.ESTADOS)
+    estado = request.POST.get('estado', '')
+    if estado not in estados:
+        return error('Estado no válido.', 400)
+    if estado == actividad.estado:
+        return error(f'{actividad.folio} ya está en «{estados[estado]}».', 400)
+    observacion = ' '.join(request.POST.get('observacion', '').split())[:500] or (
+        f'Movida en el TUBO de «{estados[actividad.estado]}» a «{estados[estado]}».')
+    cambiar_estado(request, actividad, estado, observacion)
+    return JsonResponse({'ok': True, 'folio': actividad.folio, 'estado': estado, 'nombre': estados[estado],
+                         'vencida': actividad.vencida,
+                         'mensaje': f'{actividad.folio} quedó «{estados[estado]}».'})
 
 
 # ---------------------------------------------------------------------------
@@ -481,9 +526,15 @@ def agenda(request):
         'por_iniciar': por_estado.get(Actividad.INGRESADO, 0) + por_estado.get(Actividad.PENDIENTE, 0),
     }
     if vista == 'tubo':
+        abierto = periodo is not None and periodo.abierto
         contexto['columnas'] = [{'codigo': codigo, 'nombre': nombre, 'total': por_estado.get(codigo, 0),
                                  'filas': list(consulta.filter(estado=codigo)[:30])}
                                 for codigo, nombre in Actividad.ESTADOS]
+        for columna in contexto['columnas']:
+            for fila in columna['filas']:
+                fila.movible = abierto and puede_mover(request.user, fila)
+        contexto['tubo_abierto'] = abierto
+        contexto['hay_movibles'] = any(f.movible for c in contexto['columnas'] for f in c['filas'])
     else:
         contexto['pagina'] = Paginator(consulta, settings.SGR_POR_PAGINA).get_page(request.GET.get('pagina'))
     return render(request, 'gestion/agenda.html', contexto)
