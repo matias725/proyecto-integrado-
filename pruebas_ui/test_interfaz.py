@@ -196,7 +196,8 @@ class InterfazTests(StaticLiveServerTestCase):
         self.p.select_option('#id_subatencion', str(sub.pk))
         self.p.fill('#id_descripcion', 'Consulta registrada desde la prueba de interfaz.')
         antes = Atencion.objects.count()
-        boton = self.p.locator('main button[type=submit]')
+        # El formulario tiene dos botones de envío: «Guardar atención» y «Guardar y enviar a compromiso»
+        boton = self.p.get_by_role('button', name='Guardar atención', exact=True)
         boton.dblclick()
         self.p.wait_for_url('**/atenciones/*/?nueva=1')
         dlg = self.dialogo()
@@ -408,3 +409,31 @@ class InterfazTests(StaticLiveServerTestCase):
         anchos = self.p.eval_on_selector_all('[data-ancho]', 'els => els.map(e => e.style.width)')
         self.assertTrue(anchos and all(a.endswith('%') for a in anchos), anchos)
         self.evidencia('UI-20-periodo-detalle')
+
+    def test_ui21_guardar_y_enviar_a_compromiso(self):
+        """UI-21 · «Guardar y enviar a compromiso» (aun con doble clic) lleva al envío y crea un solo compromiso"""
+        from gestion.models import Actividad
+        self.entrar('bcastillo')
+        self.ir('/atenciones/nueva/')
+        tipo = TipoAtencion.objects.get(codigo='TA001')
+        sub = tipo.subatenciones.filter(activo=True).first()
+        self.p.fill('#id_rut', '11.111.111-1')
+        self.p.fill('#id_nombre', 'Vecina de Prueba')
+        self.p.select_option('#id_tipo', str(tipo.pk))
+        self.esperar('() => document.querySelector("#id_subatencion").options.length > 1')
+        self.p.select_option('#id_subatencion', str(sub.pk))
+        self.p.fill('#id_descripcion', 'Solicitud que queda en seguimiento en el TUBO.')
+        antes = Atencion.objects.count()
+        self.p.get_by_role('button', name='Guardar y enviar a compromiso').dblclick()
+        # El valor del botón presionado llega al servidor pese al bloqueo de doble envío
+        self.p.wait_for_url('**/atenciones/*/?nueva=1#enviar-compromiso')
+        self.assertEqual(Atencion.objects.count(), antes + 1)
+        atencion = Atencion.objects.latest('pk')
+        self.dialogo()
+        self.p.evaluate('Swal.close()')
+        self.p.evaluate('() => { const f = document.querySelector("#enviar-compromiso [name=fecha_compromiso]");'
+                        ' f.value = f.min; }')
+        self.p.get_by_role('button', name='Enviar a compromiso', exact=True).dblclick()
+        self.p.wait_for_selector('.aviso-compromiso')
+        self.assertEqual(Actividad.objects.filter(atencion=atencion).count(), 1)
+        self.evidencia('UI-21-atencion-a-compromiso')
