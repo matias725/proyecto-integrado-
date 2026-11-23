@@ -693,3 +693,19 @@ body.menu-abierto::after { content: ""; position: fixed; inset: 0; background: r
     .barra-fila { grid-template-columns: 1fr auto; } .barra-fila .pista { grid-column: 1 / -1; grid-row: 2; } }
 .puesto-encargado { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; }
 .puesto-encargado .numero-persona { margin-top: 30px; }
+
+/* ---------- TUBO en tarjetas: arrastrar y soltar entre columnas ---------- */
+.ayuda-tubo { margin: 0 0 8px; display: flex; gap: 6px; align-items: center; }
+.columna-tubo ul { min-height: 64px; }
+.tarjeta-tubo.movible { cursor: grab; position: relative; }
+.tarjeta-tubo.movible:active { cursor: grabbing; }
+.tarjeta-tubo.arrastrando { opacity: .45; }
+.tarjeta-tubo.moviendo { opacity: .7; pointer-events: none; }
+.tarjeta-tubo.moviendo a::after { content: ' Guardando…'; font-size: .75rem; color: var(--tinta-media); }
+.arrastrando-tarjeta .columna-tubo { transition: background-color .15s, box-shadow .15s; }
+.columna-tubo.destino-activo { background: var(--inst-suave); box-shadow: 0 0 0 2px var(--inst-borde) inset; }
+.columna-tubo.destino-activo ul { outline: 2px dashed var(--inst-borde); outline-offset: -4px; border-radius: var(--radio); }
+.mover-a { display: block; margin-top: 4px; }
+.mover-a select { width: 100%; font-size: .78rem; padding: 3px 6px; min-height: 0; color: var(--tinta-media);
+                  border: 1px solid var(--linea-suave); border-radius: var(--radio); background: var(--superficie); }
+.mover-a select:focus { color: inherit; }

@@ -196,7 +196,8 @@ class InterfazTests(StaticLiveServerTestCase):
         self.p.select_option('#id_subatencion', str(sub.pk))
         self.p.fill('#id_descripcion', 'Consulta registrada desde la prueba de interfaz.')
         antes = Atencion.objects.count()
-        boton = self.p.locator('main button[type=submit]')
+        # El formulario tiene dos botones de envío: «Guardar atención» y «Guardar y enviar a compromiso»
+        boton = self.p.get_by_role('button', name='Guardar atención', exact=True)
         boton.dblclick()
         self.p.wait_for_url('**/atenciones/*/?nueva=1')
         dlg = self.dialogo()
@@ -408,3 +409,73 @@ class InterfazTests(StaticLiveServerTestCase):
         anchos = self.p.eval_on_selector_all('[data-ancho]', 'els => els.map(e => e.style.width)')
         self.assertTrue(anchos and all(a.endswith('%') for a in anchos), anchos)
         self.evidencia('UI-20-periodo-detalle')
+
+    def test_ui21_guardar_y_enviar_a_compromiso(self):
+        """UI-21 · «Guardar y enviar a compromiso» (aun con doble clic) lleva al envío y crea un solo compromiso"""
+        from gestion.models import Actividad
+        self.entrar('bcastillo')
+        self.ir('/atenciones/nueva/')
+        tipo = TipoAtencion.objects.get(codigo='TA001')
+        sub = tipo.subatenciones.filter(activo=True).first()
+        self.p.fill('#id_rut', '11.111.111-1')
+        self.p.fill('#id_nombre', 'Vecina de Prueba')
+        self.p.select_option('#id_tipo', str(tipo.pk))
+        self.esperar('() => document.querySelector("#id_subatencion").options.length > 1')
+        self.p.select_option('#id_subatencion', str(sub.pk))
+        self.p.fill('#id_descripcion', 'Solicitud que queda en seguimiento en el TUBO.')
+        antes = Atencion.objects.count()
+        self.p.get_by_role('button', name='Guardar y enviar a compromiso').dblclick()
+        # El valor del botón presionado llega al servidor pese al bloqueo de doble envío
+        self.p.wait_for_url('**/atenciones/*/?nueva=1#enviar-compromiso')
+        self.assertEqual(Atencion.objects.count(), antes + 1)
+        atencion = Atencion.objects.latest('pk')
+        self.dialogo()
+        self.p.evaluate('Swal.close()')
+        self.p.evaluate('() => { const f = document.querySelector("#enviar-compromiso [name=fecha_compromiso]");'
+                        ' f.value = f.min; }')
+        self.p.get_by_role('button', name='Enviar a compromiso', exact=True).dblclick()
+        self.p.wait_for_selector('.aviso-compromiso')
+        self.assertEqual(Actividad.objects.filter(atencion=atencion).count(), 1)
+        self.evidencia('UI-21-atencion-a-compromiso')
+
+    def test_ui22_tubo_arrastrar_tarjetas(self):
+        """UI-22 · En el TUBO se arrastra una tarjeta a otra columna (y «Mover a…» sin mouse) y el estado se guarda"""
+        from datetime import timedelta
+        from cuentas.models import Usuario
+        from gestion.models import Actividad, Periodo
+        from gestion.reglas import evaluar_puntaje, hoy
+        dueno = Usuario.objects.get(nombre_usuario='bcastillo')
+        a = Actividad(periodo=Periodo.objects.get(estado=Periodo.ABIERTO), delegacion=dueno.delegaciones.first(),
+                      funcionario=dueno, item=ItemMedicion.objects.filter(medicion=ItemMedicion.TUBO).first(),
+                      fecha=hoy(), ingresada_el=hoy(), titulo='Poda de árbol en el pasaje',
+                      descripcion='Solicitud de prueba para arrastrar en el TUBO.', solicitante_nombre='Vecina',
+                      estado=Actividad.INGRESADO, fecha_compromiso=hoy() + timedelta(days=5))
+        a.puntua, a.motivo_sin_puntaje = evaluar_puntaje(a)
+        a.save()
+        self.entrar('bcastillo')
+        self.ir('/agenda/')
+        tarjeta = self.p.locator(f'li[data-folio="{a.folio}"]')
+        self.assertEqual(tarjeta.get_attribute('draggable'), 'true')
+        antes = int(self.p.inner_text('[data-contador="EN_PROCESO"]'))
+        tarjeta.drag_to(self.p.locator('section.estado-en_proceso'))
+        self.p.wait_for_selector(f'ul[data-columna="EN_PROCESO"] li[data-folio="{a.folio}"]:not(.moviendo)')
+        self.esperar('() => !document.querySelector(".tarjeta-tubo.moviendo")')
+        self.p.wait_for_timeout(300)
+        a.refresh_from_db()
+        self.assertEqual(a.estado, Actividad.EN_PROCESO)
+        self.assertEqual(int(self.p.inner_text('[data-contador="EN_PROCESO"]')), antes + 1)
+        self.evidencia('UI-22-tubo-arrastrado')
+        # Sin mouse: «Mover a…» → Realizado pide confirmación y la respuesta al vecino
+        tarjeta.locator('select[data-mover-a]').select_option('REALIZADO')
+        dlg = self.dialogo()
+        dlg.locator('textarea').fill('Se podó el árbol y se retiraron las ramas.')
+        dlg.locator('.swal2-confirm').click()
+        self.p.wait_for_selector(f'ul[data-columna="REALIZADO"] li[data-folio="{a.folio}"].realizada')
+        self.esperar('() => !document.querySelector(".tarjeta-tubo.moviendo")')
+        a.refresh_from_db()
+        self.assertEqual((a.estado, a.fecha_cierre), (Actividad.REALIZADO, hoy()))
+        self.assertEqual(a.historial.latest('pk').observacion, 'Se podó el árbol y se retiraron las ramas.')
+        # Las tarjetas de otros funcionarios no se pueden arrastrar
+        ajenas = self.p.locator('li.tarjeta-tubo:not(.movible)')
+        if ajenas.count():
+            self.assertIsNone(ajenas.first.get_attribute('draggable'))

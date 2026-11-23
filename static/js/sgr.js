@@ -35,7 +35,7 @@
             confirmButtonColor: peligro ? '#B3261E' : COLOR,
         }).then(r => r.isConfirmed);
     }
-    window.SGR = { confirmar };
+    window.SGR = { confirmar, dialogo, aviso, escapar };
 
     document.addEventListener('DOMContentLoaded', () => {
 
@@ -524,5 +524,188 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         padre.addEventListener('change', filtrar);
         filtrar();
+    });
+});
+
+/* ---------- TUBO en tarjetas: arrastrar una solicitud a otra columna cambia su estado ----------
+   Solo las tarjetas que el usuario puede mover traen data-mover. El servidor vuelve a revisar permisos,
+   período abierto y estado; si rechaza el cambio, la tarjeta regresa a su columna. «Mover a…» hace lo
+   mismo sin mouse (teclado o celular). */
+document.addEventListener('DOMContentLoaded', () => {
+    const tablero = document.querySelector('[data-tubo-arrastrable]');
+    if (!tablero) return;
+    const { confirmar, dialogo, aviso, escapar } = window.SGR || {};
+    const REALIZADO = 'REALIZADO';
+    const columna = (estado) => tablero.querySelector(`ul[data-columna="${estado}"]`);
+    let arrastrada = null;
+
+    const contador = (estado) => tablero.querySelector(`[data-contador="${estado}"]`);
+    const leer = (estado) => parseInt(contador(estado)?.textContent, 10) || 0;
+    const sumar = (estado, n) => { const c = contador(estado); if (c) c.textContent = leer(estado) + n; };
+
+    function marcarVacia(ul) {
+        const vacio = ul.querySelector('.sin-tarjetas');
+        const hay = ul.querySelector('.tarjeta-tubo');
+        if (hay && vacio) vacio.remove();
+        if (!hay && !vacio) ul.insertAdjacentHTML('beforeend', '<li class="ruta sin-tarjetas">Sin solicitudes</li>');
+    }
+
+    function actualizarResumen(cambioVencidas) {
+        const total = ['INGRESADO', 'PENDIENTE', 'EN_PROCESO', REALIZADO].reduce((t, e) => t + leer(e), 0);
+        const realizadas = leer(REALIZADO);
+        const tasa = total ? realizadas / total * 100 : 0;
+        const r = document.querySelector('[data-resumen="realizadas"]');
+        if (r) {
+            r.querySelector('.valor').textContent = realizadas;
+            r.querySelector('.apoyo').textContent =
+                `Tasa de resolución ${tasa.toLocaleString('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} % · meta habitual 80 %`;
+            r.classList.remove('verde', 'ambar', 'rojo');
+            r.classList.add(tasa >= 80 ? 'verde' : tasa >= 48 ? 'ambar' : 'rojo');
+        }
+        const p = document.querySelector('[data-resumen="proceso"] .valor');
+        if (p) p.textContent = leer('EN_PROCESO');
+        const pend = document.querySelector('[data-resumen="pendientes"]');
+        if (pend) {
+            pend.querySelector('.valor').textContent = leer('INGRESADO') + leer('PENDIENTE');
+            const vencidas = Math.max(0, (parseInt(pend.dataset.vencidas, 10) || 0) + cambioVencidas);
+            pend.dataset.vencidas = vencidas;
+            pend.classList.toggle('rojo', vencidas > 0);
+            pend.querySelector('.apoyo').textContent = vencidas
+                ? `${vencidas} vencida${vencidas === 1 ? '' : 's'} sin realizar` : 'Sin compromisos vencidos';
+        }
+    }
+
+    /** Pone la tarjeta en la columna del estado y deja contadores y menú al día. */
+    function ubicar(tarjeta, estado, vencida) {
+        const origen = tarjeta.parentElement;
+        const anterior = tarjeta.dataset.estado;
+        const antesVencida = tarjeta.hasAttribute('data-vencida');
+        const destino = columna(estado);
+        destino.prepend(tarjeta);
+        tarjeta.dataset.estado = estado;
+        tarjeta.classList.toggle('realizada', estado === REALIZADO);
+        tarjeta.classList.toggle('vencida', !!vencida);
+        tarjeta.toggleAttribute('data-vencida', !!vencida);
+        const marca = tarjeta.querySelector('.marca-vencida');
+        if (marca) marca.textContent = vencida ? ' · vencida' : '';
+        tarjeta.querySelectorAll('[data-mover-a] option').forEach(o => { o.disabled = o.value === estado; });
+        const menu = tarjeta.querySelector('[data-mover-a]');
+        if (menu) menu.value = '';
+        sumar(anterior, -1);
+        sumar(estado, 1);
+        marcarVacia(origen);
+        marcarVacia(destino);
+        actualizarResumen((vencida ? 1 : 0) - (antesVencida ? 1 : 0));
+    }
+
+    async function mover(tarjeta, estado) {
+        const anterior = tarjeta.dataset.estado;
+        if (!estado || estado === anterior || tarjeta.classList.contains('moviendo')) return;
+        const nombre = columna(estado).dataset.nombre;
+        const folio = tarjeta.dataset.folio;
+        let observacion = '';
+        if (estado === REALIZADO) {
+            if (dialogo) {
+                const r = await dialogo.fire({
+                    icon: 'question', title: `¿Marcar ${folio} como realizada?`,
+                    text: 'La solicitud se cierra con la fecha de hoy y suma a la tasa de resolución.',
+                    input: 'textarea', inputLabel: 'Respuesta entregada al vecino (opcional)',
+                    inputAttributes: { maxlength: 500 }, showCancelButton: true,
+                    confirmButtonText: 'Sí, realizada', cancelButtonText: 'Cancelar',
+                });
+                if (!r.isConfirmed) { tarjeta.querySelector('[data-mover-a]').value = ''; return; }
+                observacion = (r.value || '').trim();
+            } else if (!(await confirmar({ titulo: `¿Marcar ${folio} como realizada?` }))) {
+                return;
+            }
+        }
+        const vuelta = { padre: tarjeta.parentElement, siguiente: tarjeta.nextElementSibling,
+                         vencida: tarjeta.hasAttribute('data-vencida') };
+        ubicar(tarjeta, estado, vuelta.vencida && estado !== REALIZADO);
+        tarjeta.classList.add('moviendo');
+        tarjeta.setAttribute('aria-busy', 'true');
+        const datos = new FormData();
+        datos.append('estado', estado);
+        datos.append('observacion', observacion);
+        let respuesta = null;
+        try {
+            const r = await fetch(tarjeta.dataset.mover, {
+                method: 'POST', body: datos, credentials: 'same-origin',
+                headers: { 'X-CSRFToken': tablero.dataset.csrf, 'Accept': 'application/json' },
+            });
+            respuesta = await r.json().catch(() => ({ ok: false, error: 'El servidor no respondió como se esperaba.' }));
+            if (!r.ok && respuesta.ok !== false) respuesta = { ok: false, error: 'No se pudo guardar el cambio.' };
+        } catch (e) {
+            respuesta = { ok: false, error: 'Sin conexión con el servidor. Intente de nuevo.' };
+        }
+        tarjeta.classList.remove('moviendo');
+        tarjeta.removeAttribute('aria-busy');
+        if (respuesta.ok) {
+            // El servidor confirma si quedó vencida (depende de la fecha de compromiso y el estado)
+            if (!!respuesta.vencida !== tarjeta.hasAttribute('data-vencida')) {
+                const cambio = respuesta.vencida ? 1 : -1;
+                tarjeta.classList.toggle('vencida', !!respuesta.vencida);
+                tarjeta.toggleAttribute('data-vencida', !!respuesta.vencida);
+                const marca = tarjeta.querySelector('.marca-vencida');
+                if (marca) marca.textContent = respuesta.vencida ? ' · vencida' : '';
+                actualizarResumen(cambio);
+            }
+            if (aviso) aviso.fire({ icon: 'success', title: respuesta.mensaje || `${folio} quedó «${nombre}».` });
+            return;
+        }
+        // Rechazado: la tarjeta vuelve a su lugar
+        ubicar(tarjeta, anterior, vuelta.vencida);
+        if (vuelta.siguiente && vuelta.siguiente.parentElement === vuelta.padre) {
+            vuelta.padre.insertBefore(tarjeta, vuelta.siguiente);
+        }
+        if (dialogo) {
+            dialogo.fire({ icon: 'error', title: 'No se movió la solicitud',
+                           html: escapar(respuesta.error || 'No se pudo guardar el cambio.'), confirmButtonText: 'Entendido' });
+        } else {
+            window.alert(respuesta.error || 'No se pudo guardar el cambio.');
+        }
+    }
+
+    tablero.addEventListener('dragstart', (e) => {
+        const tarjeta = e.target.closest && e.target.closest('.tarjeta-tubo[data-mover]');
+        if (!tarjeta) return;
+        arrastrada = tarjeta;
+        tarjeta.classList.add('arrastrando');
+        tablero.classList.add('arrastrando-tarjeta');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', tarjeta.dataset.folio);
+    });
+    tablero.addEventListener('dragend', () => {
+        if (arrastrada) arrastrada.classList.remove('arrastrando');
+        arrastrada = null;
+        tablero.classList.remove('arrastrando-tarjeta');
+        tablero.querySelectorAll('.destino-activo').forEach(el => el.classList.remove('destino-activo'));
+    });
+    tablero.querySelectorAll('.columna-tubo').forEach(seccion => {
+        const ul = seccion.querySelector('ul[data-columna]');
+        const acepta = () => arrastrada && arrastrada.dataset.estado !== ul.dataset.columna;
+        seccion.addEventListener('dragover', (e) => {
+            if (!acepta()) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            seccion.classList.add('destino-activo');
+        });
+        seccion.addEventListener('dragleave', (e) => {
+            if (!seccion.contains(e.relatedTarget)) seccion.classList.remove('destino-activo');
+        });
+        seccion.addEventListener('drop', (e) => {
+            if (!acepta()) return;
+            e.preventDefault();
+            seccion.classList.remove('destino-activo');
+            const tarjeta = arrastrada;
+            arrastrada = null;
+            tarjeta.classList.remove('arrastrando');
+            tablero.classList.remove('arrastrando-tarjeta');
+            mover(tarjeta, ul.dataset.columna);
+        });
+    });
+    tablero.addEventListener('change', (e) => {
+        if (!e.target.matches('[data-mover-a]')) return;
+        mover(e.target.closest('.tarjeta-tubo'), e.target.value);
     });
 });
